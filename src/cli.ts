@@ -5,6 +5,9 @@ import { GitHubClient } from './github/client.js';
 import { handleGetFailingTests } from './tools/get-failing-tests/handler.js';
 import { handleFindUnresolvedComments } from './tools/find-unresolved-comments/handler.js';
 import { handleManageStackedPRs } from './tools/manage-stacked-prs/handler.js';
+import { GetFailingTestsSchema } from './tools/get-failing-tests/schema.js';
+import { FindUnresolvedCommentsSchema } from './tools/find-unresolved-comments/schema.js';
+import { ManageStackedPRsSchema } from './tools/manage-stacked-prs/schema.js';
 
 const program = new Command();
 
@@ -26,28 +29,30 @@ program
   .command('get-failing-tests')
   .description('Analyze PR CI failures')
   .requiredOption('--pr <identifier>', 'PR identifier (owner/repo#123)')
-  .option('--wait', 'Wait for CI completion', false)
-  .option('--bail-on-first', 'Bail on first failure', false)
-  .option('--page <number>', 'Page number', '1')
-  .option('--page-size <number>', 'Results per page', '10')
-  .option('--json', 'Output as JSON', false)
+  .option('--wait', 'Wait for CI completion')
+  .option('--bail-on-first', 'Bail on first failure')
+  .option('--page <number>', 'Page number')
+  .option('--page-size <number>', 'Results per page')
+  .option('--json', 'Output as JSON')
   .action(async (options: {
     pr: string;
-    wait: boolean;
-    bailOnFirst: boolean;
-    page: string;
-    pageSize: string;
-    json: boolean;
+    wait?: boolean;
+    bailOnFirst?: boolean;
+    page?: string;
+    pageSize?: string;
+    json?: boolean;
   }) => {
     try {
       const client = getClient();
-      const result = await handleGetFailingTests(client, {
+      // Build input and let Zod schema apply defaults
+      const input = GetFailingTestsSchema.parse({
         pr: options.pr,
-        wait: options.wait,
-        bail_on_first: options.bailOnFirst,
-        page: parseInt(options.page),
-        page_size: parseInt(options.pageSize)
+        ...(options.wait !== undefined && { wait: options.wait }),
+        ...(options.bailOnFirst !== undefined && { bail_on_first: options.bailOnFirst }),
+        ...(options.page && { page: parseInt(options.page) }),
+        ...(options.pageSize && { page_size: parseInt(options.pageSize) })
       });
+      const result = await handleGetFailingTests(client, input);
       
       if (options.json) {
         // eslint-disable-next-line no-console
@@ -84,31 +89,33 @@ program
   .command('find-unresolved-comments')
   .description('Find unresolved PR comments')
   .requiredOption('--pr <identifier>', 'PR identifier (owner/repo#123)')
-  .option('--include-bots', 'Include bot comments', false)
-  .option('--exclude-authors <authors>', 'Comma-separated list of authors to exclude', '')
-  .option('--page <number>', 'Page number', '1')
-  .option('--page-size <number>', 'Results per page', '20')
-  .option('--sort <type>', 'Sort order (chronological|by_file|by_author)', 'chronological')
-  .option('--json', 'Output as JSON', false)
+  .option('--include-bots', 'Include bot comments')
+  .option('--exclude-authors <authors>', 'Comma-separated list of authors to exclude')
+  .option('--page <number>', 'Page number')
+  .option('--page-size <number>', 'Results per page')
+  .option('--sort <type>', 'Sort order (chronological|by_file|by_author)')
+  .option('--json', 'Output as JSON')
   .action(async (options: {
     pr: string;
-    includeBots: boolean;
-    excludeAuthors: string;
-    page: string;
-    pageSize: string;
-    sort: string;
-    json: boolean;
+    includeBots?: boolean;
+    excludeAuthors?: string;
+    page?: string;
+    pageSize?: string;
+    sort?: string;
+    json?: boolean;
   }) => {
     try {
       const client = getClient();
-      const result = await handleFindUnresolvedComments(client, {
+      // Build input and let Zod schema apply defaults
+      const input = FindUnresolvedCommentsSchema.parse({
         pr: options.pr,
-        include_bots: options.includeBots,
-        exclude_authors: options.excludeAuthors ? options.excludeAuthors.split(',') : undefined,
-        sort: options.sort as 'chronological' | 'by_file' | 'by_author',
-        page: parseInt(options.page),
-        page_size: parseInt(options.pageSize)
+        ...(options.includeBots !== undefined && { include_bots: options.includeBots }),
+        ...(options.excludeAuthors && { exclude_authors: options.excludeAuthors.split(',') }),
+        ...(options.sort && { sort: options.sort }),
+        ...(options.page && { page: parseInt(options.page) }),
+        ...(options.pageSize && { page_size: parseInt(options.pageSize) })
       });
+      const result = await handleFindUnresolvedComments(client, input);
       
       if (options.json) {
         // eslint-disable-next-line no-console
@@ -143,31 +150,32 @@ program
   .description('Manage stacked PRs')
   .requiredOption('--base-pr <identifier>', 'Base PR (owner/repo#123)')
   .requiredOption('--dependent-pr <identifier>', 'Dependent PR (owner/repo#124)')
-  .option('--auto-fix', 'Auto-fix test failures', false)
+  .option('--auto-fix', 'Auto-fix test failures')
   .option('--use-onto', 'Use --onto rebase strategy')
-  .option('--page <number>', 'Page number', '1')
-  .option('--page-size <number>', 'Results per page', '10')
-  .option('--json', 'Output as JSON', false)
+  .option('--page <number>', 'Page number')
+  .option('--page-size <number>', 'Results per page')
+  .option('--json', 'Output as JSON')
   .action(async (options: {
     basePr: string;
     dependentPr: string;
-    autoFix: boolean;
+    autoFix?: boolean;
     useOnto?: boolean;
-    page: string;
-    pageSize: string;
-    json: boolean;
+    page?: string;
+    pageSize?: string;
+    json?: boolean;
   }) => {
     try {
       const client = getClient();
-      const result = await handleManageStackedPRs(client, {
+      // Build input and let Zod schema apply defaults
+      const input = ManageStackedPRsSchema.parse({
         base_pr: options.basePr,
         dependent_pr: options.dependentPr,
-        auto_fix: options.autoFix,
-        max_iterations: 3,
-        use_onto: options.useOnto,
-        page: parseInt(options.page),
-        page_size: parseInt(options.pageSize)
+        ...(options.autoFix !== undefined && { auto_fix: options.autoFix }),
+        ...(options.useOnto !== undefined && { use_onto: options.useOnto }),
+        ...(options.page && { page: parseInt(options.page) }),
+        ...(options.pageSize && { page_size: parseInt(options.pageSize) })
       });
+      const result = await handleManageStackedPRs(client, input);
       
       if (options.json) {
         // eslint-disable-next-line no-console
