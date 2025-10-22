@@ -16,6 +16,7 @@
     "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
     "test:coverage-check": "vitest run --coverage && node scripts/check-coverage.js",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "type-check": "tsc --noEmit",
