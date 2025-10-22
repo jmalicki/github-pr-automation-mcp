@@ -12,7 +12,15 @@
     "watch": "tsc --watch",
     "dev": "tsc && node dist/index.js",
     "cli": "tsc && node dist/cli.js",
-    "prepare": "npm run build"
+    "test": "vitest run",
+    "test:watch": "vitest watch",
+    "test:coverage": "vitest run --coverage",
+    "test:coverage-check": "vitest run --coverage && node scripts/check-coverage.js",
+    "lint": "eslint src tests scripts --ext .ts --ignore-path .eslintignore",
+    "lint:fix": "eslint src tests scripts --ext .ts --fix",
+    "type-check": "tsc --noEmit",
+    "prepare": "husky install && npm run build",
+    "postinstall": "husky install"
   },
   "keywords": [
     "mcp",
@@ -32,7 +40,13 @@
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
-    "typescript": "^5.3.3"
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "@vitest/coverage-v8": "^1.2.0",
+    "eslint": "^8.56.0",
+    "husky": "^8.0.3",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
   },
   "engines": {
     "node": ">=18.0.0"
