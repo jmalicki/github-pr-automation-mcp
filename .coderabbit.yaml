@@ -23,22 +23,20 @@ reviews:
     - "!docs/**"  # Design docs are already reviewed
   
   # Custom instructions for the reviewer
-  instructions:
-    - "Do NOT comment on style, formatting, naming conventions, or code organization - these are handled by ESLint and TypeScript"
-    - "Do NOT suggest variable renames unless the name is genuinely misleading or confusing"
-    - "Do NOT comment on documentation formatting or markdown style"
-    - "FOCUS ON: Logic errors, correctness bugs, edge cases in GitHub API integration"
-    - "FOCUS ON: Error handling (unhandled promise rejections, missing try-catch, incorrect error propagation)"
-    - "FOCUS ON: Security vulnerabilities (token exposure, injection risks, unauthorized access)"
-    - "FOCUS ON: Performance problems (unnecessary API calls, inefficient parsing, memory leaks)"
-    - "FOCUS ON: Async/await correctness, especially with Octokit and MCP protocol handling"
-    - "FOCUS ON: Type safety issues that TypeScript strict mode might miss"
-    - "FOCUS ON: MCP protocol compliance and stdio transport correctness"
-    - "FOCUS ON: Pagination logic correctness and edge cases"
-    - "FOCUS ON: GitHub API rate limiting and retry logic"
-    - "FOCUS ON: User preference precedence (explicit > preference > default) - this is critical"
-    - "Be thorough in analyzing control flow, edge cases, and boundary conditions"
-    - "This project implements an MCP server for GitHub PR automation - understand the MCP protocol context"
+  # Path-based instructions for specific file types
+  path_instructions:
+    - path: "src/**/*.ts"
+      instructions: |
+        Logic errors, correctness bugs, edge cases in GitHub API integration.
+        Error handling: unhandled promise rejections, missing try-catch, incorrect error propagation.
+        Security: token exposure, injection risks, unauthorized access.
+        Performance: unnecessary API calls, inefficient parsing, memory leaks.
+        Async/await correctness with Octokit and MCP protocol handling.
+        Type safety issues that TypeScript strict mode might miss.
+        MCP protocol compliance and stdio transport correctness.
+        Pagination logic correctness and edge cases.
+        GitHub API rate limiting and retry logic.
+        User preference precedence (explicit > preference > default).
 
 chat:
   auto_reply: false
