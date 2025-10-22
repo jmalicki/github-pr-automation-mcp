@@ -84,8 +84,9 @@ describe('handleFindUnresolvedComments', () => {
   });
 
   it('should filter out bot comments when include_bots is false', async () => {
-    mockOctokit.paginate
-      .mockResolvedValueOnce([
+    // Mock review comments response
+    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+      data: [
         {
           id: 1,
           user: { login: 'coderabbitai', type: 'Bot' },
@@ -96,20 +97,37 @@ describe('handleFindUnresolvedComments', () => {
           line: 10,
           body: 'Bot suggestion',
           reactions: { total_count: 0, '+1': 0, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 }
-        },
+        }
+      ],
+      headers: { link: '' } // No next page
+    });
+
+    // Mock issue comments response
+    mockOctokit.issues.listComments.mockResolvedValue({
+      data: [
         {
           id: 2,
           user: { login: 'human', type: 'User' },
           author_association: 'MEMBER',
           created_at: '2024-01-01T11:00:00Z',
           updated_at: '2024-01-01T11:00:00Z',
-          path: 'src/file.ts',
-          line: 20,
           body: 'Human comment',
           reactions: { total_count: 0, '+1': 0, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 }
         }
-      ])
-      .mockResolvedValueOnce([]);
+      ],
+      headers: { link: '' } // No next page
+    });
+
+    // Mock GraphQL response for node IDs
+    mockOctokit.graphql.mockResolvedValue({
+      repository: {
+        pullRequest: {
+          reviewThreads: {
+            nodes: []
+          }
+        }
+      }
+    });
 
     const result = await handleFindUnresolvedComments(mockClient, {
       pr: 'owner/repo#123',

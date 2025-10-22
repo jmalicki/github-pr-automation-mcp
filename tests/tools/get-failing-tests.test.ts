@@ -192,7 +192,8 @@ describe('handleGetFailingTests', () => {
     mockOctokit.checks.listForRef.mockResolvedValue({
       data: {
         check_runs: failedChecks
-      }
+      },
+      headers: { link: '' } // No next page for this test
     });
 
     // First page (no cursor)
