@@ -1,9 +1,11 @@
 import type { GitHubClient } from '../../github/client.js';
 import { parsePRIdentifier, formatPRIdentifier } from '../../utils/parser.js';
+import { cursorToGitHubPagination, createNextCursor } from '../../utils/pagination.js';
 
 export interface AnalyzePRImpactInput {
   pr: string;
   depth?: 'summary' | 'detailed';
+  cursor?: string; // MCP cursor-based pagination
 }
 
 export interface AnalyzePRImpactOutput {
@@ -20,6 +22,7 @@ export interface AnalyzePRImpactOutput {
     risk_level: 'low' | 'medium' | 'high';
   }>;
   overall_risk: 'low' | 'medium' | 'high' | 'critical';
+  nextCursor?: string; // MCP cursor-based pagination
 }
 
 export async function handleAnalyzePRImpact(
@@ -35,15 +38,25 @@ export async function handleAnalyzePRImpact(
     pull_number: pr.number
   });
   
-  // Get files changed
-  const files = await octokit.paginate(
-    octokit.pulls.listFiles,
-    {
-      owner: pr.owner,
-      repo: pr.repo,
-      pull_number: pr.number
-    }
-  );
+  // Convert cursor to GitHub pagination parameters
+  const githubPagination = cursorToGitHubPagination(input.cursor, 20);
+  
+  // Get files changed with server-side pagination
+  const filesResponse = await octokit.pulls.listFiles({
+    owner: pr.owner,
+    repo: pr.repo,
+    pull_number: pr.number,
+    page: githubPagination.page,
+    per_page: githubPagination.per_page
+  });
+  
+  // Check if there are more results by looking at response headers
+  const hasMore = filesResponse.headers.link?.includes('rel="next"') ?? false;
+  
+  // Create next cursor if there are more results
+  const nextCursor = createNextCursor(input.cursor, githubPagination.per_page, hasMore);
+  
+  const files = filesResponse.data;
   
   // Categorize files (simple heuristics)
   const impactAreas: AnalyzePRImpactOutput['impact_areas'] = [];
@@ -87,7 +100,8 @@ export async function handleAnalyzePRImpact(
       commits: data.commits
     },
     impact_areas: impactAreas,
-    overall_risk: overallRisk
+    overall_risk: overallRisk,
+    nextCursor
   };
 }
 
