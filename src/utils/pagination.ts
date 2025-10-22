@@ -51,6 +51,74 @@ export function decodeCursor(cursor: string): CursorData {
 }
 
 /**
+ * Convert cursor-based pagination to GitHub API pagination parameters
+ * 
+ * @param cursor - Opaque cursor string (undefined = start from beginning)
+ * @param defaultPageSize - Server-controlled page size
+ * @returns GitHub API pagination parameters
+ */
+export function cursorToGitHubPagination(
+  cursor: string | undefined,
+  defaultPageSize: number
+): { page: number; per_page: number } {
+  // Validate page size
+  if (!Number.isFinite(defaultPageSize) || defaultPageSize < 1) {
+    throw new RangeError('pageSize must be a positive finite integer');
+  }
+  
+  // Decode cursor or start from beginning
+  let offset: number;
+  let pageSize: number;
+  
+  if (cursor) {
+    const decoded = decodeCursor(cursor);
+    offset = decoded.offset;
+    // Clamp page size to server-controlled default to prevent abuse
+    pageSize = Math.min(decoded.pageSize, defaultPageSize);
+  } else {
+    offset = 0;
+    pageSize = defaultPageSize;
+  }
+  
+  // Convert offset to GitHub page number (1-based)
+  const page = Math.floor(offset / pageSize) + 1;
+  
+  return {
+    page,
+    per_page: pageSize
+  };
+}
+
+/**
+ * Create next cursor from GitHub API response
+ * 
+ * @param currentCursor - Current cursor (undefined = first page)
+ * @param pageSize - Page size used
+ * @param hasMore - Whether there are more results (based on response length)
+ * @returns Next cursor or undefined if no more results
+ */
+export function createNextCursor(
+  currentCursor: string | undefined,
+  pageSize: number,
+  hasMore: boolean
+): string | undefined {
+  if (!hasMore) {
+    return undefined;
+  }
+  
+  // Calculate next offset
+  let nextOffset: number;
+  if (currentCursor) {
+    const decoded = decodeCursor(currentCursor);
+    nextOffset = decoded.offset + pageSize;
+  } else {
+    nextOffset = pageSize;
+  }
+  
+  return encodeCursor(nextOffset, pageSize);
+}
+
+/**
  * Paginate an array of items using MCP cursor-based pagination
  * 
  * @param items - Array to paginate

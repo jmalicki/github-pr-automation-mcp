@@ -1,6 +1,6 @@
 import type { GitHubClient } from '../../github/client.js';
 import { parsePRIdentifier, formatPRIdentifier } from '../../utils/parser.js';
-import { paginateResults } from '../../utils/pagination.js';
+import { cursorToGitHubPagination, createNextCursor } from '../../utils/pagination.js';
 import type { FindUnresolvedCommentsInput, FindUnresolvedCommentsOutput, Comment } from './schema.js';
 import { generateActionCommands } from './command-generator.js';
 
@@ -11,32 +11,33 @@ export async function handleFindUnresolvedComments(
   const pr = parsePRIdentifier(input.pr);
   const octokit = client.getOctokit();
   
-  // Fetch review comments (inline comments on code)
-  const reviewComments = await octokit.paginate(
-    octokit.pulls.listReviewComments,
-    {
-      owner: pr.owner,
-      repo: pr.repo,
-      pull_number: pr.number
-    }
-  );
+  // Convert cursor to GitHub pagination parameters
+  const githubPagination = cursorToGitHubPagination(input.cursor, 20);
+  
+  // Fetch review comments with server-side pagination
+  const reviewCommentsResponse = await octokit.pulls.listReviewComments({
+    owner: pr.owner,
+    repo: pr.repo,
+    pull_number: pr.number,
+    page: githubPagination.page,
+    per_page: githubPagination.per_page
+  });
   
   // Fetch GraphQL node IDs for review comments and their threads
-  const nodeIdMap = await fetchReviewCommentNodeIds(octokit, pr, reviewComments.map(c => c.id));
+  const nodeIdMap = await fetchReviewCommentNodeIds(octokit, pr, reviewCommentsResponse.data.map(c => c.id));
   
-  // Fetch issue comments (general PR comments)
-  const issueComments = await octokit.paginate(
-    octokit.issues.listComments,
-    {
-      owner: pr.owner,
-      repo: pr.repo,
-      issue_number: pr.number
-    }
-  );
+  // Fetch issue comments (general PR comments) with server-side pagination
+  const issueCommentsResponse = await octokit.issues.listComments({
+    owner: pr.owner,
+    repo: pr.repo,
+    issue_number: pr.number,
+    page: githubPagination.page,
+    per_page: githubPagination.per_page
+  });
   
   // Convert to our Comment type with action commands and hints
   const allComments: Comment[] = [
-    ...reviewComments.map(c => {
+    ...reviewCommentsResponse.data.map(c => {
       const author = c.user?.login || 'unknown';
       const authorAssociation = c.author_association || 'NONE';
       const isBot = c.user?.type === 'Bot';
@@ -78,7 +79,7 @@ export async function handleFindUnresolvedComments(
         )
       };
     }),
-    ...issueComments.map(c => {
+    ...issueCommentsResponse.data.map(c => {
       const author = c.user?.login || 'unknown';
       const authorAssociation = c.author_association || 'NONE';
       const isBot = c.user?.type === 'Bot';
@@ -140,10 +141,16 @@ export async function handleFindUnresolvedComments(
       break;
   }
   
-  // Paginate using MCP cursor model (server-controlled page size: 20)
-  const paginated = paginateResults(filtered, input.cursor, 20);
+  // Check if there are more results by looking at response headers
+  // GitHub API includes Link header with pagination info
+  const hasMoreReviewComments = reviewCommentsResponse.headers.link?.includes('rel="next"') ?? false;
+  const hasMoreIssueComments = issueCommentsResponse.headers.link?.includes('rel="next"') ?? false;
+  const hasMore = hasMoreReviewComments || hasMoreIssueComments;
   
-  // Generate summary statistics
+  // Create next cursor if there are more results
+  const nextCursor = createNextCursor(input.cursor, githubPagination.per_page, hasMore);
+  
+  // Generate summary statistics for current page only
   const byAuthor: Record<string, number> = {};
   const byType: Record<string, number> = {};
   let botCount = 0;
@@ -158,11 +165,11 @@ export async function handleFindUnresolvedComments(
   
   return {
     pr: formatPRIdentifier(pr),
-    total_unresolved: filtered.length,
-    comments: paginated.items,
-    nextCursor: paginated.nextCursor,
+    total_unresolved: filtered.length, // Current page count
+    comments: filtered, // Current page comments
+    nextCursor,
     summary: {
-      total_comments: filtered.length,
+      total_comments: filtered.length, // Current page count
       by_author: byAuthor,
       by_type: byType,
       bot_comments: botCount,
