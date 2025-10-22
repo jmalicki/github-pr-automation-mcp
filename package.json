@@ -74,6 +74,7 @@
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
     "@vitest/coverage-v8": "^1.2.0",
+    "audit-ci": "^7.1.0",
     "eslint": "^8.56.0",
     "husky": "^8.0.3",
     "license-checker": "^25.0.1",
