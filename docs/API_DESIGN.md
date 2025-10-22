@@ -236,12 +236,12 @@ Agent makes fix → Agent verifies fix → Agent resolves comment
 
 ### 3.7. resolve_review_conversations 🆕
 
-**Purpose**: Generate commands to resolve GitHub review threads programmatically using GraphQL API.
+**Purpose**: List GitHub review threads and provide MCP actions for resolution.
 
 **Use Cases**:
-- AI needs to resolve review conversations after addressing feedback
-- Bulk resolution of resolved threads
-- Programmatic thread management
+- AI needs to see review conversations and get MCP actions to resolve them
+- Bulk thread listing with programmatic resolution options
+- Thread management and status overview
 
 **Input Schema**:
 ```typescript
@@ -264,7 +264,13 @@ interface ResolveReviewConversationsOutput {
     is_resolved: boolean;       // Current resolution status
     preview: string;            // First 200 chars of thread content
     action_commands: {
-      resolve_command: string;  // GraphQL mutation to resolve thread
+      mcp_action: {             // MCP tool call object
+        tool: "resolve_review_thread";
+        args: {
+          pr: string;
+          thread_id: string;
+        };
+      };
       view_in_browser: string;  // Direct link to thread
     };
   }>;
@@ -281,21 +287,76 @@ interface ResolveReviewConversationsOutput {
 
 **GraphQL Integration**:
 - Uses `reviewThreads` query to fetch thread data
-- Generates `resolveReviewThread` mutation commands
+- Provides MCP action objects for programmatic resolution
 - Supports cursor-based pagination per MCP spec
 
 **Tool Philosophy**:
-- **Dumb tool**: Lists threads, generates commands
-- **Smart agent**: Decides when to run commands, verifies fixes first
-- **Never auto-resolve**: Commands are dry-run by default
+- **Dumb tool**: Lists threads, provides MCP actions
+- **Smart agent**: Decides when to call MCP actions, verifies fixes first
+- **MCP integration**: Actions are ready-to-call MCP tool invocations
 
-**Example Commands Generated**:
+**Example MCP Actions Generated**:
+```json
+{
+  "mcp_action": {
+    "tool": "resolve_review_thread",
+    "args": {
+      "pr": "owner/repo#123",
+      "thread_id": "thread-abc123"
+    }
+  },
+  "view_in_browser": "https://github.com/owner/repo/pull/123#discussion_rthread-abc123"
+}
+```
+
+---
+
+### 3.8. resolve_review_thread 🆕
+
+**Purpose**: Immediately resolve a specific GitHub review thread using GraphQL API.
+
+**Use Cases**:
+- AI needs to resolve a specific review conversation after addressing feedback
+- One-shot thread resolution
+- Programmatic thread management
+
+**Input Schema**:
+```typescript
+interface ResolveReviewThreadInput {
+  pr: string;                    // Format: "owner/repo#number"
+  thread_id?: string;            // Review thread GraphQL node ID
+  comment_id?: string;           // Comment GraphQL node ID (will map to thread)
+  prefer?: "thread" | "comment"; // Prefer thread or comment when both provided (default: "thread")
+}
+```
+
+**Output Schema**:
+```typescript
+interface ResolveReviewThreadOutput {
+  ok: boolean;                   // Whether resolution succeeded
+  thread_id: string;             // The resolved thread ID
+  alreadyResolved: boolean;      // Whether thread was already resolved
+  message?: string;              // Additional information
+}
+```
+
+**GraphQL Integration**:
+- Uses `resolveReviewThread` mutation to resolve threads
+- Maps comment IDs to thread IDs when needed
+- Checks resolution status before attempting resolution
+
+**Tool Philosophy**:
+- **One-shot execution**: Immediately resolves the thread
+- **Idempotent**: Safe to call on already-resolved threads
+- **Smart mapping**: Can resolve via comment ID by looking up the thread
+
+**Example Usage**:
 ```bash
-# Resolve a specific thread
-gh api graphql -f query='mutation($threadId: ID!) { resolveReviewThread(input: {threadId: $threadId}) { thread { isResolved } } }' -f threadId="thread-abc123"
+# Resolve by thread ID
+resolve-review-thread --pr owner/repo#123 --thread-id "thread-abc123"
 
-# View thread in browser
-https://github.com/owner/repo/pull/123#discussion_rthread-abc123
+# Resolve by comment ID
+resolve-review-thread --pr owner/repo#123 --comment-id "comment-xyz789"
 ```
 
 ---
