@@ -13,7 +13,14 @@ import { ManageStackedPRsSchema } from './tools/manage-stacked-prs/schema.js';
 import { handleGetFailingTests } from './tools/get-failing-tests/handler.js';
 import { handleFindUnresolvedComments } from './tools/find-unresolved-comments/handler.js';
 import { handleManageStackedPRs } from './tools/manage-stacked-prs/handler.js';
+import { handleDetectMergeConflicts } from './tools/detect-merge-conflicts/handler.js';
+import { handleCheckMergeReadiness } from './tools/check-merge-readiness/handler.js';
+import { handleAnalyzePRImpact } from './tools/analyze-pr-impact/handler.js';
+import { handleGetReviewSuggestions } from './tools/get-review-suggestions/handler.js';
+import { handleRebaseAfterSquashMerge } from './tools/rebase-after-squash-merge/handler.js';
 import { handleGitHubError } from './github/errors.js';
+import { PRIdentifierStringSchema } from './utils/validation.js';
+import { z } from 'zod';
 
 const server = new Server(
   {
@@ -150,6 +157,109 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
           required: ['base_pr', 'dependent_pr']
         }
+      },
+      {
+        name: 'detect_merge_conflicts',
+        description: 'Detect merge conflicts in a PR',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            pr: {
+              type: 'string',
+              description: 'PR identifier (owner/repo#123)'
+            },
+            target_branch: {
+              type: 'string',
+              description: 'Target branch to check conflicts against (optional)'
+            }
+          },
+          required: ['pr']
+        }
+      },
+      {
+        name: 'check_merge_readiness',
+        description: 'Check if PR is ready to merge',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            pr: {
+              type: 'string',
+              description: 'PR identifier (owner/repo#123)'
+            }
+          },
+          required: ['pr']
+        }
+      },
+      {
+        name: 'analyze_pr_impact',
+        description: 'Analyze the impact and scope of PR changes',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            pr: {
+              type: 'string',
+              description: 'PR identifier (owner/repo#123)'
+            },
+            depth: {
+              type: 'string',
+              description: 'Analysis depth: summary or detailed',
+              enum: ['summary', 'detailed'],
+              default: 'summary'
+            }
+          },
+          required: ['pr']
+        }
+      },
+      {
+        name: 'get_review_suggestions',
+        description: 'Get AI-optimized review context and suggestions',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            pr: {
+              type: 'string',
+              description: 'PR identifier (owner/repo#123)'
+            },
+            focus_areas: {
+              type: 'array',
+              description: 'Specific areas to focus on (e.g., security, performance)',
+              items: { type: 'string' }
+            },
+            include_diff: {
+              type: 'boolean',
+              description: 'Include code diffs (default: true)',
+              default: true
+            },
+            max_diff_lines: {
+              type: 'number',
+              description: 'Maximum diff lines to include (default: 500)',
+              default: 500
+            }
+          },
+          required: ['pr']
+        }
+      },
+      {
+        name: 'rebase_after_squash_merge',
+        description: 'Generate rebase commands after upstream PR was squash-merged, using --onto strategy',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            pr: {
+              type: 'string',
+              description: 'Your PR identifier (owner/repo#123)'
+            },
+            upstream_pr: {
+              type: 'string',
+              description: 'Upstream PR that was squash-merged (optional, can auto-detect)'
+            },
+            target_branch: {
+              type: 'string',
+              description: 'Target branch (default: PR base branch)'
+            }
+          },
+          required: ['pr']
+        }
       }
     ]
   };
@@ -195,6 +305,78 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'manage_stacked_prs': {
         const input = ManageStackedPRsSchema.parse(args);
         const result = await handleManageStackedPRs(githubClient, input);
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(result, null, 2)
+          }]
+        };
+      }
+      
+      case 'detect_merge_conflicts': {
+        const input = z.object({ 
+          pr: PRIdentifierStringSchema,
+          target_branch: z.string().optional()
+        }).parse(args);
+        const result = await handleDetectMergeConflicts(githubClient, input);
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(result, null, 2)
+          }]
+        };
+      }
+      
+      case 'check_merge_readiness': {
+        const input = z.object({ 
+          pr: PRIdentifierStringSchema
+        }).parse(args);
+        const result = await handleCheckMergeReadiness(githubClient, input);
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(result, null, 2)
+          }]
+        };
+      }
+      
+      case 'analyze_pr_impact': {
+        const input = z.object({ 
+          pr: PRIdentifierStringSchema,
+          depth: z.enum(['summary', 'detailed']).default('summary')
+        }).parse(args);
+        const result = await handleAnalyzePRImpact(githubClient, input);
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(result, null, 2)
+          }]
+        };
+      }
+      
+      case 'get_review_suggestions': {
+        const input = z.object({ 
+          pr: PRIdentifierStringSchema,
+          focus_areas: z.array(z.string()).optional(),
+          include_diff: z.boolean().default(true),
+          max_diff_lines: z.number().default(500)
+        }).parse(args);
+        const result = await handleGetReviewSuggestions(githubClient, input);
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(result, null, 2)
+          }]
+        };
+      }
+      
+      case 'rebase_after_squash_merge': {
+        const input = z.object({ 
+          pr: PRIdentifierStringSchema,
+          upstream_pr: PRIdentifierStringSchema.optional(),
+          target_branch: z.string().optional()
+        }).parse(args);
+        const result = await handleRebaseAfterSquashMerge(githubClient, input);
         return {
           content: [{
             type: 'text',
