@@ -37,9 +37,7 @@ describe('handleGetFailingTests', () => {
     const result = await handleGetFailingTests(mockClient, {
       pr: 'owner/repo#123',
       wait: false,
-      bail_on_first: true,
-      page: 1,
-      page_size: 10
+      bail_on_first: true
     });
 
     expect(result.status).toBe('unknown');
@@ -76,9 +74,7 @@ describe('handleGetFailingTests', () => {
     const result = await handleGetFailingTests(mockClient, {
       pr: 'owner/repo#123',
       wait: false,
-      bail_on_first: true,
-      page: 1,
-      page_size: 10
+      bail_on_first: true
     });
 
     expect(result.status).toBe('passed');
@@ -113,9 +109,7 @@ describe('handleGetFailingTests', () => {
     const result = await handleGetFailingTests(mockClient, {
       pr: 'owner/repo#123',
       wait: false,
-      bail_on_first: true,
-      page: 1,
-      page_size: 10
+      bail_on_first: true
     });
 
     expect(result.status).toBe('failed');
@@ -171,13 +165,16 @@ describe('handleGetFailingTests', () => {
   });
 
   it('should paginate results correctly', async () => {
+    const PAGE_SIZE = 10; // Server-controlled page size constant
+    const TOTAL_ITEMS = 25;
+    
     mockOctokit.pulls.get.mockResolvedValue({
       data: {
         head: { sha: 'abc123' }
       }
     });
 
-    const failedChecks = Array.from({ length: 25 }, (_, i) => ({
+    const failedChecks = Array.from({ length: TOTAL_ITEMS }, (_, i) => ({
       name: `test-${i}`,
       status: 'completed',
       conclusion: 'failure',
@@ -194,49 +191,37 @@ describe('handleGetFailingTests', () => {
       }
     });
 
-    // Page 1
+    // First page (no cursor)
     const page1 = await handleGetFailingTests(mockClient, {
       pr: 'owner/repo#123',
       wait: false,
-      bail_on_first: false,
-      page: 1,
-      page_size: 10
+      bail_on_first: false
     });
 
-    expect(page1.failures).toHaveLength(10);
-    expect(page1.pagination.page).toBe(1);
-    expect(page1.pagination.total_items).toBe(25);
-    expect(page1.pagination.total_pages).toBe(3);
-    expect(page1.pagination.has_next).toBe(true);
-    expect(page1.pagination.has_previous).toBe(false);
+    expect(page1.failures).toHaveLength(10); // Server page size
+    expect(page1.nextCursor).toBeDefined(); // More results exist
 
-    // Page 2
+    // Second page using cursor from page1
     const page2 = await handleGetFailingTests(mockClient, {
       pr: 'owner/repo#123',
       wait: false,
       bail_on_first: false,
-      page: 2,
-      page_size: 10
+      cursor: page1.nextCursor
     });
 
     expect(page2.failures).toHaveLength(10);
-    expect(page2.pagination.page).toBe(2);
-    expect(page2.pagination.has_next).toBe(true);
-    expect(page2.pagination.has_previous).toBe(true);
+    expect(page2.nextCursor).toBeDefined(); // More results
 
-    // Page 3
+    // Third page (last page) using cursor from page2
     const page3 = await handleGetFailingTests(mockClient, {
       pr: 'owner/repo#123',
       wait: false,
       bail_on_first: false,
-      page: 3,
-      page_size: 10
+      cursor: page2.nextCursor
     });
 
-    expect(page3.failures).toHaveLength(5);
-    expect(page3.pagination.page).toBe(3);
-    expect(page3.pagination.has_next).toBe(false);
-    expect(page3.pagination.has_previous).toBe(true);
+    expect(page3.failures).toHaveLength(5); // Partial last page
+    expect(page3.nextCursor).toBeUndefined(); // No more results
   });
 
   it('should handle mixed status checks', async () => {

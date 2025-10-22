@@ -29,7 +29,7 @@ describe('get_failing_tests integration', () => {
     // Verify we got real data back
     expect(result.pr).toContain('#');
     expect(result.status).toMatch(/passed|failed|running|unknown/);
-    expect(result.pagination).toBeDefined();
+    expect(result.nextCursor !== undefined).toBe(true);
     expect(result.instructions).toBeDefined();
   }, 10000); // 10 second timeout for API calls
 

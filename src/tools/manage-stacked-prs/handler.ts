@@ -87,8 +87,8 @@ export async function handleManageStackedPRs(
     });
   }
   
-  // Paginate commands
-  const paginated = paginateResults(commands, input.page, input.page_size);
+  // Paginate commands using MCP cursor model (server-controlled page size: 5)
+  const paginated = paginateResults(commands, input.cursor, 5);
   
   // Create visualization
   const visualization = isStacked
@@ -116,7 +116,7 @@ export async function handleManageStackedPRs(
       files_changed: comparison.data.files?.map(f => f.filename) || []
     } : undefined,
     commands: paginated.items,
-    pagination: paginated.pagination,
+    nextCursor: paginated.nextCursor,
     summary: {
       action_required: changesDetected && isStacked,
       reason: changesDetected 

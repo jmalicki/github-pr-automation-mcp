@@ -31,15 +31,13 @@ program
   .requiredOption('--pr <identifier>', 'PR identifier (owner/repo#123)')
   .option('--wait', 'Wait for CI completion')
   .option('--bail-on-first', 'Bail on first failure')
-  .option('--page <number>', 'Page number')
-  .option('--page-size <number>', 'Results per page')
+  .option('--cursor <string>', 'Pagination cursor (from previous response)')
   .option('--json', 'Output as JSON')
   .action(async (options: {
     pr: string;
     wait?: boolean;
     bailOnFirst?: boolean;
-    page?: string;
-    pageSize?: string;
+    cursor?: string;
     json?: boolean;
   }) => {
     try {
@@ -49,8 +47,7 @@ program
         pr: options.pr,
         ...(options.wait !== undefined && { wait: options.wait }),
         ...(options.bailOnFirst !== undefined && { bail_on_first: options.bailOnFirst }),
-        ...(options.page && { page: parseInt(options.page) }),
-        ...(options.pageSize && { page_size: parseInt(options.pageSize) })
+        ...(options.cursor && { cursor: options.cursor })
       });
       const result = await handleGetFailingTests(client, input);
       
@@ -61,7 +58,6 @@ program
         /* eslint-disable no-console */
         console.log(`\n📊 CI Status for ${result.pr}`);
         console.log(`Status: ${result.status}`);
-        console.log(`Total: ${result.pagination.total_items}`);
         console.log(`Failures: ${result.failures.length}\n`);
         
         if (result.failures.length > 0) {
@@ -75,6 +71,10 @@ program
         
         if (result.instructions) {
           console.log(`\n📝 ${result.instructions.summary}`);
+        }
+        
+        if (result.nextCursor) {
+          console.log(`\n📄 More results available. Use --cursor "${result.nextCursor}"`);
         }
         /* eslint-enable no-console */
       }
@@ -91,16 +91,14 @@ program
   .requiredOption('--pr <identifier>', 'PR identifier (owner/repo#123)')
   .option('--include-bots', 'Include bot comments')
   .option('--exclude-authors <authors>', 'Comma-separated list of authors to exclude')
-  .option('--page <number>', 'Page number')
-  .option('--page-size <number>', 'Results per page')
+  .option('--cursor <string>', 'Pagination cursor (from previous response)')
   .option('--sort <type>', 'Sort order (chronological|by_file|by_author)')
   .option('--json', 'Output as JSON')
   .action(async (options: {
     pr: string;
     includeBots?: boolean;
     excludeAuthors?: string;
-    page?: string;
-    pageSize?: string;
+    cursor?: string;
     sort?: string;
     json?: boolean;
   }) => {
@@ -112,8 +110,7 @@ program
         ...(options.includeBots !== undefined && { include_bots: options.includeBots }),
         ...(options.excludeAuthors && { exclude_authors: options.excludeAuthors.split(',') }),
         ...(options.sort && { sort: options.sort }),
-        ...(options.page && { page: parseInt(options.page) }),
-        ...(options.pageSize && { page_size: parseInt(options.pageSize) })
+        ...(options.cursor && { cursor: options.cursor })
       });
       const result = await handleFindUnresolvedComments(client, input);
       
@@ -144,6 +141,10 @@ program
         
         console.log(`\n📊 Summary:`);
         console.log(`   Bots: ${result.summary.bot_comments}, Humans: ${result.summary.human_comments}`);
+        
+        if (result.nextCursor) {
+          console.log(`\n📄 More results available. Use --cursor "${result.nextCursor}"`);
+        }
         /* eslint-enable no-console */
       }
       process.exit(0);
@@ -160,16 +161,14 @@ program
   .requiredOption('--dependent-pr <identifier>', 'Dependent PR (owner/repo#124)')
   .option('--auto-fix', 'Auto-fix test failures')
   .option('--use-onto', 'Use --onto rebase strategy')
-  .option('--page <number>', 'Page number')
-  .option('--page-size <number>', 'Results per page')
+  .option('--cursor <string>', 'Pagination cursor (from previous response)')
   .option('--json', 'Output as JSON')
   .action(async (options: {
     basePr: string;
     dependentPr: string;
     autoFix?: boolean;
     useOnto?: boolean;
-    page?: string;
-    pageSize?: string;
+    cursor?: string;
     json?: boolean;
   }) => {
     try {
@@ -180,8 +179,7 @@ program
         dependent_pr: options.dependentPr,
         ...(options.autoFix !== undefined && { auto_fix: options.autoFix }),
         ...(options.useOnto !== undefined && { use_onto: options.useOnto }),
-        ...(options.page && { page: parseInt(options.page) }),
-        ...(options.pageSize && { page_size: parseInt(options.pageSize) })
+        ...(options.cursor && { cursor: options.cursor })
       });
       const result = await handleManageStackedPRs(client, input);
       
@@ -211,6 +209,10 @@ program
         
         console.log(`\n⏱️  Estimated time: ${result.summary.estimated_total_time}`);
         console.log(`⚠️  Risk level: ${result.summary.risk_level}`);
+        
+        if (result.nextCursor) {
+          console.log(`\n📄 More commands available. Use --cursor "${result.nextCursor}"`);
+        }
         /* eslint-enable no-console */
       }
       process.exit(0);

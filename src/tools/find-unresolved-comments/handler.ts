@@ -130,8 +130,8 @@ export async function handleFindUnresolvedComments(
       break;
   }
   
-  // Paginate
-  const paginated = paginateResults(filtered, input.page, input.page_size);
+  // Paginate using MCP cursor model (server-controlled page size: 20)
+  const paginated = paginateResults(filtered, input.cursor, 20);
   
   // Generate summary statistics
   const byAuthor: Record<string, number> = {};
@@ -150,7 +150,7 @@ export async function handleFindUnresolvedComments(
     pr: formatPRIdentifier(pr),
     total_unresolved: filtered.length,
     comments: paginated.items,
-    pagination: paginated.pagination,
+    nextCursor: paginated.nextCursor,
     summary: {
       total_comments: filtered.length,
       by_author: byAuthor,

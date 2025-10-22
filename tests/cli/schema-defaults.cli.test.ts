@@ -35,30 +35,39 @@ describe('CLI: Schema Default Behavior', () => {
       
       const result = JSON.parse(stdout);
       
-      // Verify pagination defaults match schema (page: 1, page_size: 10)
-      expect(result.pagination.page).toBe(1);
-      expect(result.pagination.page_size).toBe(10);
+      // Verify cursor-based pagination (no cursor = start from beginning)
+      expect(result).toHaveProperty('failures');
+      expect(result.failures).toBeInstanceOf(Array);
       
-      // Note: We can't directly test bail_on_first or wait defaults without
-      // a PR that has the right conditions, but the parsing test below ensures
-      // the schema is being used
+      // If more results exist, should have nextCursor
+      // If all fit in one page, no nextCursor
+      if (result.nextCursor) {
+        expect(typeof result.nextCursor).toBe('string');
+      }
     }, 15000);
 
-    it('should override schema defaults when options explicitly provided', async () => {
+    it('should support cursor-based continuation', async () => {
       if (!hasToken) {
         console.log(skipMessage);
         return;
       }
 
-      // Run with explicit page-size
-      const { stdout } = await execAsync(
-        'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js get-failing-tests --pr "jmalicki/resolve-pr-mcp#2" --page-size 5 --json'
+      // Get first page
+      const { stdout: page1Stdout } = await execAsync(
+        'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js get-failing-tests --pr "jmalicki/resolve-pr-mcp#2" --json'
       );
       
-      const result = JSON.parse(stdout);
+      const page1 = JSON.parse(page1Stdout);
       
-      // Verify explicit option overrides default
-      expect(result.pagination.page_size).toBe(5);
+      // If there's a cursor, we can get next page
+      if (page1.nextCursor) {
+        const { stdout: page2Stdout } = await execAsync(
+          `GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js get-failing-tests --pr "jmalicki/resolve-pr-mcp#2" --cursor "${page1.nextCursor}" --json`
+        );
+        
+        const page2 = JSON.parse(page2Stdout);
+        expect(page2.failures).toBeInstanceOf(Array);
+      }
     }, 15000);
   });
 
@@ -124,22 +133,27 @@ describe('CLI: Schema Default Behavior', () => {
   });
 
   describe('manage-stacked-prs defaults', () => {
-    it('should use schema defaults for pagination', async () => {
+    it('should use cursor-based pagination', async () => {
       if (!hasToken) {
         console.log(skipMessage);
         return;
       }
 
-      // Run without specifying pagination options
+      // Run without cursor
       const { stdout } = await execAsync(
         'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js manage-stacked-prs --base-pr "jmalicki/resolve-pr-mcp#2" --dependent-pr "jmalicki/resolve-pr-mcp#3" --json'
       );
       
       const result = JSON.parse(stdout);
       
-      // Schema default for page_size is 5 (different from other tools!)
-      expect(result.pagination.page_size).toBe(5);
-      expect(result.pagination.page).toBe(1);
+      // Should have commands array
+      expect(result.commands).toBeInstanceOf(Array);
+      
+      // Should use MCP cursor model (server-controlled page size: 5)
+      // nextCursor only present if >5 commands
+      if (result.nextCursor) {
+        expect(typeof result.nextCursor).toBe('string');
+      }
     }, 15000);
   });
 
@@ -190,9 +204,9 @@ describe('CLI: Schema Default Behavior', () => {
         // Verify .default() is used for optional fields
         expect(content).toContain('.default(');
         
-        // Verify page/page_size defaults exist
-        expect(content).toMatch(/page.*\.default\(1\)/);
-        expect(content).toMatch(/page_size.*\.default\(\d+\)/);
+        // Verify cursor-based pagination (no page/page_size defaults)
+        expect(content).toMatch(/cursor.*optional/);
+        expect(content).not.toContain('page_size');
       }
     });
   });
