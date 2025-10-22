@@ -8,6 +8,8 @@ import { handleManageStackedPRs } from './tools/manage-stacked-prs/handler.js';
 import { GetFailingTestsSchema } from './tools/get-failing-tests/schema.js';
 import { FindUnresolvedCommentsSchema } from './tools/find-unresolved-comments/schema.js';
 import { ManageStackedPRsSchema } from './tools/manage-stacked-prs/schema.js';
+import { handleResolveReviewConversations } from './tools/resolve-review-conversations/handler.js';
+import { ResolveReviewConversationsInputSchema } from './tools/resolve-review-conversations/schema.js';
 
 const program = new Command();
 
@@ -212,6 +214,63 @@ program
         
         if (result.nextCursor) {
           console.log(`\n📄 More commands available. Use --cursor "${result.nextCursor}"`);
+        }
+        /* eslint-enable no-console */
+      }
+      process.exit(0);
+    } catch (error) {
+      console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('resolve-review-conversations')
+  .description('Generate commands to resolve PR review conversations (dry-run by default)')
+  .requiredOption('--pr <identifier>', 'PR identifier (owner/repo#123)')
+  .option('--only-unresolved', 'Only include unresolved threads')
+  .option('--dry-run', 'Do not execute, only print commands')
+  .option('--cursor <string>', 'Pagination cursor (from previous response)')
+  .option('--limit <number>', 'Limit number of threads to include')
+  .option('--json', 'Output as JSON')
+  .action(async (options: {
+    pr: string;
+    onlyUnresolved?: boolean;
+    dryRun?: boolean;
+    cursor?: string;
+    limit?: string; // will parse to number via schema
+    json?: boolean;
+  }) => {
+    try {
+      const client = getClient();
+      const input = ResolveReviewConversationsInputSchema.parse({
+        pr: options.pr,
+        ...(options.onlyUnresolved !== undefined && { only_unresolved: options.onlyUnresolved }),
+        ...(options.dryRun !== undefined && { dry_run: options.dryRun }),
+        ...(options.cursor && { cursor: options.cursor }),
+        ...(options.limit && { limit: Number.parseInt(options.limit, 10) })
+      });
+      const result = await handleResolveReviewConversations(client, input);
+
+      if (options.json) {
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        /* eslint-disable no-console */
+        console.log(`\n🧵 Review threads for ${result.pr}`);
+        console.log(`Threads: ${result.summary.total}, Unresolved: ${result.summary.unresolved}`);
+        if (result.threads.length === 0) {
+          console.log('\nNo threads found. If you expect threads, try removing filters or fetching next cursor.');
+        }
+        result.threads.forEach((t, i) => {
+          console.log(`\n${i + 1}. ${t.id} ${t.is_resolved ? '✅' : '🟠'}`);
+          console.log(`   ${t.preview.substring(0, 120)}${t.preview.length > 120 ? '...' : ''}`);
+          console.log(`   🔗 ${t.action_commands.view_in_browser}`);
+          console.log(`   ✅ Resolve: ${t.action_commands.resolve_command}`);
+          console.log('   ⚠️  Run only after verifying the fix.');
+        });
+        if (result.nextCursor) {
+          console.log(`\n📄 More threads available. Use --cursor "${result.nextCursor}"`);
         }
         /* eslint-enable no-console */
       }
