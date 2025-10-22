@@ -344,7 +344,9 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 
 **CLI Integration**:
 - [ ] Wire up CLI command in `src/cli.ts` to call handler
-- [ ] Pass parsed arguments to handler
+- [ ] **CRITICAL**: CLI options must have NO hardcoded defaults (use schema defaults)
+- [ ] Use `Schema.parse()` to apply Zod defaults before calling handler
+- [ ] Pass only defined options using spread syntax
 - [ ] Format JSON output (--json flag)
 - [ ] Format human-readable output (default)
 - [ ] Handle errors and exit codes properly
@@ -373,6 +375,8 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [ ] Test pagination arguments (--page, --page-size)
 - [ ] Test invalid PR format shows error
 - [ ] Test exit codes (0 for success, non-zero for errors)
+- [ ] **Test unspecified options use Zod schema defaults** (schema-defaults.cli.test.ts)
+- [ ] **Test explicit options override schema defaults** (schema-defaults.cli.test.ts)
 
 **Acceptance**:
 - [ ] npm test passes all unit tests
@@ -416,6 +420,8 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 
 **CLI Integration**:
 - [ ] Wire up CLI command in `src/cli.ts` to call handler
+- [ ] **CRITICAL**: CLI options must have NO hardcoded defaults (use schema defaults)
+- [ ] Use `Schema.parse()` to apply Zod defaults before calling handler
 - [ ] Parse --include-bots, --exclude-authors, --sort arguments
 - [ ] Format JSON output (--json flag)
 - [ ] Format human-readable output with emojis (default)
@@ -491,6 +497,8 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 
 **CLI Integration**:
 - [ ] Wire up CLI command in `src/cli.ts` to call handler
+- [ ] **CRITICAL**: CLI options must have NO hardcoded defaults (use schema defaults)
+- [ ] Use `Schema.parse()` to apply Zod defaults before calling handler
 - [ ] Parse --base-pr and --dependent-pr (both required)
 - [ ] Parse --auto-fix and --use-onto flags
 - [ ] Format JSON output (--json flag)
