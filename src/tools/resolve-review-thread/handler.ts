@@ -4,14 +4,30 @@ import { parsePRIdentifier } from '../../utils/parser.js';
 
 export async function handleResolveReviewThread(client: GitHubClient, input: ResolveReviewThreadInput): Promise<ResolveReviewThreadOutput> {
   const parsed = ResolveReviewThreadInputSchema.parse(input);
-  // Parse PR for validation only (GraphQL operations use thread/comment node IDs)
-  parsePRIdentifier(parsed.pr);
+  // Parse PR (needed for REST API calls to convert numeric comment IDs)
+  const pr = parsePRIdentifier(parsed.pr);
 
   const octokit = client.getOctokit();
 
   // Resolve thread id from comment if needed
   let threadId = parsed.thread_id;
   if (!threadId && parsed.comment_id) {
+    // Support both GraphQL node IDs and numeric REST IDs for comment_id
+    let commentNodeId = parsed.comment_id;
+    if (/^\d+$/.test(parsed.comment_id)) {
+      // Numeric ID - convert via REST API to get GraphQL node_id
+      const { data } = await octokit.rest.pulls.getReviewComment({
+        owner: pr.owner,
+        repo: pr.repo,
+        comment_id: Number(parsed.comment_id)
+      });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+      commentNodeId = (data as any).node_id as string;
+      if (!commentNodeId) {
+        throw new Error('Unable to get GraphQL node_id from REST comment');
+      }
+    }
+    
     const threadQuery = `
       query($commentId: ID!) {
         node(id: $commentId) {
@@ -22,7 +38,7 @@ export async function handleResolveReviewThread(client: GitHubClient, input: Res
       }
     `;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-    const resp = await octokit.graphql(threadQuery, { commentId: parsed.comment_id }) as any;
+    const resp = await octokit.graphql(threadQuery, { commentId: commentNodeId }) as any;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     threadId = resp?.node?.pullRequestReviewThread?.id;
     if (!threadId) {
