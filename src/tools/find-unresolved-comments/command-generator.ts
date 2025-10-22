@@ -14,12 +14,20 @@ export function generateActionCommands(
   commentId: number,
   commentType: 'review_comment' | 'issue_comment' | 'review',
   body: string,
-  filePath?: string
+  filePath?: string,
+  threadId?: string
 ): {
   reply_command: string;
   resolve_command?: string;
   resolve_condition: string;
   view_in_browser: string;
+  mcp_action?: {
+    tool: 'resolve_review_thread';
+    args: {
+      pr: string;
+      thread_id: string;
+    };
+  };
 } {
   const prNumber = pr.number;
   const repo = `${pr.owner}/${pr.repo}`;
@@ -51,11 +59,24 @@ export function generateActionCommands(
   // Browser view command
   const view_in_browser = `gh pr view ${prNumber} --repo ${repo} --web`;
   
+  // Generate MCP action for review comments if we have the GraphQL thread ID
+  let mcp_action: { tool: 'resolve_review_thread'; args: { pr: string; thread_id: string } } | undefined;
+  if (commentType === 'review_comment' && threadId) {
+    mcp_action = {
+      tool: 'resolve_review_thread',
+      args: {
+        pr: `${repo}#${prNumber}`,
+        thread_id: threadId
+      }
+    };
+  }
+  
   return {
     reply_command,
     resolve_command,
     resolve_condition,
-    view_in_browser
+    view_in_browser,
+    ...(mcp_action && { mcp_action })
   };
 }
 

@@ -8,6 +8,8 @@ import { handleManageStackedPRs } from './tools/manage-stacked-prs/handler.js';
 import { GetFailingTestsSchema } from './tools/get-failing-tests/schema.js';
 import { FindUnresolvedCommentsSchema } from './tools/find-unresolved-comments/schema.js';
 import { ManageStackedPRsSchema } from './tools/manage-stacked-prs/schema.js';
+import { handleResolveReviewThread } from './tools/resolve-review-thread/handler.js';
+import { ResolveReviewThreadInputSchema } from './tools/resolve-review-thread/schema.js';
 
 const program = new Command();
 
@@ -133,10 +135,20 @@ program
           
           // Show action commands
           console.log(`\n   📝 Reply: ${comment.action_commands.reply_command}`);
-          if (comment.action_commands.resolve_command) {
-            console.log(`   ✅ Resolve: ${comment.action_commands.resolve_command}`);
-            console.log(`   ⚠️  ${comment.action_commands.resolve_condition}`);
+          /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
+          const ac: any = comment.action_commands as unknown as any; // display-only
+          if (ac.mcp_action) {
+            console.log(`   ✅ MCP: ${ac.mcp_action.tool} ${JSON.stringify(ac.mcp_action.args)}`);
+            if (ac.resolve_condition) {
+              console.log(`   ⚠️  ${ac.resolve_condition}`);
+            }
+          } else if (ac.resolve_command) {
+            console.log(`   ✅ Resolve: ${ac.resolve_command}`);
+            if (ac.resolve_condition) {
+              console.log(`   ⚠️  ${ac.resolve_condition}`);
+            }
           }
+          /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any */
         });
         
         console.log(`\n📊 Summary:`);
@@ -213,6 +225,46 @@ program
         if (result.nextCursor) {
           console.log(`\n📄 More commands available. Use --cursor "${result.nextCursor}"`);
         }
+        /* eslint-enable no-console */
+      }
+      process.exit(0);
+    } catch (error) {
+      console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('resolve-review-thread')
+  .description('Resolve a specific review thread (or via comment id) immediately')
+  .requiredOption('--pr <identifier>', 'PR identifier (owner/repo#123)')
+  .option('--thread-id <id>', 'Review thread GraphQL node ID')
+  .option('--comment-id <id>', 'Comment GraphQL node ID (will map to thread)')
+  .option('--prefer <choice>', 'Prefer "thread" or "comment" when both are provided')
+  .option('--json', 'Output as JSON')
+  .action(async (options: {
+    pr: string;
+    threadId?: string;
+    commentId?: string;
+    prefer?: string;
+    json?: boolean;
+  }) => {
+    try {
+      const client = getClient();
+      const input = ResolveReviewThreadInputSchema.parse({
+        pr: options.pr,
+        ...(options.threadId && { thread_id: options.threadId }),
+        ...(options.commentId && { comment_id: options.commentId }),
+        ...(options.prefer && { prefer: options.prefer })
+      });
+      const result = await handleResolveReviewThread(client, input);
+      if (options.json) {
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        /* eslint-disable no-console */
+        console.log(`\n✅ Resolved thread ${result.thread_id}${result.alreadyResolved ? ' (already resolved)' : ''}`);
+        if (result.message) console.log(result.message);
         /* eslint-enable no-console */
       }
       process.exit(0);

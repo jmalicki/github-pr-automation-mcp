@@ -161,7 +161,7 @@ interface FindUnresolvedCommentsOutput {
     // URLs for reference
     html_url: string;        // Web URL to comment
     
-    // **Action commands** - Ready-to-execute GitHub CLI commands
+    // **Action commands** - Ready-to-execute GitHub CLI commands and MCP actions
     action_commands: {
       // Reply to comment - agent writes the response content
       reply_command: string;           // e.g., 'gh pr comment 123 --body "YOUR_RESPONSE_HERE"'
@@ -172,6 +172,12 @@ interface FindUnresolvedCommentsOutput {
       
       // View in browser for context
       view_in_browser: string;         // e.g., 'gh pr view 123 --web'
+      
+      // MCP action for review thread resolution (only for review_comment type)
+      mcp_action?: {                   // MCP tool call - use resolve_review_thread
+        tool: "resolve_review_thread";
+        args: { pr: string; thread_id: string; };
+      };
     };
   }>;
   
@@ -206,15 +212,80 @@ interface FindUnresolvedCommentsOutput {
 4. **Execute reply command** with agent's response text
 5. **Make the fix** (edit code, add tests, etc.)
 6. **Verify fix** is complete and correct
-7. **ONLY THEN execute resolve command** (if satisfied with fix)
+7. **ONLY THEN call resolve_review_thread MCP tool** (if fully satisfied with fix)
 
 **Critical Workflow**:
 ```
 Comment → Agent reads → Agent decides action → Agent writes response → 
-Agent makes fix → Agent verifies fix → Agent resolves comment
+Agent makes fix → Agent verifies fix → Agent calls resolve_review_thread MCP tool
 ```
 
+**Resolution via MCP**:
+- For `review_comment` types, `action_commands.mcp_action` provides ready-to-call MCP action
+- Agent must verify fix **completely addresses** all thread concerns before calling
+- See `resolve_review_thread` tool docs for strict usage requirements
+
 **Never**: Auto-resolve without verification!
+
+---
+
+### 3.7. resolve_review_thread 🆕
+
+**Purpose**: Immediately resolve a specific GitHub review thread using GraphQL API.
+
+**⚠️ CRITICAL: Only call this tool AFTER:**
+1. The AI has **read and understood** all concerns in the thread
+2. The AI has **made code changes** to address those concerns
+3. The AI has **verified the fix** (tests pass, requirements met)
+4. The AI is **satisfied** the thread's requests are completely fulfilled
+
+**Use Cases**:
+- AI needs to resolve a specific review conversation after addressing feedback
+- One-shot thread resolution after verification
+- Programmatic thread management (with human-like judgment)
+
+**Input Schema**:
+```typescript
+interface ResolveReviewThreadInput {
+  pr: string;                    // Format: "owner/repo#number"
+  thread_id?: string;            // Review thread GraphQL node ID
+  comment_id?: string;           // Comment GraphQL node ID (will map to thread)
+  prefer?: "thread" | "comment"; // Prefer thread or comment when both provided (default: "thread")
+}
+```
+
+**Output Schema**:
+```typescript
+interface ResolveReviewThreadOutput {
+  ok: boolean;                   // Whether resolution succeeded
+  thread_id: string;             // The resolved thread ID
+  alreadyResolved: boolean;      // Whether thread was already resolved
+  message?: string;              // Additional information
+}
+```
+
+**GraphQL Integration**:
+- Uses `resolveReviewThread` mutation to resolve threads
+- Maps comment IDs to thread IDs when needed
+- Checks resolution status before attempting resolution
+
+**Tool Philosophy**:
+- **One-shot execution**: Immediately resolves the thread (no undo!)
+- **Idempotent**: Safe to call on already-resolved threads
+- **Smart mapping**: Can resolve via comment ID by looking up the thread
+- **AI judgment required**: The AI must exercise judgment like a human reviewer would
+  - Don't auto-resolve just because code compiles
+  - Ensure the spirit of the feedback is addressed, not just the letter
+  - When in doubt, leave unresolved and ask the human
+
+**Example Usage**:
+```bash
+# Resolve by thread ID
+resolve-review-thread --pr owner/repo#123 --thread-id "thread-abc123"
+
+# Resolve by comment ID
+resolve-review-thread --pr owner/repo#123 --comment-id "comment-xyz789"
+```
 
 ---
 

@@ -21,6 +21,9 @@ export async function handleFindUnresolvedComments(
     }
   );
   
+  // Fetch GraphQL node IDs for review comments and their threads
+  const nodeIdMap = await fetchReviewCommentNodeIds(octokit, pr, reviewComments.map(c => c.id));
+  
   // Fetch issue comments (general PR comments)
   const issueComments = await octokit.paginate(
     octokit.issues.listComments,
@@ -65,7 +68,14 @@ export async function handleFindUnresolvedComments(
           eyes: c.reactions.eyes
         } : undefined,
         html_url: c.html_url,
-        action_commands: generateActionCommands(pr, c.id, 'review_comment', body, c.path)
+        action_commands: generateActionCommands(
+          pr, 
+          c.id, 
+          'review_comment', 
+          body, 
+          c.path,
+          nodeIdMap.get(c.id) // Pass GraphQL thread ID if available
+        )
       };
     }),
     ...issueComments.map(c => {
@@ -160,5 +170,76 @@ export async function handleFindUnresolvedComments(
       with_reactions: withReactions
     }
   };
+}
+
+/**
+ * Fetch GraphQL node IDs and thread IDs for review comments
+ * Maps REST API numeric comment IDs to GraphQL thread node IDs
+ */
+async function fetchReviewCommentNodeIds(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  octokit: any,
+  pr: { owner: string; repo: string; number: number },
+  commentIds: number[]
+): Promise<Map<number, string>> {
+  const nodeIdMap = new Map<number, string>();
+  
+  if (commentIds.length === 0) {
+    return nodeIdMap;
+  }
+  
+  // Fetch review threads with comments via GraphQL
+  const query = `
+    query($owner: String!, $repo: String!, $pr: Int!) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $pr) {
+          reviewThreads(first: 100) {
+            nodes {
+              id
+              comments(first: 10) {
+                nodes {
+                  databaseId
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  `;
+  
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    const response = await octokit.graphql(query, {
+      owner: pr.owner,
+      repo: pr.repo,
+      pr: pr.number
+    });
+    
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const threads = response?.repository?.pullRequest?.reviewThreads?.nodes || [];
+    
+    // Map each comment's databaseId (numeric ID) to its thread's GraphQL node ID
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+    threads.forEach((thread: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+      const threadId = thread.id as string;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+      const comments = thread.comments?.nodes || [];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
+      comments.forEach((comment: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const dbId = comment.databaseId as number;
+        if (dbId && commentIds.includes(dbId)) {
+          nodeIdMap.set(dbId, threadId);
+        }
+      });
+    });
+  } catch (error) {
+    // If GraphQL fails, return empty map - comments will still work via resolve_command
+    console.warn(`Failed to fetch GraphQL node IDs: ${error instanceof Error ? error.message : String(error)}`);
+  }
+  
+  return nodeIdMap;
 }
 

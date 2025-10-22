@@ -8,6 +8,7 @@ The implementation is divided into 7 phases, each building on the previous:
 2. **Foundation** - Core infrastructure and GitHub integration
 3. **Core Tools** - Implement the 3 primary tools requested
 3.5. **Fix Pagination** - Convert to MCP cursor-based pagination (protocol compliance)
+3.7. **Resolve Conversations** - Add tool/CLI to resolve PR review threads
 4. **Enhanced Tools** - Add supplementary tools for comprehensive PR management
 5. **Optimization** - Performance, caching, and error handling improvements
 6. **Polish** - Documentation, examples, and deployment tooling
@@ -22,6 +23,7 @@ main
      ├─ PR #2: Phase 2 - Foundation (stacked on Phase 1)
          ├─ PR #3: Phase 3 - Core Tools (stacked on Phase 2)
              ├─ PR #4: Phase 3.5 - Fix Pagination (stacked on Phase 3) 🆕
+                ├─ PR #5: Phase 3.7 - Resolve Conversations (stacked on Phase 3.5) 🆕
                  ├─ PR #5: Phase 4 - Enhanced Tools (stacked on Phase 3.5)
                      ├─ PR #6: Phase 5 - Optimization (stacked on Phase 4)
                          ├─ PR #7: Phase 6 - Polish (stacked on Phase 5)
@@ -45,6 +47,10 @@ main
 - Branch: `phase-3.5-fix-pagination` (off `phase-3-core-tools`)
 - PR: `phase-3.5-fix-pagination` → `phase-3-core-tools`
 
+**Phase 3.7** 🆕:
+- Branch: `phase-3.7-resolve-conversations` (off `phase-3.5-fix-pagination`)
+- PR: `phase-3.7-resolve-conversations` → `phase-3.5-fix-pagination`
+
 **Phase 4**:
 - Branch: `phase-4-enhanced-tools` (off `phase-3.5-fix-pagination`)
 - PR: `phase-4-enhanced-tools` → `phase-3.5-fix-pagination`
@@ -67,7 +73,9 @@ main
 5. Merge Phase 3 → `main`
 6. Update Phase 3.5's base to `main` (rebase)
 7. Merge Phase 3.5 → `main`
-8. Update Phase 4's base to `main` (rebase)
+8. Update Phase 3.7's base to `main` (rebase)
+9. Merge Phase 3.7 → `main`
+10. Update Phase 4's base to `main` (rebase)
 9. Continue pattern...
 
 **Benefits**:
@@ -684,6 +692,71 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 
 ---
 
+## Phase 3.7: Resolve Review Conversations (Week 2.7)
+
+**Branch**: `phase-3.7-resolve-conversations` (off `phase-3.5-fix-pagination`)  
+**PR**: → `phase-3.5-fix-pagination` (stacked between Phase 3.5 and Phase 4)
+
+### Goals
+- Provide a dedicated tool and CLI command to resolve PR review conversations
+- Keep tool “dumb”: output data and commands; AI agent decides when to run
+- Ensure commands are safe with clear warnings and explicit opt-in
+
+### Design Notes
+- No categorization/interpretation; provide review thread IDs and commands only
+- Prefer generating `gh api graphql` commands that call `resolveReviewThread`
+- CLI should default to not executing; it prints commands and guidance
+
+### Tasks
+
+#### 3.7.1 API and Schema
+- [ ] Add new tool `resolve_review_conversations` to API design
+  - [ ] Input: `pr` (PRIdentifierString 💾), `only_unresolved` (default: true 💾), `dry_run` (default: true), `limit?: number`
+  - [ ] Output: `{ threads: Array<{ id: string; is_resolved: boolean; preview: string; action_commands: { resolve_command: string; view_in_browser: string } }>, nextCursor?: string, summary: { total: number; unresolved: number; suggested: number } }`
+- [ ] Add Zod schemas in `src/tools/resolve-review-conversations/schema.ts`
+- [ ] Ensure cursor-based pagination (reuse utilities from Phase 3.5)
+
+#### 3.7.2 Handler
+- [ ] Implement `src/tools/resolve-review-conversations/handler.ts`
+  - [ ] Fetch unresolved review threads via GraphQL (server-side)
+  - [ ] Build `action_commands.resolve_command` using `gh api graphql` mutation:
+        `resolveReviewThread(input: {threadId: ID})`
+  - [ ] Include `view_in_browser` links for each thread
+  - [ ] Include strong warning: “Run only after verifying the fix”
+  - [ ] Support `limit` and pagination via `nextCursor`
+- [ ] Update `src/cli.ts` to add `resolve-review-conversations` command
+  - [ ] No hardcoded defaults; pass `undefined` and apply schema defaults
+  - [ ] Print commands in human-readable mode; JSON outputs full structure
+
+#### 3.7.3 Tests
+- [ ] Unit tests
+  - [ ] Unresolved-only filter
+  - [ ] Command generation for GraphQL mutation
+  - [ ] Cursor pagination
+  - [ ] Limit handling
+- [ ] CLI tests
+  - [ ] `--help` works without token (lazy init)
+  - [ ] Required args enforced
+  - [ ] JSON output contains `action_commands.resolve_command`
+  - [ ] Human output shows clear warnings before commands
+- [ ] Integration (optional, opt-in)
+  - [ ] Real PR fetch lists threads
+  - [ ] Dry-run prints correct commands
+
+#### 3.7.4 Documentation
+- [ ] Update `API_DESIGN.md` with new tool spec
+- [ ] Update `README.md` CLI usage with examples and warnings
+- [ ] Update `IMPLEMENTATION_PLAN.md` PR strategy and success criteria
+
+### Acceptance
+- [ ] Tool returns threads with valid `resolve_command` and `view_in_browser`
+- [ ] CLI prints commands without executing by default
+- [ ] JSON output matches schema; cursor pagination works
+- [ ] Works on real PRs (listed threads match GitHub UI)
+- [ ] No categorization/interpretation in outputs
+
+---
+
 ## Phase 4: Enhanced Tools (Week 4)
 
 **Branch**: `phase-4-enhanced-tools` (off `phase-3-core-tools`)  
@@ -1187,7 +1260,24 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 
 ### Tasks
 
-#### 6.1 Documentation
+#### 6.1 Code Quality Polish
+
+**From Phase 3.7 CodeRabbit Nitpicks**:
+- [ ] Type-safe GraphQL response handling (resolve-review-thread)
+  - [ ] Define TypeScript interfaces for GraphQL response shapes
+  - [ ] Add runtime validation (Zod) for critical fields
+  - [ ] Add null checks before accessing nested properties
+- [ ] GraphQL node ID format validation
+  - [ ] Add regex validation for thread_id and comment_id in schema
+  - [ ] Ensure base64 GraphQL node ID format: `/^[A-Za-z0-9+/]+=*$/`
+  - [ ] Catch malformed IDs early with clear error messages
+
+**From Other Phases**:
+- [ ] Review and address deferred nitpicks from earlier phases
+- [ ] Add comprehensive JSDoc comments to all public APIs
+- [ ] Improve error messages for better user experience
+
+#### 6.2 Documentation
 
 **Implementation**:
 - [x] Architecture overview (ARCHITECTURE.md)
@@ -1220,7 +1310,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] New users can get started in <5 minutes
 - [ ] Troubleshooting guide covers common issues
 
-#### 6.2 Examples
+#### 6.3 Examples
 
 **Implementation**:
 - [ ] Create examples/ directory with sample workflows
@@ -1251,7 +1341,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] MCP integration guide enables setup in <10 minutes
 - [ ] Examples cover all 8 tools
 
-#### 6.3 Deployment
+#### 6.4 Deployment
 
 **Implementation**:
 - [ ] Prepare for npm package publication:
@@ -1284,7 +1374,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] CHANGELOG is up to date
 - [ ] Release process documented
 
-#### 6.4 Monitoring and Observability
+#### 6.5 Monitoring and Observability
 
 **Implementation**:
 - [ ] Add structured logging:
