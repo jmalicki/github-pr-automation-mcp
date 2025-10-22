@@ -33,8 +33,16 @@
     "code-review",
     "workflow-optimization"
   ],
-  "author": "",
+  "author": "GitHub PR Automation Contributors",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jmalicki/github-pr-automation-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jmalicki/github-pr-automation-mcp/issues"
+  },
+  "homepage": "https://github.com/jmalicki/github-pr-automation-mcp#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.5.0",
     "@octokit/rest": "^20.0.2",
