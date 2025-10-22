@@ -1,8 +1,21 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import { GitHubClient } from './github/client.js';
+import { handleGetFailingTests } from './tools/get-failing-tests/handler.js';
+import { handleFindUnresolvedComments } from './tools/find-unresolved-comments/handler.js';
+import { handleManageStackedPRs } from './tools/manage-stacked-prs/handler.js';
 
 const program = new Command();
+
+// Lazy initialization of GitHub client
+let clientInstance: GitHubClient | null = null;
+function getClient(): GitHubClient {
+  if (!clientInstance) {
+    clientInstance = new GitHubClient();
+  }
+  return clientInstance;
+}
 
 program
   .name('resolve-pr-mcp')
@@ -14,27 +27,115 @@ program
   .description('Analyze PR CI failures')
   .requiredOption('--pr <identifier>', 'PR identifier (owner/repo#123)')
   .option('--wait', 'Wait for CI completion', false)
-  .option('--bail-on-first', 'Bail on first failure', true)
+  .option('--bail-on-first', 'Bail on first failure', false)
   .option('--page <number>', 'Page number', '1')
   .option('--page-size <number>', 'Results per page', '10')
   .option('--json', 'Output as JSON', false)
-  .action(() => {
-    console.warn('Tool not yet implemented. This is Phase 2 foundation - tool implementation comes in Phase 3.');
-    process.exit(0);
+  .action(async (options: {
+    pr: string;
+    wait: boolean;
+    bailOnFirst: boolean;
+    page: string;
+    pageSize: string;
+    json: boolean;
+  }) => {
+    try {
+      const client = getClient();
+      const result = await handleGetFailingTests(client, {
+        pr: options.pr,
+        wait: options.wait,
+        bail_on_first: options.bailOnFirst,
+        page: parseInt(options.page),
+        page_size: parseInt(options.pageSize)
+      });
+      
+      if (options.json) {
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        /* eslint-disable no-console */
+        console.log(`\n📊 CI Status for ${result.pr}`);
+        console.log(`Status: ${result.status}`);
+        console.log(`Total: ${result.pagination.total_items}`);
+        console.log(`Failures: ${result.failures.length}\n`);
+        
+        if (result.failures.length > 0) {
+          console.log('Failed Tests:');
+          result.failures.forEach((test, i) => {
+            console.log(`\n${i + 1}. ${test.test_name} (${test.check_name})`);
+            if (test.file_path) console.log(`   File: ${test.file_path}${test.line_number ? `:${test.line_number}` : ''}`);
+            if (test.error_message) console.log(`   Error: ${test.error_message}`);
+          });
+        }
+        
+        if (result.instructions) {
+          console.log(`\n📝 ${result.instructions.summary}`);
+        }
+        /* eslint-enable no-console */
+      }
+      process.exit(0);
+    } catch (error) {
+      console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+      process.exit(1);
+    }
   });
 
 program
   .command('find-unresolved-comments')
   .description('Find unresolved PR comments')
   .requiredOption('--pr <identifier>', 'PR identifier (owner/repo#123)')
-  .option('--include-bots', 'Include bot comments', true)
+  .option('--include-bots', 'Include bot comments', false)
+  .option('--exclude-authors <authors>', 'Comma-separated list of authors to exclude', '')
   .option('--page <number>', 'Page number', '1')
   .option('--page-size <number>', 'Results per page', '20')
-  .option('--sort <type>', 'Sort order', 'chronological')
+  .option('--sort <type>', 'Sort order (chronological|by_file|by_author)', 'chronological')
   .option('--json', 'Output as JSON', false)
-  .action(() => {
-    console.warn('Tool not yet implemented. This is Phase 2 foundation - tool implementation comes in Phase 3.');
-    process.exit(0);
+  .action(async (options: {
+    pr: string;
+    includeBots: boolean;
+    excludeAuthors: string;
+    page: string;
+    pageSize: string;
+    sort: string;
+    json: boolean;
+  }) => {
+    try {
+      const client = getClient();
+      const result = await handleFindUnresolvedComments(client, {
+        pr: options.pr,
+        include_bots: options.includeBots,
+        exclude_authors: options.excludeAuthors ? options.excludeAuthors.split(',') : undefined,
+        sort: options.sort as 'chronological' | 'by_file' | 'by_author',
+        page: parseInt(options.page),
+        page_size: parseInt(options.pageSize)
+      });
+      
+      if (options.json) {
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        /* eslint-disable no-console */
+        console.log(`\n💬 Comments for ${result.pr}`);
+        console.log(`Total unresolved: ${result.total_unresolved}`);
+        console.log(`Showing: ${result.comments.length}\n`);
+        
+        result.comments.forEach((comment, i) => {
+          const icon = comment.is_bot ? '🤖' : '👤';
+          console.log(`\n${i + 1}. ${icon} ${comment.author} (${comment.type})`);
+          if (comment.file_path) console.log(`   File: ${comment.file_path}${comment.line_number ? `:${comment.line_number}` : ''}`);
+          console.log(`   ${comment.body.substring(0, 100)}${comment.body.length > 100 ? '...' : ''}`);
+          console.log(`   Created: ${comment.created_at}`);
+        });
+        
+        console.log(`\n📊 Summary:`);
+        console.log(`   Bots: ${result.summary.bot_comments}, Humans: ${result.summary.human_comments}`);
+        /* eslint-enable no-console */
+      }
+      process.exit(0);
+    } catch (error) {
+      console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+      process.exit(1);
+    }
   });
 
 program
@@ -42,12 +143,65 @@ program
   .description('Manage stacked PRs')
   .requiredOption('--base-pr <identifier>', 'Base PR (owner/repo#123)')
   .requiredOption('--dependent-pr <identifier>', 'Dependent PR (owner/repo#124)')
-  .option('--auto-fix', 'Auto-fix test failures', true)
+  .option('--auto-fix', 'Auto-fix test failures', false)
+  .option('--use-onto', 'Use --onto rebase strategy')
+  .option('--page <number>', 'Page number', '1')
+  .option('--page-size <number>', 'Results per page', '10')
   .option('--json', 'Output as JSON', false)
-  .action(() => {
-    console.warn('Tool not yet implemented. This is Phase 2 foundation - tool implementation comes in Phase 3.');
-    process.exit(0);
+  .action(async (options: {
+    basePr: string;
+    dependentPr: string;
+    autoFix: boolean;
+    useOnto?: boolean;
+    page: string;
+    pageSize: string;
+    json: boolean;
+  }) => {
+    try {
+      const client = getClient();
+      const result = await handleManageStackedPRs(client, {
+        base_pr: options.basePr,
+        dependent_pr: options.dependentPr,
+        auto_fix: options.autoFix,
+        max_iterations: 3,
+        use_onto: options.useOnto,
+        page: parseInt(options.page),
+        page_size: parseInt(options.pageSize)
+      });
+      
+      if (options.json) {
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        /* eslint-disable no-console */
+        console.log(`\n🔗 Stack Analysis`);
+        console.log(`Base PR: ${result.base_pr}`);
+        console.log(`Dependent PR: ${result.dependent_pr}`);
+        console.log(`Is stacked: ${result.is_stacked ? '✅' : '❌'}\n`);
+        
+        if (result.change_summary) {
+          console.log(`Changes: ${result.change_summary.new_commits_in_base} new commits in base`);
+          console.log(`Files changed: ${result.change_summary.files_changed.length}`);
+        }
+        
+        if (result.commands.length > 0) {
+          console.log('\n📝 Rebase Commands:');
+          result.commands.forEach((cmd) => {
+            console.log(`\n${cmd.step}. ${cmd.description}`);
+            console.log(`   $ ${cmd.command}`);
+            if (cmd.estimated_duration) console.log(`   ⏱️  ${cmd.estimated_duration}`);
+          });
+        }
+        
+        console.log(`\n⏱️  Estimated time: ${result.summary.estimated_total_time}`);
+        console.log(`⚠️  Risk level: ${result.summary.risk_level}`);
+        /* eslint-enable no-console */
+      }
+      process.exit(0);
+    } catch (error) {
+      console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+      process.exit(1);
+    }
   });
 
 await program.parseAsync(process.argv);
-
