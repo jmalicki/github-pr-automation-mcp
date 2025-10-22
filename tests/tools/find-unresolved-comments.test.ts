@@ -9,6 +9,7 @@ describe('handleFindUnresolvedComments', () => {
   beforeEach(() => {
     mockOctokit = {
       paginate: vi.fn(),
+      graphql: vi.fn(),
       pulls: {
         listReviewComments: vi.fn()
       },
@@ -23,8 +24,9 @@ describe('handleFindUnresolvedComments', () => {
   });
 
   it('should fetch and combine review and issue comments', async () => {
-    mockOctokit.paginate
-      .mockResolvedValueOnce([
+    // Mock review comments response
+    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+      data: [
         {
           id: 1,
           user: { login: 'reviewer', type: 'User' },
@@ -37,8 +39,13 @@ describe('handleFindUnresolvedComments', () => {
           body: 'Please fix this',
           reactions: { total_count: 2, '+1': 2, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 }
         }
-      ])
-      .mockResolvedValueOnce([
+      ],
+      headers: { link: '' } // No next page
+    });
+
+    // Mock issue comments response
+    mockOctokit.issues.listComments.mockResolvedValue({
+      data: [
         {
           id: 2,
           user: { login: 'commenter', type: 'User' },
@@ -48,7 +55,20 @@ describe('handleFindUnresolvedComments', () => {
           body: 'General comment',
           reactions: { total_count: 0, '+1': 0, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 }
         }
-      ]);
+      ],
+      headers: { link: '' } // No next page
+    });
+
+    // Mock GraphQL response for node IDs
+    mockOctokit.graphql.mockResolvedValue({
+      repository: {
+        pullRequest: {
+          reviewThreads: {
+            nodes: []
+          }
+        }
+      }
+    });
 
     const result = await handleFindUnresolvedComments(mockClient, {
       pr: 'owner/repo#123',
@@ -60,12 +80,13 @@ describe('handleFindUnresolvedComments', () => {
     expect(result.comments[0].type).toBe('review_comment');
     expect(result.comments[0].file_path).toBe('src/file.ts');
     expect(result.comments[1].type).toBe('issue_comment');
-    expect(result.summary.total_comments).toBe(2);
+    expect(result.summary.comments_in_page).toBe(2);
   });
 
   it('should filter out bot comments when include_bots is false', async () => {
-    mockOctokit.paginate
-      .mockResolvedValueOnce([
+    // Mock review comments response
+    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+      data: [
         {
           id: 1,
           user: { login: 'coderabbitai', type: 'Bot' },
@@ -76,20 +97,37 @@ describe('handleFindUnresolvedComments', () => {
           line: 10,
           body: 'Bot suggestion',
           reactions: { total_count: 0, '+1': 0, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 }
-        },
+        }
+      ],
+      headers: { link: '' } // No next page
+    });
+
+    // Mock issue comments response
+    mockOctokit.issues.listComments.mockResolvedValue({
+      data: [
         {
           id: 2,
           user: { login: 'human', type: 'User' },
           author_association: 'MEMBER',
           created_at: '2024-01-01T11:00:00Z',
           updated_at: '2024-01-01T11:00:00Z',
-          path: 'src/file.ts',
-          line: 20,
           body: 'Human comment',
           reactions: { total_count: 0, '+1': 0, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 }
         }
-      ])
-      .mockResolvedValueOnce([]);
+      ],
+      headers: { link: '' } // No next page
+    });
+
+    // Mock GraphQL response for node IDs
+    mockOctokit.graphql.mockResolvedValue({
+      repository: {
+        pullRequest: {
+          reviewThreads: {
+            nodes: []
+          }
+        }
+      }
+    });
 
     const result = await handleFindUnresolvedComments(mockClient, {
       pr: 'owner/repo#123',
@@ -104,8 +142,9 @@ describe('handleFindUnresolvedComments', () => {
   });
 
   it('should exclude specific authors', async () => {
-    mockOctokit.paginate
-      .mockResolvedValueOnce([
+    // Mock review comments response
+    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+      data: [
         {
           id: 1,
           user: { login: 'alice', type: 'User' },
@@ -116,20 +155,37 @@ describe('handleFindUnresolvedComments', () => {
           line: 10,
           body: 'Alice comment',
           reactions: { total_count: 0, '+1': 0, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 }
-        },
+        }
+      ],
+      headers: { link: '' } // No next page
+    });
+
+    // Mock issue comments response
+    mockOctokit.issues.listComments.mockResolvedValue({
+      data: [
         {
           id: 2,
           user: { login: 'bob', type: 'User' },
           author_association: 'CONTRIBUTOR',
           created_at: '2024-01-01T11:00:00Z',
           updated_at: '2024-01-01T11:00:00Z',
-          path: 'src/file.ts',
-          line: 20,
           body: 'Bob comment',
           reactions: { total_count: 0, '+1': 0, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 }
         }
-      ])
-      .mockResolvedValueOnce([]);
+      ],
+      headers: { link: '' } // No next page
+    });
+
+    // Mock GraphQL response for node IDs
+    mockOctokit.graphql.mockResolvedValue({
+      repository: {
+        pullRequest: {
+          reviewThreads: {
+            nodes: []
+          }
+        }
+      }
+    });
 
     const result = await handleFindUnresolvedComments(mockClient, {
       pr: 'owner/repo#123',
@@ -143,8 +199,9 @@ describe('handleFindUnresolvedComments', () => {
   });
 
   it('should sort comments by file', async () => {
-    mockOctokit.paginate
-      .mockResolvedValueOnce([
+    // Mock review comments response
+    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+      data: [
         {
           id: 1,
           user: { login: 'user1', type: 'User' },
@@ -167,8 +224,26 @@ describe('handleFindUnresolvedComments', () => {
           body: 'Comment A',
           reactions: { total_count: 0, '+1': 0, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 }
         }
-      ])
-      .mockResolvedValueOnce([]);
+      ],
+      headers: { link: '' } // No next page
+    });
+
+    // Mock issue comments response
+    mockOctokit.issues.listComments.mockResolvedValue({
+      data: [],
+      headers: { link: '' } // No next page
+    });
+
+    // Mock GraphQL response for node IDs
+    mockOctokit.graphql.mockResolvedValue({
+      repository: {
+        pullRequest: {
+          reviewThreads: {
+            nodes: []
+          }
+        }
+      }
+    });
 
     const result = await handleFindUnresolvedComments(mockClient, {
       pr: 'owner/repo#123',
@@ -181,8 +256,9 @@ describe('handleFindUnresolvedComments', () => {
   });
 
   it('should sort comments by author', async () => {
-    mockOctokit.paginate
-      .mockResolvedValueOnce([
+    // Mock review comments response
+    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+      data: [
         {
           id: 1,
           user: { login: 'zoe', type: 'User' },
@@ -205,8 +281,26 @@ describe('handleFindUnresolvedComments', () => {
           body: 'Alice comment',
           reactions: { total_count: 0, '+1': 0, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 }
         }
-      ])
-      .mockResolvedValueOnce([]);
+      ],
+      headers: { link: '' } // No next page
+    });
+
+    // Mock issue comments response
+    mockOctokit.issues.listComments.mockResolvedValue({
+      data: [],
+      headers: { link: '' } // No next page
+    });
+
+    // Mock GraphQL response for node IDs
+    mockOctokit.graphql.mockResolvedValue({
+      repository: {
+        pullRequest: {
+          reviewThreads: {
+            nodes: []
+          }
+        }
+      }
+    });
 
     const result = await handleFindUnresolvedComments(mockClient, {
       pr: 'owner/repo#123',
@@ -232,15 +326,38 @@ describe('handleFindUnresolvedComments', () => {
       reactions: { total_count: 0, '+1': 0, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 }
     }));
 
-    // Each handler call makes 2 paginate calls (review + issue comments)
-    // We're calling handler 3 times, so need 6 mock responses
-    mockOctokit.paginate
-      .mockResolvedValueOnce(manyComments)  // Page 1: review comments
-      .mockResolvedValueOnce([])            // Page 1: issue comments  
-      .mockResolvedValueOnce(manyComments)  // Page 2: review comments
-      .mockResolvedValueOnce([])            // Page 2: issue comments
-      .mockResolvedValueOnce(manyComments)  // Page 3: review comments
-      .mockResolvedValueOnce([]);           // Page 3: issue comments
+    // Mock review comments with pagination
+    mockOctokit.pulls.listReviewComments
+      .mockResolvedValueOnce({
+        data: manyComments.slice(0, 20), // First page
+        headers: { link: '<https://api.github.com/repos/owner/repo/pulls/123/comments?page=2>; rel="next"' }
+      })
+      .mockResolvedValueOnce({
+        data: manyComments.slice(20, 40), // Second page
+        headers: { link: '<https://api.github.com/repos/owner/repo/pulls/123/comments?page=3>; rel="next"' }
+      })
+      .mockResolvedValueOnce({
+        data: manyComments.slice(40, 50), // Third page
+        headers: { link: '' } // No next page
+      });
+
+    // Mock issue comments (empty for all pages)
+    mockOctokit.issues.listComments
+      .mockResolvedValue({
+        data: [],
+        headers: { link: '' } // No next page
+      });
+
+    // Mock GraphQL response for node IDs
+    mockOctokit.graphql.mockResolvedValue({
+      repository: {
+        pullRequest: {
+          reviewThreads: {
+            nodes: []
+          }
+        }
+      }
+    });
 
     // First page (no cursor)
     const page1 = await handleFindUnresolvedComments(mockClient, {
@@ -276,8 +393,9 @@ describe('handleFindUnresolvedComments', () => {
   });
 
   it('should generate summary statistics', async () => {
-    mockOctokit.paginate
-      .mockResolvedValueOnce([
+    // Mock review comments response
+    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+      data: [
         {
           id: 1,
           user: { login: 'alice', type: 'User' },
@@ -311,8 +429,13 @@ describe('handleFindUnresolvedComments', () => {
           body: 'Bot comment',
           reactions: { total_count: 0, '+1': 0, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 }
         }
-      ])
-      .mockResolvedValueOnce([
+      ],
+      headers: { link: '' } // No next page
+    });
+
+    // Mock issue comments response
+    mockOctokit.issues.listComments.mockResolvedValue({
+      data: [
         {
           id: 4,
           user: { login: 'bob', type: 'User' },
@@ -322,7 +445,20 @@ describe('handleFindUnresolvedComments', () => {
           body: 'Bob comment',
           reactions: { total_count: 0, '+1': 0, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 }
         }
-      ]);
+      ],
+      headers: { link: '' } // No next page
+    });
+
+    // Mock GraphQL response for node IDs
+    mockOctokit.graphql.mockResolvedValue({
+      repository: {
+        pullRequest: {
+          reviewThreads: {
+            nodes: []
+          }
+        }
+      }
+    });
 
     const result = await handleFindUnresolvedComments(mockClient, {
       pr: 'owner/repo#123',
@@ -330,7 +466,7 @@ describe('handleFindUnresolvedComments', () => {
       sort: 'chronological'
     });
 
-    expect(result.summary.total_comments).toBe(4);
+    expect(result.summary.comments_in_page).toBe(4);
     expect(result.summary.by_author).toEqual({
       alice: 2,
       bot: 1,

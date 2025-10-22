@@ -119,10 +119,13 @@ program
       if (options.json) {
         // eslint-disable-next-line no-console
         console.log(JSON.stringify(result, null, 2));
+        if (result.nextCursor) {
+          console.error(`\n⚠️  Large output detected. Use --cursor "${result.nextCursor}" for next page.`);
+        }
       } else {
         /* eslint-disable no-console */
         console.log(`\n💬 Comments for ${result.pr}`);
-        console.log(`Total unresolved: ${result.total_unresolved}`);
+        console.log(`Unresolved in page: ${result.unresolved_in_page}`);
         console.log(`Showing: ${result.comments.length}\n`);
         
         result.comments.forEach((comment, i) => {

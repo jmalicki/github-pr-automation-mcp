@@ -1,6 +1,6 @@
 import type { GitHubClient } from '../../github/client.js';
 import { parsePRIdentifier, formatPRIdentifier } from '../../utils/parser.js';
-import { paginateResults } from '../../utils/pagination.js';
+import { cursorToGitHubPagination, createNextCursor } from '../../utils/pagination.js';
 import type { GetFailingTestsInput, GetFailingTestsOutput, FailedTest } from './schema.js';
 
 export async function handleGetFailingTests(
@@ -19,12 +19,25 @@ export async function handleGetFailingTests(
   
   const headSha = pullRequest.data.head.sha;
   
-  // Get check runs for this commit
-  const { data: checkRuns } = await octokit.checks.listForRef({
+  // Convert cursor to GitHub pagination parameters
+  const githubPagination = cursorToGitHubPagination(input.cursor, 10);
+  
+  // Get check runs for this commit with server-side pagination
+  const checkRunsResponse = await octokit.checks.listForRef({
     owner: pr.owner,
     repo: pr.repo,
-    ref: headSha
+    ref: headSha,
+    page: githubPagination.page,
+    per_page: githubPagination.per_page
   });
+  
+  // Check if there are more results by looking at response headers
+  const hasMore = checkRunsResponse.headers.link?.includes('rel="next"') ?? false;
+  
+  // Create next cursor if there are more results
+  const nextCursor = createNextCursor(input.cursor, githubPagination.per_page, hasMore);
+  
+  const checkRuns = checkRunsResponse.data;
   
   // Determine status
   const runs = checkRuns.check_runs;
@@ -34,6 +47,7 @@ export async function handleGetFailingTests(
       pr: formatPRIdentifier(pr),
       status: 'unknown',
       failures: [],
+      nextCursor,
       instructions: {
         summary: 'No CI checks configured for this PR',
         commands: []
@@ -52,6 +66,7 @@ export async function handleGetFailingTests(
       pr: formatPRIdentifier(pr),
       status: 'running',
       failures: [],
+      nextCursor,
       instructions: {
         summary: `CI still running (${pending.length} checks pending)`,
         commands: []
@@ -82,9 +97,6 @@ export async function handleGetFailingTests(
     }
   }
   
-  // Paginate using MCP cursor model (server-controlled page size: 10)
-  const paginated = paginateResults(failures, input.cursor, 10);
-  
   // Determine overall status
   let status: GetFailingTestsOutput['status'];
   if (failed.length > 0) {
@@ -100,8 +112,8 @@ export async function handleGetFailingTests(
   return {
     pr: formatPRIdentifier(pr),
     status,
-    failures: paginated.items,
-    nextCursor: paginated.nextCursor,
+    failures,
+    nextCursor,
     instructions: {
       summary: failures.length > 0 
         ? `${failures.length} test${failures.length === 1 ? '' : 's'} failed`
