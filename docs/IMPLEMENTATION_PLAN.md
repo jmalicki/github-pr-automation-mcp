@@ -568,12 +568,44 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 
 **Complexity**: Medium | **Priority**: High | **Time**: 1 day
 
-**Tasks**:
-- [ ] Use GitHub's mergeable state API
+**Schema & Handler**:
+- [ ] Create `src/tools/detect-merge-conflicts/schema.ts` with Zod schemas
+- [ ] Implement `handler.ts` main function
+- [ ] Fetch PR to check mergeable state
+- [ ] Use GitHub's `mergeable_state` API field
+- [ ] Detect "dirty" state (conflicts present)
 - [ ] Implement dry-run merge detection if needed
-- [ ] Parse conflict markers
-- [ ] Generate resolution suggestions
-- [ ] Write tests
+- [ ] Parse conflict markers from diff if available
+- [ ] Identify conflicting files from GitHub API
+- [ ] Generate resolution suggestions per file
+- [ ] Return conflict status, files, and suggestions
+
+**CLI Integration**:
+- [ ] Wire up CLI command in `src/cli.ts`
+- [ ] Parse --pr and --target-branch arguments
+- [ ] Format JSON output
+- [ ] Format human-readable output
+- [ ] Handle errors and exit codes
+
+**Unit Tests**:
+- [ ] Test PR with no conflicts (mergeable_state: clean)
+- [ ] Test PR with conflicts (mergeable_state: dirty)
+- [ ] Test PR with unknown state
+- [ ] Test conflict file identification
+- [ ] Test resolution suggestions generation
+
+**CLI Tests**:
+- [ ] Test --help without token
+- [ ] Test --pr required
+- [ ] Test JSON output format
+- [ ] Test human-readable output
+- [ ] Test exit codes
+
+**Acceptance**:
+- [ ] All tests pass
+- [ ] CLI --help works
+- [ ] CLI detects conflicts on real PR
+- [ ] Suggestions are actionable
 
 ### 4.2 Tool: check_merge_readiness
 
@@ -581,13 +613,47 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 
 **Complexity**: Medium | **Priority**: High | **Time**: 1 day
 
-**Tasks**:
-- [ ] Check CI status (reuse from get_failing_tests)
-- [ ] Check review approvals
-- [ ] Check branch protection rules
-- [ ] Verify no conflicts
-- [ ] Ensure branch is up to date
-- [ ] Write tests
+**Schema & Handler**:
+- [ ] Create `src/tools/check-merge-readiness/schema.ts` with Zod schemas
+- [ ] Implement `handler.ts` main function
+- [ ] Check CI status (reuse logic from get_failing_tests)
+- [ ] Verify all required checks passed
+- [ ] Check review approvals (fetch reviews)
+- [ ] Parse branch protection rules
+- [ ] Verify minimum approval count met
+- [ ] Check for merge conflicts (reuse detect_merge_conflicts logic)
+- [ ] Verify branch is up to date with base
+- [ ] Calculate ready_to_merge boolean
+- [ ] Generate next_steps array if not ready
+- [ ] Return checklist with pass/fail for each requirement
+
+**CLI Integration**:
+- [ ] Wire up CLI command in `src/cli.ts`
+- [ ] Parse --pr argument
+- [ ] Format JSON output with all checks
+- [ ] Format human-readable output with ✅/❌ indicators
+- [ ] Handle errors and exit codes
+
+**Unit Tests**:
+- [ ] Test PR ready to merge (all checks pass)
+- [ ] Test PR with failing CI
+- [ ] Test PR with insufficient approvals
+- [ ] Test PR with merge conflicts
+- [ ] Test PR behind base branch
+- [ ] Test next_steps generation when not ready
+
+**CLI Tests**:
+- [ ] Test --help without token
+- [ ] Test --pr required
+- [ ] Test JSON output format
+- [ ] Test human-readable checklist format
+- [ ] Test exit codes
+
+**Acceptance**:
+- [ ] All tests pass
+- [ ] CLI works on real PR
+- [ ] Accurately identifies merge blockers
+- [ ] Next steps are clear and actionable
 
 ### 4.3 Tool: analyze_pr_impact
 
@@ -595,12 +661,57 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 
 **Complexity**: High | **Priority**: Medium | **Time**: 2 days
 
-**Tasks**:
-- [ ] Analyze file changes
-- [ ] Categorize by impact area (heuristics)
-- [ ] Fetch file history for reviewer suggestions
-- [ ] Find similar PRs (optional)
-- [ ] Write tests
+**Schema & Handler**:
+- [ ] Create `src/tools/analyze-pr-impact/schema.ts` with Zod schemas
+- [ ] Add depth parameter (summary vs detailed)
+- [ ] Implement `handler.ts` main function
+- [ ] Fetch PR data including files changed
+- [ ] Calculate lines added/deleted totals
+- [ ] Categorize files by impact area using heuristics:
+  - [ ] Database changes (migrations, schema files)
+  - [ ] API changes (routes, controllers, endpoints)
+  - [ ] Security changes (auth, crypto, permissions)
+  - [ ] Frontend changes (UI components, styles)
+  - [ ] Testing changes (test files)
+  - [ ] Configuration changes (config files, env)
+- [ ] Fetch file history for changed files (if detailed)
+- [ ] Identify frequent contributors to changed files
+- [ ] Generate suggested reviewers based on file history
+- [ ] Find similar PRs (optional, if detailed)
+- [ ] Calculate risk level based on impact
+- [ ] Generate detailed analysis report
+
+**CLI Integration**:
+- [ ] Wire up CLI command in `src/cli.ts`
+- [ ] Parse --pr and --depth arguments
+- [ ] Format JSON output
+- [ ] Format human-readable impact report
+- [ ] Show impact areas with file lists
+- [ ] Handle errors and exit codes
+
+**Unit Tests**:
+- [ ] Test summary depth analysis
+- [ ] Test detailed depth analysis
+- [ ] Test impact area categorization (database, API, security, etc.)
+- [ ] Test lines added/deleted calculation
+- [ ] Test suggested reviewers generation
+- [ ] Test risk level calculation
+
+**CLI Tests**:
+- [ ] Test --help without token
+- [ ] Test --pr required
+- [ ] Test --depth summary (default)
+- [ ] Test --depth detailed
+- [ ] Test JSON output format
+- [ ] Test human-readable impact report
+- [ ] Test exit codes
+
+**Acceptance**:
+- [ ] All tests pass
+- [ ] CLI shows impact analysis on real PR
+- [ ] Impact areas correctly identified
+- [ ] Suggested reviewers make sense
+- [ ] Risk level is reasonable
 
 ### 4.4 Tool: get_review_suggestions
 
@@ -608,12 +719,64 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 
 **Complexity**: High | **Priority**: Medium | **Time**: 2 days
 
-**Tasks**:
-- [ ] Generate review checklist based on changes
-- [ ] Extract relevant diff excerpts
-- [ ] Identify focus points (security, performance keywords)
-- [ ] Link related issues and PRs
-- [ ] Write tests
+**Schema & Handler**:
+- [ ] Create `src/tools/get-review-suggestions/schema.ts` with Zod schemas
+- [ ] Add focus_areas, include_diff, max_diff_lines parameters
+- [ ] Implement `handler.ts` main function
+- [ ] Fetch PR data (title, body, files, diff)
+- [ ] Generate review checklist based on changes:
+  - [ ] Logic correctness and edge cases
+  - [ ] Security vulnerabilities
+  - [ ] Performance impact
+  - [ ] Error handling
+  - [ ] API design principles
+  - [ ] Test coverage
+- [ ] Extract relevant diff excerpts (if include_diff=true)
+- [ ] Limit diff to max_diff_lines
+- [ ] Identify focus points from PR body and file changes:
+  - [ ] Security keywords (auth, crypto, sql, password)
+  - [ ] Performance keywords (query, loop, cache)
+  - [ ] Breaking changes keywords
+- [ ] Link related issues from PR body (#123 references)
+- [ ] Link related PRs
+- [ ] Generate suggested review comments
+- [ ] Return checklist, focus points, diff excerpts
+
+**CLI Integration**:
+- [ ] Wire up CLI command in `src/cli.ts`
+- [ ] Parse --pr, --focus-areas, --include-diff, --max-diff-lines
+- [ ] Format JSON output
+- [ ] Format human-readable review guide
+- [ ] Show checklist with checkboxes
+- [ ] Show focus points
+- [ ] Show relevant diff sections
+- [ ] Handle errors and exit codes
+
+**Unit Tests**:
+- [ ] Test checklist generation
+- [ ] Test focus point identification (security, performance)
+- [ ] Test diff excerpt extraction
+- [ ] Test max_diff_lines limiting
+- [ ] Test related issue/PR linking
+- [ ] Test with include_diff=true and false
+
+**CLI Tests**:
+- [ ] Test --help without token
+- [ ] Test --pr required
+- [ ] Test --focus-areas with multiple values
+- [ ] Test --include-diff flag
+- [ ] Test --max-diff-lines limit
+- [ ] Test JSON output format
+- [ ] Test human-readable review guide
+- [ ] Test exit codes
+
+**Acceptance**:
+- [ ] All tests pass
+- [ ] CLI generates review guide on real PR
+- [ ] Checklist is comprehensive
+- [ ] Focus points are relevant
+- [ ] Diff excerpts are useful
+- [ ] Suggestions are actionable
 
 ### 4.5 Tool: rebase_after_squash_merge
 
@@ -621,13 +784,59 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 
 **Complexity**: Medium | **Priority**: Medium | **Time**: 1 day
 
-**Tasks**:
-- [ ] Detect when upstream PR was squash-merged
-- [ ] Identify last upstream commit before user's work
-- [ ] Generate `git rebase --onto` command
-- [ ] Provide before/after visualization
-- [ ] Integrate with manage_stacked_prs
-- [ ] Write tests
+**Schema & Handler**:
+- [ ] Create `src/tools/rebase-after-squash-merge/schema.ts` with Zod schemas
+- [ ] Add pr, upstream_pr (optional), target_branch (optional) parameters
+- [ ] Implement `handler.ts` main function
+- [ ] Fetch your PR data
+- [ ] Fetch upstream PR data (if provided)
+- [ ] Detect if upstream PR was squash-merged:
+  - [ ] Check if upstream PR commits exist in target branch as individuals
+  - [ ] Check if squash commit exists in target branch
+  - [ ] Compare commit counts
+- [ ] Identify last upstream commit before user's work started
+- [ ] Generate `git rebase --onto` command with correct SHAs
+- [ ] Generate regular rebase command as alternative
+- [ ] Create before/after ASCII visualization
+- [ ] Generate full command sequence with explanations
+- [ ] Add warnings if detection uncertain
+- [ ] Integrate recommendation logic with manage_stacked_prs
+
+**CLI Integration**:
+- [ ] Wire up CLI command in `src/cli.ts`
+- [ ] Parse --pr, --upstream-pr, --target-branch arguments
+- [ ] Format JSON output
+- [ ] Format human-readable command guide
+- [ ] Show before/after visualization
+- [ ] Show command sequence with explanations
+- [ ] Handle errors and exit codes
+
+**Unit Tests**:
+- [ ] Test squash merge detection (true positive)
+- [ ] Test non-squash merge (true negative)
+- [ ] Test last upstream commit identification
+- [ ] Test --onto command generation
+- [ ] Test regular rebase command generation
+- [ ] Test visualization generation
+- [ ] Test command sequence completeness
+- [ ] Test warnings when uncertain
+
+**CLI Tests**:
+- [ ] Test --help without token
+- [ ] Test --pr required
+- [ ] Test with --upstream-pr provided
+- [ ] Test with --target-branch provided
+- [ ] Test JSON output format
+- [ ] Test human-readable guide with visualization
+- [ ] Test exit codes
+
+**Acceptance**:
+- [ ] All tests pass
+- [ ] CLI detects squash merges correctly
+- [ ] --onto command is correct
+- [ ] Visualization is clear
+- [ ] Command sequence is complete and safe
+- [ ] Works on real stacked PRs from this repo
 
 ---
 
@@ -645,59 +854,185 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 
 ### Tasks
 
-#### 4.1 Caching
+#### 5.1 Caching
 
-**Tasks**:
-- [ ] Implement in-memory cache with TTL
-- [ ] Cache PR metadata (30s TTL)
-- [ ] Cache check runs (10s TTL)
-- [ ] Add cache invalidation logic
-- [ ] Write tests
+**Implementation**:
+- [ ] Create `src/cache/cache.ts` with generic Cache<K, V> class
+- [ ] Implement TTL (time-to-live) expiration logic
+- [ ] Add get/set/delete/clear methods
+- [ ] Add automatic cleanup of expired entries
+- [ ] Cache PR metadata with 30s TTL
+- [ ] Cache check runs with 10s TTL
+- [ ] Cache comment data with 60s TTL
+- [ ] Add cache hit/miss metrics logging
+- [ ] Implement manual cache invalidation
+- [ ] Add cache warming for common queries
+
+**Unit Tests**:
+- [ ] Test cache set and get
+- [ ] Test TTL expiration (entries removed after TTL)
+- [ ] Test cache invalidation
+- [ ] Test cache clearing
+- [ ] Test concurrent access
+- [ ] Test cache hit/miss tracking
+
+**Acceptance**:
+- [ ] All tests pass
+- [ ] Cache reduces API calls by >50% in typical usage
+- [ ] TTL correctly expires entries
+- [ ] No memory leaks with expired entries
 
 **Key Files**:
 - `src/cache/cache.ts`
 
-#### 4.2 Rate Limiting
+#### 5.2 Rate Limiting
 
-**Tasks**:
-- [ ] Track remaining GitHub API requests
-- [ ] Implement exponential backoff
-- [ ] Queue requests when near limit
-- [ ] Add priority queue for critical requests
-- [ ] Write tests
+**Implementation**:
+- [ ] Create `src/github/rate-limiter.ts` with RateLimiter class
+- [ ] Track remaining API requests from response headers
+- [ ] Track rate limit reset time
+- [ ] Implement exponential backoff (1s, 2s, 4s, 8s)
+- [ ] Queue requests when near limit (<100 remaining)
+- [ ] Implement priority queue (critical requests first)
+- [ ] Add request throttling (max concurrent requests)
+- [ ] Warn when approaching rate limit
+- [ ] Automatically retry on 429 (rate limit exceeded)
+- [ ] Add rate limit status reporting
+
+**Unit Tests**:
+- [ ] Test tracking remaining requests
+- [ ] Test exponential backoff timing
+- [ ] Test request queuing when near limit
+- [ ] Test priority queue ordering
+- [ ] Test 429 retry logic
+- [ ] Test concurrent request limiting
+
+**Acceptance**:
+- [ ] All tests pass
+- [ ] Never hits rate limit in normal usage
+- [ ] Exponential backoff works correctly
+- [ ] Priority requests processed first
 
 **Key Files**:
 - `src/github/rate-limiter.ts`
 
-#### 4.3 Parallel Requests
+#### 5.3 Parallel Requests
 
-**Tasks**:
-- [ ] Batch related GitHub API calls
-- [ ] Use Promise.all for independent fetches
-- [ ] Implement request pooling
-- [ ] Measure performance improvements
+**Implementation**:
+- [ ] Identify independent API calls that can run in parallel
+- [ ] Replace sequential awaits with Promise.all where safe
+- [ ] Batch related GitHub API calls:
+  - [ ] Fetch PR + check runs in parallel
+  - [ ] Fetch review comments + issue comments in parallel
+  - [ ] Fetch multiple PRs in parallel for stack analysis
+- [ ] Implement request pooling to limit concurrency
+- [ ] Add performance timing logging
+- [ ] Measure before/after performance
+- [ ] Document performance improvements in comments
 
-#### 4.4 Error Recovery
+**Unit Tests**:
+- [ ] Test parallel fetch logic
+- [ ] Test request pooling limits concurrency
+- [ ] Test error handling when one parallel request fails
+- [ ] Mock timing to verify parallel execution
 
-**Tasks**:
-- [ ] Retry transient failures (3 attempts)
-- [ ] Implement exponential backoff
-- [ ] Add graceful degradation
-- [ ] Improve error messages
-- [ ] Write error scenario tests
+**Acceptance**:
+- [ ] All tests pass
+- [ ] Tool execution time reduced by >30%
+- [ ] No race conditions from parallel requests
+- [ ] Error in one request doesn't break others
 
-#### 4.5 User Preferences System
+#### 5.4 Error Recovery
+
+**Implementation**:
+- [ ] Create `src/github/retry.ts` with retry logic
+- [ ] Implement retry for transient failures (3 attempts max)
+- [ ] Use exponential backoff between retries
+- [ ] Identify retryable errors:
+  - [ ] 5xx server errors
+  - [ ] Network timeouts
+  - [ ] Rate limit errors (429)
+  - [ ] Temporary GitHub outages
+- [ ] Do NOT retry:
+  - [ ] 4xx client errors (bad request, not found, unauthorized)
+  - [ ] Validation errors
+  - [ ] Authentication errors
+- [ ] Implement graceful degradation when API unavailable
+- [ ] Improve error messages with context and suggestions
+- [ ] Add error codes for programmatic handling
+- [ ] Log all retries for debugging
+
+**Unit Tests**:
+- [ ] Test successful retry after transient failure
+- [ ] Test max retries reached
+- [ ] Test exponential backoff timing
+- [ ] Test retryable vs non-retryable error classification
+- [ ] Test graceful degradation
+- [ ] Test error message quality
+
+**Acceptance**:
+- [ ] All tests pass
+- [ ] Transient failures auto-recover
+- [ ] Non-retryable errors fail fast
+- [ ] Error messages are helpful
+
+#### 5.5 User Preferences System
 
 **Reference**: See [PREFERENCE_HINTS.md](./PREFERENCE_HINTS.md) for full spec
 
-**Tasks**:
-- [ ] Implement PreferencesLoader (load/save JSON)
-- [ ] Implement resolveParameterValue function
-- [ ] Add 💾 emoji hints to all tool schemas
-- [ ] Update all tool handlers to use preferences
-- [ ] Add CLI command to manage preferences
-- [ ] Ensure explicit args always win
-- [ ] Write preference resolution tests
+**Implementation**:
+- [ ] Create `src/preferences/loader.ts` with PreferencesLoader class
+- [ ] Implement loadUserPreferences(toolName) method
+- [ ] Implement saveUserPreferences(toolName, prefs) method
+- [ ] Create config directory (~/.resolve-pr-mcp/)
+- [ ] Handle missing config file gracefully (return {})
+- [ ] Parse JSON config file safely
+- [ ] Create `src/preferences/resolver.ts` with resolveParameterValue function
+- [ ] Implement 3-level precedence:
+  - [ ] Level 1: Explicit argument (always wins)
+  - [ ] Level 2: User preference (if no explicit arg)
+  - [ ] Level 3: Tool default (fallback)
+- [ ] Verify 💾 emoji hints already in all schemas from Phase 3
+- [ ] Update all 8 tool handlers to use resolveParameterValue:
+  - [ ] get_failing_tests: bail_on_first, page_size, wait
+  - [ ] find_unresolved_comments: include_bots, page_size, sort
+  - [ ] manage_stacked_prs: auto_fix, use_onto, page_size
+  - [ ] (Phase 4 tools as applicable)
+- [ ] Add CLI command to manage preferences:
+  - [ ] `resolve-pr-mcp preferences set <tool> <param> <value>`
+  - [ ] `resolve-pr-mcp preferences get <tool> [param]`
+  - [ ] `resolve-pr-mcp preferences clear <tool>`
+  - [ ] `resolve-pr-mcp preferences list`
+- [ ] Ensure explicit args always override preferences
+
+**Unit Tests** (tests/preferences/):
+- [ ] Test resolveParameterValue with explicit arg (wins)
+- [ ] Test resolveParameterValue with user preference (used)
+- [ ] Test resolveParameterValue with no pref (uses default)
+- [ ] Test PreferencesLoader load from file
+- [ ] Test PreferencesLoader save to file
+- [ ] Test PreferencesLoader handles missing file
+- [ ] Test PreferencesLoader handles invalid JSON
+- [ ] Test precedence: explicit > pref > default
+
+**Integration Tests**:
+- [ ] Test real preferences file creation
+- [ ] Test preferences persist across tool calls
+- [ ] Test explicit args override preferences
+
+**CLI Tests**:
+- [ ] Test `preferences set` command
+- [ ] Test `preferences get` command
+- [ ] Test `preferences list` command
+- [ ] Test `preferences clear` command
+- [ ] Test invalid preference values rejected
+
+**Acceptance**:
+- [ ] All tests pass
+- [ ] Can set preferences via CLI
+- [ ] Preferences loaded in tool handlers
+- [ ] Explicit args always override
+- [ ] Config file created in ~/.resolve-pr-mcp/
 
 **Key Files**:
 - `src/preferences/loader.ts`
@@ -719,42 +1054,138 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 
 ### Tasks
 
-#### 5.1 Documentation
+#### 6.1 Documentation
 
-**Tasks**:
+**Implementation**:
 - [x] Architecture overview (ARCHITECTURE.md)
 - [x] API specifications (API_DESIGN.md)
-- [ ] User guide with examples
-- [ ] Troubleshooting guide
-- [ ] Contributing guidelines
-- [ ] Update README with usage
+- [ ] Create USER_GUIDE.md with step-by-step tutorials
+- [ ] Add "Getting Started" section with first-time setup
+- [ ] Add common workflow examples
+- [ ] Create TROUBLESHOOTING.md with FAQs and solutions:
+  - [ ] GITHUB_TOKEN issues
+  - [ ] Rate limiting problems
+  - [ ] PR not found errors
+  - [ ] CI timeout issues
+- [ ] Update CONTRIBUTING.md with development guide:
+  - [ ] How to add new tools
+  - [ ] Testing requirements
+  - [ ] Code style guidelines
+  - [ ] PR process
+- [ ] Update README.md with:
+  - [ ] Installation instructions
+  - [ ] Quick start guide
+  - [ ] All 8 tools documented
+  - [ ] MCP and CLI usage examples
+  - [ ] Configuration options
+- [ ] Add inline code comments for complex logic
+- [ ] Ensure all public APIs have JSDoc comments
 
-#### 5.2 Examples
+**Acceptance**:
+- [ ] All docs reviewed and accurate
+- [ ] README is clear and complete
+- [ ] New users can get started in <5 minutes
+- [ ] Troubleshooting guide covers common issues
 
-**Tasks**:
-- [ ] Example AI prompts for each tool
-- [ ] Complete workflow examples
-- [ ] Integration guide for Claude Desktop
-- [ ] Integration guide for other MCP clients
-- [ ] Video/screencast demos (optional)
+#### 6.2 Examples
 
-#### 5.3 Deployment
+**Implementation**:
+- [ ] Create examples/ directory with sample workflows
+- [ ] Add example AI prompts for each tool:
+  - [ ] "Check if my PR is ready to merge"
+  - [ ] "Find all unresolved comments on PR #123"
+  - [ ] "Help me rebase my stacked PR after upstream merged"
+- [ ] Add complete workflow examples:
+  - [ ] Daily PR review workflow
+  - [ ] Stacked PR management workflow
+  - [ ] CI failure debugging workflow
+  - [ ] Pre-merge checklist workflow
+- [ ] Create MCP_INTEGRATION.md:
+  - [ ] Claude Desktop setup instructions
+  - [ ] Config file example
+  - [ ] Testing MCP connection
+  - [ ] Troubleshooting MCP issues
+- [ ] Add integration guides for other MCP clients:
+  - [ ] Continue.dev integration
+  - [ ] Custom MCP client integration
+- [ ] Record video demos (optional):
+  - [ ] Getting started screencast
+  - [ ] Full workflow demo
 
-**Tasks**:
-- [ ] Create Dockerfile (optional)
-- [ ] Prepare for npm package publication
-- [ ] Set up GitHub Actions workflow for releases
-- [ ] Version management and changelog
-- [ ] Create release documentation
+**Acceptance**:
+- [ ] All example prompts work as documented
+- [ ] Workflows are realistic and useful
+- [ ] MCP integration guide enables setup in <10 minutes
+- [ ] Examples cover all 8 tools
 
-#### 5.4 Monitoring
+#### 6.3 Deployment
 
-**Tasks**:
-- [ ] Add structured logging
-- [ ] Add metrics collection (optional)
-- [ ] Performance profiling
-- [ ] Usage analytics (opt-in)
-- [ ] Error tracking setup
+**Implementation**:
+- [ ] Prepare for npm package publication:
+  - [ ] Verify package.json metadata (name, description, keywords)
+  - [ ] Add repository, bugs, homepage URLs
+  - [ ] Verify files field includes only necessary files
+  - [ ] Test npm pack locally
+  - [ ] Create .npmignore if needed
+- [ ] Set up GitHub Actions workflow for releases:
+  - [ ] Create `.github/workflows/release.yml`
+  - [ ] Trigger on tag push (v*.*.*)
+  - [ ] Run all tests before release
+  - [ ] Build and publish to npm
+  - [ ] Create GitHub release with changelog
+- [ ] Version management:
+  - [ ] Use semantic versioning (semver)
+  - [ ] Update CHANGELOG.md with release notes
+  - [ ] Tag releases in git
+- [ ] Create release documentation:
+  - [ ] RELEASE.md with release process
+  - [ ] Migration guides for breaking changes
+- [ ] Create Dockerfile (optional):
+  - [ ] Multi-stage build
+  - [ ] Minimal Alpine base image
+  - [ ] Include only runtime dependencies
+
+**Acceptance**:
+- [ ] Can publish to npm successfully
+- [ ] GitHub releases automated
+- [ ] CHANGELOG is up to date
+- [ ] Release process documented
+
+#### 6.4 Monitoring and Observability
+
+**Implementation**:
+- [ ] Add structured logging:
+  - [ ] Create `src/logging/logger.ts` with Winston or Pino
+  - [ ] Log levels: error, warn, info, debug
+  - [ ] JSON format for machine parsing
+  - [ ] Include context: tool name, PR, timestamp
+  - [ ] Add LOG_LEVEL environment variable
+- [ ] Add metrics collection (optional):
+  - [ ] Tool execution time per tool
+  - [ ] GitHub API call count per tool
+  - [ ] Cache hit/miss rates
+  - [ ] Error rates by category
+- [ ] Performance profiling:
+  - [ ] Add performance.now() timing to handlers
+  - [ ] Log slow operations (>1s)
+  - [ ] Identify bottlenecks
+  - [ ] Create performance benchmarks
+- [ ] Usage analytics (opt-in):
+  - [ ] Track tool usage frequency
+  - [ ] Track parameter usage patterns
+  - [ ] No PII or sensitive data
+  - [ ] Opt-in via config flag only
+- [ ] Error tracking:
+  - [ ] Log all errors with stack traces
+  - [ ] Categorize errors (github_api, validation, parsing, unknown)
+  - [ ] Add error fingerprints for grouping
+
+**Acceptance**:
+- [ ] Structured logs are parsable
+- [ ] Debug logs help troubleshoot issues
+- [ ] Performance metrics identify slow paths
+- [ ] No sensitive data logged
+- [ ] Opt-in analytics work correctly
 
 ---
 
