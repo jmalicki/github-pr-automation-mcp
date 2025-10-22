@@ -32,7 +32,7 @@
     "audit": "npm audit --audit-level=moderate",
     "audit:fix": "npm audit fix",
     "audit:high": "npm audit --audit-level=high",
-    "audit:ci": "audit-ci --config audit-ci.json",
+    "audit:ci": "audit-ci --config .audit-ci.json",
     "security": "npm audit --audit-level=moderate && npm run license-check",
     "license-check": "npx license-checker --config .license-checker.json"
   },
