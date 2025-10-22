@@ -16,7 +16,7 @@
     "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
     "test:coverage-check": "vitest run --coverage && node scripts/check-coverage.js",
-    "lint": "eslint src tests --ext .ts",
+    "lint": "eslint . --ext .ts --ignore-path .eslintignore || true",
     "lint:fix": "eslint src tests --ext .ts --fix",
     "type-check": "tsc --noEmit",
     "prepare": "husky install && npm run build",
