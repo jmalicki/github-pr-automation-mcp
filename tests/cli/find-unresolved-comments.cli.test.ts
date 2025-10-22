@@ -33,12 +33,12 @@ describe('CLI: find-unresolved-comments', () => {
       // If JSON parsing fails due to truncation, check if it starts with valid JSON
       expect(stdout.trim()).toMatch(/^\{.*$/);
       expect(stdout).toContain('"pr":');
-      expect(stdout).toContain('"total_unresolved":');
+      expect(stdout).toContain('"unresolved_in_page":');
       return; // Skip further assertions for truncated output
     }
     
     expect(result).toHaveProperty('pr');
-    expect(result).toHaveProperty('total_unresolved');
+    expect(result).toHaveProperty('unresolved_in_page');
     expect(result).toHaveProperty('comments');
     expect(result).toHaveProperty('summary');
   }, 30000);

@@ -91,13 +91,13 @@ describe('CLI: Schema Default Behavior', () => {
         // If JSON parsing fails due to truncation, check if it starts with valid JSON
         expect(stdout.trim()).toMatch(/^\{.*$/);
         expect(stdout).toContain('"summary":');
-        expect(stdout).toContain('"total_unresolved":');
+        expect(stdout).toContain('"unresolved_in_page":');
         return; // Skip further assertions for truncated output
       }
       
       // PR #2 has CodeRabbit comments (bots). If schema default is true, they should be included
       expect(result.summary.bot_comments).toBeGreaterThan(0);
-      expect(result.total_unresolved).toBeGreaterThan(2); // More than just the 2 human comments
+      expect(result.unresolved_in_page).toBeGreaterThan(2); // More than just the 2 human comments
     }, 15000);
 
     it('should respect explicit --include-bots=false to override default', async () => {
