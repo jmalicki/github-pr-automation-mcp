@@ -325,6 +325,7 @@ jobs:
 - [ ] Add user preference support
 - [ ] Write unit tests for log parsers (all frameworks)
 - [ ] Write integration tests with mock GitHub API
+- [ ] Write CLI tests (argument parsing, output formatting)
 - [ ] Test with real PR
 
 **Key Files**:
@@ -349,6 +350,7 @@ jobs:
 - [ ] Add user preference support
 - [ ] Write unit tests for thread building
 - [ ] Write integration tests with mock comments
+- [ ] Write CLI tests (argument parsing, output formatting)
 - [ ] Test with real PR
 
 **Key Files**:
@@ -374,6 +376,7 @@ jobs:
 - [ ] Add user preference support
 - [ ] Write unit tests for stack validation
 - [ ] Write tests for rebase strategy detection
+- [ ] Write CLI tests (argument parsing, output formatting)
 - [ ] Test with real stacked PRs
 
 **Key Files**:
