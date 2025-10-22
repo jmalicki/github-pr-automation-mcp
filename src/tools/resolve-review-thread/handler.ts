@@ -4,6 +4,7 @@ import { parsePRIdentifier } from '../../utils/parser.js';
 
 export async function handleResolveReviewThread(client: GitHubClient, input: ResolveReviewThreadInput): Promise<ResolveReviewThreadOutput> {
   const parsed = ResolveReviewThreadInputSchema.parse(input);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const pr = parsePRIdentifier(parsed.pr);
 
   const octokit = client.getOctokit();
@@ -29,22 +30,21 @@ export async function handleResolveReviewThread(client: GitHubClient, input: Res
     }
   }
 
-  // Check current resolution status
+  // Check current resolution status by fetching the specific thread
   const statusQuery = `
-    query($owner: String!, $repo: String!, $pr: Int!, $threadId: ID!) {
-      repository(owner: $owner, name: $repo) {
-        pullRequest(number: $pr) {
-          reviewThreads(first: 1, query: $threadId) {
-            nodes { id, isResolved }
-          }
+    query($threadId: ID!) {
+      node(id: $threadId) {
+        ... on PullRequestReviewThread {
+          id
+          isResolved
         }
       }
     }
   `;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-  const statusResp = await octokit.graphql(statusQuery, { owner: pr.owner, repo: pr.repo, pr: pr.number, threadId }) as any;
+  const statusResp = await octokit.graphql(statusQuery, { threadId }) as any;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-  const threadNode = statusResp?.repository?.pullRequest?.reviewThreads?.nodes?.[0] as { id?: string; isResolved?: boolean } | undefined;
+  const threadNode = statusResp?.node as { id?: string; isResolved?: boolean } | undefined;
   if (threadNode && threadNode.isResolved) {
     return { ok: true, thread_id: threadId!, alreadyResolved: true, message: 'Thread already resolved' };
   }
