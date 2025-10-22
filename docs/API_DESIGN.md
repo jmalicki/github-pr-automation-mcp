@@ -234,6 +234,72 @@ Agent makes fix → Agent verifies fix → Agent resolves comment
 
 ---
 
+### 3.7. resolve_review_conversations 🆕
+
+**Purpose**: Generate commands to resolve GitHub review threads programmatically using GraphQL API.
+
+**Use Cases**:
+- AI needs to resolve review conversations after addressing feedback
+- Bulk resolution of resolved threads
+- Programmatic thread management
+
+**Input Schema**:
+```typescript
+interface ResolveReviewConversationsInput {
+  pr: string;                    // Format: "owner/repo#number"
+  only_unresolved?: boolean;     // Only include unresolved threads (default: true) 💾
+  dry_run?: boolean;            // Do not execute, only print commands (default: true)
+  cursor?: string;              // MCP cursor for pagination
+  limit?: number;               // Limit threads (1-100, optional)
+}
+```
+
+**Output Schema**:
+```typescript
+interface ResolveReviewConversationsOutput {
+  pr: string;
+  
+  threads: Array<{
+    id: string;                 // GitHub thread ID
+    is_resolved: boolean;       // Current resolution status
+    preview: string;            // First 200 chars of thread content
+    action_commands: {
+      resolve_command: string;  // GraphQL mutation to resolve thread
+      view_in_browser: string;  // Direct link to thread
+    };
+  }>;
+  
+  nextCursor?: string;         // MCP cursor for next page
+  
+  summary: {
+    total: number;             // Total threads found
+    unresolved: number;        // Unresolved threads
+    suggested: number;         // Threads with suggested commands
+  };
+}
+```
+
+**GraphQL Integration**:
+- Uses `reviewThreads` query to fetch thread data
+- Generates `resolveReviewThread` mutation commands
+- Supports cursor-based pagination per MCP spec
+
+**Tool Philosophy**:
+- **Dumb tool**: Lists threads, generates commands
+- **Smart agent**: Decides when to run commands, verifies fixes first
+- **Never auto-resolve**: Commands are dry-run by default
+
+**Example Commands Generated**:
+```bash
+# Resolve a specific thread
+gh api graphql -f query='mutation($threadId: ID!) { resolveReviewThread(input: {threadId: $threadId}) { thread { isResolved } } }' -f threadId="thread-abc123"
+
+# View thread in browser
+https://github.com/owner/repo/pull/123#discussion_rthread-abc123
+```
+
+---
+
 ### 3. manage_stacked_prs
 
 **Purpose**: Manage dependency chains between stacked PRs, detecting when rebases are needed and orchestrating automated fixes.
