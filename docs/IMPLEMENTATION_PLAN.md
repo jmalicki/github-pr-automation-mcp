@@ -223,16 +223,21 @@ jobs:
 
 **Tasks**:
 - [ ] Create `src/cli.ts` with commander setup
-- [ ] Add commands for all 8 tools
-- [ ] Implement JSON and human-readable output
-- [ ] Add to package.json bin
-- [ ] Test with `npm run cli`
+- [ ] Implement lazy GitHub client initialization (allow --help without token)
+- [ ] Add placeholder commands for all 8 tools (Phase 2 only adds placeholders)
+- [ ] Implement JSON and human-readable output formatting
+- [ ] Add to package.json bin field
+- [ ] Test `--help` works without GITHUB_TOKEN
+- [ ] Test with `npm run cli -- <command> --help`
+
+**Important**: Phase 2 creates CLI infrastructure with **placeholders only**. 
+Tools will be wired up in Phase 3 when handlers are implemented.
 
 **Dependencies**: 
 - `commander` - CLI argument parsing
 
 **Key Files**:
-- `src/cli.ts` - CLI entry point
+- `src/cli.ts` - CLI entry point (lazy init, placeholders)
 - `dist/cli.js` - Built CLI (set as bin in package.json)
 
 #### 1.3 GitHub API Integration
@@ -315,18 +320,66 @@ jobs:
 
 **Reference**: See [API_DESIGN.md](./API_DESIGN.md#1-get_failing_tests) for full spec
 
-**Tasks**:
-- [ ] Create schema with 💾 preference hints
-- [ ] Implement `src/github/ci-status-fetcher.ts`
-- [ ] Create log parsers for Jest, pytest, Go, RSpec
-- [ ] Implement polling with bail-on-first logic
-- [ ] Create instruction generator
-- [ ] Implement main handler with pagination
-- [ ] Add user preference support
-- [ ] Write unit tests for log parsers (all frameworks)
-- [ ] Write integration tests with mock GitHub API
-- [ ] Write CLI tests (argument parsing, output formatting)
-- [ ] Test with real PR
+**Schema & Handler**:
+- [ ] Create `src/tools/get-failing-tests/schema.ts` with Zod input/output schemas
+- [ ] Add 💾 emoji to preference-worthy parameters (bail_on_first, page_size, wait)
+- [ ] Implement `src/tools/get-failing-tests/handler.ts` main function
+- [ ] Accept GitHubClient and input, return output matching schema
+- [ ] Fetch PR to get head SHA
+- [ ] Get check runs for commit
+- [ ] Handle empty check runs (no CI configured)
+- [ ] Filter completed vs pending runs
+- [ ] Implement wait mode with polling if requested
+- [ ] Implement bail-on-first logic
+- [ ] Extract failures from failed check runs
+- [ ] Implement pagination using paginateResults utility
+- [ ] Generate instructions summary
+- [ ] Return proper status (passed/failed/running/unknown)
+
+**Supporting Code**:
+- [ ] Create `src/github/ci-status-fetcher.ts` for CI API interactions
+- [ ] Create log parsers: Jest, Pytest, Go, RSpec in `log-parser.ts`
+- [ ] Create `instructions.ts` for fix command generation
+- [ ] Add user preference loading in handler
+
+**CLI Integration**:
+- [ ] Wire up CLI command in `src/cli.ts` to call handler
+- [ ] Pass parsed arguments to handler
+- [ ] Format JSON output (--json flag)
+- [ ] Format human-readable output (default)
+- [ ] Handle errors and exit codes properly
+- [ ] Verify lazy init allows --help without token
+
+**Unit Tests** (tests/tools/get-failing-tests.test.ts):
+- [ ] Test with no CI checks configured
+- [ ] Test with all passing checks
+- [ ] Test with failed checks - verify failure extraction
+- [ ] Test wait mode with pending checks
+- [ ] Test bail-on-first behavior
+- [ ] Test pagination (multiple pages)
+- [ ] Test PR identifier format parsing
+- [ ] Test mixed status (passed/failed/pending)
+
+**Integration Tests** (tests/integration/tools/):
+- [ ] Test against real GitHub PR with CI
+- [ ] Verify actual API responses handled correctly
+
+**CLI Tests** (tests/cli/get-failing-tests.cli.test.ts):
+- [ ] Test --help shows usage without requiring token
+- [ ] Test --pr argument is required
+- [ ] Test PR identifier formats accepted
+- [ ] Test --json outputs valid JSON
+- [ ] Test default outputs human-readable format
+- [ ] Test pagination arguments (--page, --page-size)
+- [ ] Test invalid PR format shows error
+- [ ] Test exit codes (0 for success, non-zero for errors)
+
+**Acceptance**:
+- [ ] npm test passes all unit tests
+- [ ] npm run cli -- get-failing-tests --help works without token
+- [ ] npm run cli -- get-failing-tests --pr "owner/repo#123" works with token
+- [ ] Handler returns data matching output schema
+- [ ] Real PR test successful
 
 **Key Files**:
 - `src/tools/get-failing-tests/schema.ts`
@@ -341,17 +394,62 @@ jobs:
 
 **Important**: Tool returns raw data only. LLM does categorization and response generation.
 
-**Tasks**:
-- [ ] Create schema with 💾 preference hints
-- [ ] Implement `src/github/comment-manager.ts`
-- [ ] Create thread analyzer (resolution heuristics only)
-- [ ] Implement sorting by chronological/file/author
-- [ ] Implement main handler with pagination
-- [ ] Add user preference support
-- [ ] Write unit tests for thread building
-- [ ] Write integration tests with mock comments
-- [ ] Write CLI tests (argument parsing, output formatting)
-- [ ] Test with real PR
+**Schema & Handler**:
+- [ ] Create `src/tools/find-unresolved-comments/schema.ts` with Zod schemas
+- [ ] Add 💾 emoji to preference parameters (include_bots, page_size, sort)
+- [ ] Implement `src/tools/find-unresolved-comments/handler.ts` main function
+- [ ] Fetch review comments (inline code comments)
+- [ ] Fetch issue comments (general PR comments)
+- [ ] Normalize both comment types to unified Comment type
+- [ ] Detect bot comments (user.type === 'Bot')
+- [ ] Filter by include_bots parameter
+- [ ] Filter by exclude_authors parameter
+- [ ] Implement sorting: chronological, by_file, by_author
+- [ ] Build summary statistics (by_author, by_type, bot/human counts)
+- [ ] Implement pagination using paginateResults utility
+- [ ] Return comments with file paths, line numbers, bodies
+
+**Supporting Code**:
+- [ ] Create `src/github/comment-manager.ts` for comment API interactions
+- [ ] Create `thread-analyzer.ts` with resolution heuristics
+- [ ] Add user preference loading in handler
+
+**CLI Integration**:
+- [ ] Wire up CLI command in `src/cli.ts` to call handler
+- [ ] Parse --include-bots, --exclude-authors, --sort arguments
+- [ ] Format JSON output (--json flag)
+- [ ] Format human-readable output with emojis (default)
+- [ ] Handle errors and exit codes properly
+
+**Unit Tests** (tests/tools/find-unresolved-comments.test.ts):
+- [ ] Test fetching and combining review + issue comments
+- [ ] Test bot filtering (include_bots true/false)
+- [ ] Test exclude_authors filtering
+- [ ] Test sorting by file (alphabetical, then line number)
+- [ ] Test sorting by author (alphabetical, then chronological)
+- [ ] Test sorting chronologically
+- [ ] Test pagination (multiple pages)
+- [ ] Test summary statistics generation
+
+**Integration Tests**:
+- [ ] Test against real GitHub PR with comments
+- [ ] Test bot comment filtering with real bots
+
+**CLI Tests** (tests/cli/find-unresolved-comments.cli.test.ts):
+- [ ] Test --help without token
+- [ ] Test --pr required
+- [ ] Test --json outputs valid JSON with all fields
+- [ ] Test default human-readable format
+- [ ] Test --sort options (chronological, by_file, by_author)
+- [ ] Test --include-bots flag
+- [ ] Test exit codes
+
+**Acceptance**:
+- [ ] All unit tests pass
+- [ ] CLI --help works without token
+- [ ] CLI with valid PR returns comment data
+- [ ] Bot filtering works correctly
+- [ ] Summary statistics accurate
 
 **Key Files**:
 - `src/tools/find-unresolved-comments/schema.ts`
@@ -365,19 +463,74 @@ jobs:
 
 **Important**: Detect squash merges and recommend regular vs --onto rebase strategy
 
-**Tasks**:
-- [ ] Create schema with optional use_onto parameter
-- [ ] Implement `src/github/pr-analyzer.ts` (stack validation)
-- [ ] Implement rebase strategy detector (squash merge detection)
-- [ ] Create command generator with --onto support
-- [ ] Generate ASCII visualization of stack
-- [ ] Implement main handler with strategy recommendation
-- [ ] Add pagination for commands
-- [ ] Add user preference support
-- [ ] Write unit tests for stack validation
-- [ ] Write tests for rebase strategy detection
-- [ ] Write CLI tests (argument parsing, output formatting)
-- [ ] Test with real stacked PRs
+**Schema & Handler**:
+- [ ] Create `src/tools/manage-stacked-prs/schema.ts` with Zod schemas
+- [ ] Add 💾 emoji to preference parameters (auto_fix, use_onto, page_size)
+- [ ] Include optional use_onto and onto_base parameters
+- [ ] Implement `src/tools/manage-stacked-prs/handler.ts` main function
+- [ ] Parse both PR identifiers
+- [ ] Verify both PRs in same repository (throw error if not)
+- [ ] Fetch both PRs in parallel
+- [ ] Check if stacked (dependent.base === base.head branch)
+- [ ] Compare commits between PRs to detect changes
+- [ ] Detect if base PR was squash-merged
+- [ ] Build change summary (commits, files, potential conflicts)
+- [ ] Generate git commands for rebase workflow
+- [ ] Include --onto command variant if applicable
+- [ ] Generate rebase_strategy with recommendation and reasoning
+- [ ] Provide AI decision factors if both strategies viable
+- [ ] Create ASCII visualization of stack
+- [ ] Implement pagination for commands
+- [ ] Calculate estimated time and risk level
+
+**Supporting Code**:
+- [ ] Create `src/github/pr-analyzer.ts` for PR comparison logic
+- [ ] Create `rebase-strategy.ts` for squash merge detection
+- [ ] Create `command-generator.ts` for git command templates
+- [ ] Add user preference loading in handler
+
+**CLI Integration**:
+- [ ] Wire up CLI command in `src/cli.ts` to call handler
+- [ ] Parse --base-pr and --dependent-pr (both required)
+- [ ] Parse --auto-fix and --use-onto flags
+- [ ] Format JSON output (--json flag)
+- [ ] Format human-readable output with emojis (default)
+- [ ] Show stack visualization in human output
+- [ ] List commands with step numbers
+- [ ] Handle errors and exit codes properly
+
+**Unit Tests** (tests/tools/manage-stacked-prs.test.ts):
+- [ ] Test detecting stacked PRs (base branch matches)
+- [ ] Test detecting non-stacked PRs
+- [ ] Test error when PRs in different repos
+- [ ] Test no changes detected scenario
+- [ ] Test changes detected - verify command generation
+- [ ] Test --onto strategy when use_onto=true
+- [ ] Test regular rebase strategy when use_onto=false
+- [ ] Test pagination of commands
+- [ ] Test change summary generation
+- [ ] Test rebase_strategy recommendation
+
+**Integration Tests**:
+- [ ] Test with real stacked PRs (use this repo's PRs!)
+- [ ] Verify stacked detection works
+- [ ] Test rebase strategy detection
+
+**CLI Tests** (tests/cli/manage-stacked-prs.cli.test.ts):
+- [ ] Test --help without token
+- [ ] Test both --base-pr and --dependent-pr required
+- [ ] Test --json outputs valid JSON
+- [ ] Test default human-readable output
+- [ ] Test exit codes
+- [ ] Test error when PRs in different repos
+
+**Acceptance**:
+- [ ] All unit tests pass
+- [ ] CLI --help works
+- [ ] CLI with valid PRs returns stack analysis
+- [ ] Stacked detection accurate
+- [ ] Commands generated correctly
+- [ ] Rebase strategy recommendation makes sense
 
 **Key Files**:
 - `src/tools/manage-stacked-prs/schema.ts`
