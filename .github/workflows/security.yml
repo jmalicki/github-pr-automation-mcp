@@ -1,0 +1,74 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run comprehensive security audit weekly on Sundays at 2 AM UTC
+    - cron: '0 2 * * 0'
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch full history for better security analysis
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Comprehensive security audit
+        run: |
+          echo "Running comprehensive security audit..."
+          npm run audit:ci
+          
+          echo "Summary of moderate vulnerabilities (non-blocking):"
+          npm audit --audit-level=moderate --json | jq -r '.metadata.vulnerabilities.moderate // 0' | xargs -I {} echo "Moderate vulnerabilities: {}"
+          
+      - name: License compliance check
+        run: npm run license-check
+          
+      - name: Security scan with CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+          
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+
+  license-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Check licenses
+        run: |
+          echo "Checking package licenses..."
+          npm run license-check || {
+            echo "❌ Unapproved licenses detected"
+            echo "Please review and approve the licenses in the package dependencies"
+            exit 1
+          }
+          echo "✅ All licenses are approved"

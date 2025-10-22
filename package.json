@@ -17,8 +17,8 @@
     "test:coverage": "vitest run --coverage",
     "test:coverage-check": "vitest run --coverage && node scripts/check-coverage.js",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
     "type-check": "tsc --noEmit",
     "prepare": "husky install && npm run build",
     "postinstall": "husky install",
@@ -28,7 +28,13 @@
     "release:major": "node scripts/release.js major",
     "release:prerelease": "node scripts/release.js prerelease",
     "prepack": "npm run build",
-    "postpack": "echo 'Package ready for distribution'"
+    "postpack": "echo 'Package ready for distribution'",
+    "audit": "npm run audit:ci",
+    "audit:fix": "npm audit fix",
+    "audit:high": "npm run audit:ci",
+    "audit:ci": "audit-ci --config .audit-ci.json",
+    "security": "npm run audit:ci && npm run license-check",
+    "license-check": "npx license-checker --config .license-checker.json"
   },
   "keywords": [
     "mcp",
@@ -58,8 +64,8 @@
   "homepage": "https://github.com/jmalicki/github-pr-automation-mcp#readme",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.5.0",
-    "@octokit/rest": "^20.0.2",
     "@octokit/auth-app": "^6.0.3",
+    "@octokit/rest": "^20.0.2",
     "commander": "^11.1.0",
     "zod": "^3.22.4"
   },
@@ -68,8 +74,10 @@
     "@typescript-eslint/eslint-plugin": "^6.19.0",
     "@typescript-eslint/parser": "^6.19.0",
     "@vitest/coverage-v8": "^1.2.0",
+    "audit-ci": "^7.1.0",
     "eslint": "^8.56.0",
     "husky": "^8.0.3",
+    "license-checker": "^25.0.1",
     "typescript": "^5.3.3",
     "vitest": "^1.2.0"
   },

@@ -19,6 +19,12 @@ jobs:
           
       - name: Install dependencies
         run: npm ci
+      
+      - name: Security audit
+        run: npm run audit:ci
+        
+      - name: License compliance check
+        run: npm run license-check
         
       - name: Build
         run: npm run build
