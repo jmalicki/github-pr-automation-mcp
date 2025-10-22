@@ -34,14 +34,6 @@ export async function handleGetFailingTests(
       pr: formatPRIdentifier(pr),
       status: 'unknown',
       failures: [],
-      pagination: {
-        page: 1,
-        page_size: input.page_size,
-        total_items: 0,
-        total_pages: 1,
-        has_next: false,
-        has_previous: false
-      },
       instructions: {
         summary: 'No CI checks configured for this PR',
         commands: []
@@ -60,14 +52,6 @@ export async function handleGetFailingTests(
       pr: formatPRIdentifier(pr),
       status: 'running',
       failures: [],
-      pagination: {
-        page: 1,
-        page_size: input.page_size,
-        total_items: 0,
-        total_pages: 1,
-        has_next: false,
-        has_previous: false
-      },
       instructions: {
         summary: `CI still running (${pending.length} checks pending)`,
         commands: []
@@ -98,8 +82,8 @@ export async function handleGetFailingTests(
     }
   }
   
-  // Paginate results
-  const paginated = paginateResults(failures, input.page, input.page_size);
+  // Paginate using MCP cursor model (server-controlled page size: 10)
+  const paginated = paginateResults(failures, input.cursor, 10);
   
   // Determine overall status
   let status: GetFailingTestsOutput['status'];
@@ -117,7 +101,7 @@ export async function handleGetFailingTests(
     pr: formatPRIdentifier(pr),
     status,
     failures: paginated.items,
-    pagination: paginated.pagination,
+    nextCursor: paginated.nextCursor,
     instructions: {
       summary: failures.length > 0 
         ? `${failures.length} test${failures.length === 1 ? '' : 's'} failed`

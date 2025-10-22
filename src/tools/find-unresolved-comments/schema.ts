@@ -5,8 +5,7 @@ export const FindUnresolvedCommentsSchema = z.object({
   pr: PRIdentifierStringSchema,
   include_bots: z.boolean().default(true),
   exclude_authors: z.array(z.string()).optional(),
-  page: z.number().int().min(1).default(1),
-  page_size: z.number().int().min(1).max(100).default(20),
+  cursor: z.string().optional(), // MCP cursor-based pagination
   sort: z.enum(['chronological', 'by_file', 'by_author']).default('chronological')
 });
 
@@ -53,14 +52,7 @@ export interface FindUnresolvedCommentsOutput {
   pr: string;
   total_unresolved: number;
   comments: Comment[];
-  pagination: {
-    page: number;
-    page_size: number;
-    total_items: number;
-    total_pages: number;
-    has_next: boolean;
-    has_previous: boolean;
-  };
+  nextCursor?: string; // MCP cursor-based pagination
   summary: {
     total_comments: number;
     by_author: Record<string, number>;

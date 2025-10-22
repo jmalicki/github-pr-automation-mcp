@@ -73,19 +73,25 @@ describe('CLI: get-failing-tests', () => {
     expect(stdout).toContain('Status:');
   }, 15000);
 
-  it('should handle pagination arguments', async () => {
+  it('should handle cursor-based pagination', async () => {
     if (!hasToken) {
       console.log(skipMessage);
       return;
     }
 
+    // Get first page
     const { stdout } = await execAsync(
-      'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js get-failing-tests --pr "jmalicki/resolve-pr-mcp#2" --page 1 --page-size 5 --json'
+      'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js get-failing-tests --pr "jmalicki/resolve-pr-mcp#2" --json'
     );
     
     const result = JSON.parse(stdout);
-    expect(result.pagination.page).toBe(1);
-    expect(result.pagination.page_size).toBe(5);
+    expect(result.failures).toBeInstanceOf(Array);
+    
+    // If nextCursor exists, pagination is working
+    if (result.nextCursor) {
+      expect(typeof result.nextCursor).toBe('string');
+      expect(result.nextCursor.length).toBeGreaterThan(0);
+    }
   }, 15000);
 
   it('should handle invalid PR format', async () => {

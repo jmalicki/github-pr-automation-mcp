@@ -55,9 +55,7 @@ describe('handleManageStackedPRs', () => {
     const result = await handleManageStackedPRs(mockClient, {
       base_pr: 'owner/repo#123',
       dependent_pr: 'owner/repo#124',
-      auto_fix: true,
-      page: 1,
-      page_size: 5
+      auto_fix: true
     });
 
     expect(result.is_stacked).toBe(true);
@@ -94,9 +92,7 @@ describe('handleManageStackedPRs', () => {
     const result = await handleManageStackedPRs(mockClient, {
       base_pr: 'owner/repo#123',
       dependent_pr: 'owner/repo#124',
-      auto_fix: true,
-      page: 1,
-      page_size: 5
+      auto_fix: true
     });
 
     expect(result.is_stacked).toBe(false);
@@ -142,9 +138,7 @@ describe('handleManageStackedPRs', () => {
     const result = await handleManageStackedPRs(mockClient, {
       base_pr: 'owner/repo#123',
       dependent_pr: 'owner/repo#124',
-      auto_fix: true,
-      page: 1,
-      page_size: 5
+      auto_fix: true
     });
 
     expect(result.changes_detected).toBe(false);
@@ -179,9 +173,7 @@ describe('handleManageStackedPRs', () => {
     const result = await handleManageStackedPRs(mockClient, {
       base_pr: 'owner/repo#123',
       dependent_pr: 'owner/repo#124',
-      auto_fix: true,
-      page: 1,
-      page_size: 5
+      auto_fix: true
     });
 
     expect(result.commands).toEqual(
@@ -228,9 +220,7 @@ describe('handleManageStackedPRs', () => {
       dependent_pr: 'owner/repo#124',
       auto_fix: true,
       use_onto: true,
-      onto_base: 'main',
-      page: 1,
-      page_size: 5
+      onto_base: 'main'
     });
 
     const rebaseCommand = result.commands.find(c => c.command.includes('git rebase'));
@@ -238,7 +228,7 @@ describe('handleManageStackedPRs', () => {
     expect(rebaseCommand?.command).toContain('origin/main');
   });
 
-  it('should paginate commands correctly', async () => {
+  it('should paginate commands correctly with cursors', async () => {
     mockOctokit.pulls.get
       .mockResolvedValueOnce({
         data: {
@@ -258,23 +248,21 @@ describe('handleManageStackedPRs', () => {
     mockOctokit.repos.compareCommits.mockResolvedValue({
       data: {
         ahead_by: 1,
-        commits: [{ sha: 'commit1', commit: { message: 'Fix' } }],
+        commits: [{ sha: 'commit1', commit: { message: 'Fix', author: { name: 'Alice' } } }],
         files: []
       }
     });
 
-    // Get first page
+    // Get first page (no cursor)
     const page1 = await handleManageStackedPRs(mockClient, {
       base_pr: 'owner/repo#123',
       dependent_pr: 'owner/repo#124',
-      auto_fix: true,
-      page: 1,
-      page_size: 2
+      auto_fix: true
     });
 
-    expect(page1.commands.length).toBeLessThanOrEqual(2);
-    expect(page1.pagination.page).toBe(1);
-    expect(page1.pagination.page_size).toBe(2);
+    expect(page1.commands.length).toBeLessThanOrEqual(5); // Server page size
+    // If there are >5 commands, should have nextCursor
+    // If <=5 commands, no nextCursor
   });
 
   it('should include change summary with commits and files', async () => {
@@ -311,9 +299,7 @@ describe('handleManageStackedPRs', () => {
     const result = await handleManageStackedPRs(mockClient, {
       base_pr: 'owner/repo#123',
       dependent_pr: 'owner/repo#124',
-      auto_fix: true,
-      page: 1,
-      page_size: 5
+      auto_fix: true
     });
 
     expect(result.change_summary.new_commits_in_base).toBe(2);
@@ -352,9 +338,7 @@ describe('handleManageStackedPRs', () => {
     const result = await handleManageStackedPRs(mockClient, {
       base_pr: 'owner/repo#123',
       dependent_pr: 'owner/repo#124',
-      auto_fix: true,
-      page: 1,
-      page_size: 5
+      auto_fix: true
     });
 
     // Note: rebase_strategy is optional in Phase 3, will be fully implemented in Phase 4

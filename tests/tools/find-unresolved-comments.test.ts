@@ -53,8 +53,6 @@ describe('handleFindUnresolvedComments', () => {
     const result = await handleFindUnresolvedComments(mockClient, {
       pr: 'owner/repo#123',
       include_bots: true,
-      page: 1,
-      page_size: 20,
       sort: 'chronological'
     });
 
@@ -96,8 +94,6 @@ describe('handleFindUnresolvedComments', () => {
     const result = await handleFindUnresolvedComments(mockClient, {
       pr: 'owner/repo#123',
       include_bots: false,
-      page: 1,
-      page_size: 20,
       sort: 'chronological'
     });
 
@@ -139,8 +135,6 @@ describe('handleFindUnresolvedComments', () => {
       pr: 'owner/repo#123',
       include_bots: true,
       exclude_authors: ['alice'],
-      page: 1,
-      page_size: 20,
       sort: 'chronological'
     });
 
@@ -179,8 +173,6 @@ describe('handleFindUnresolvedComments', () => {
     const result = await handleFindUnresolvedComments(mockClient, {
       pr: 'owner/repo#123',
       include_bots: true,
-      page: 1,
-      page_size: 20,
       sort: 'by_file'
     });
 
@@ -219,8 +211,6 @@ describe('handleFindUnresolvedComments', () => {
     const result = await handleFindUnresolvedComments(mockClient, {
       pr: 'owner/repo#123',
       include_bots: true,
-      page: 1,
-      page_size: 20,
       sort: 'by_author'
     });
 
@@ -228,7 +218,7 @@ describe('handleFindUnresolvedComments', () => {
     expect(result.comments[1].author).toBe('zoe');
   });
 
-  it('should paginate comments correctly', async () => {
+  it('should paginate comments correctly with cursors', async () => {
     const manyComments = Array.from({ length: 50 }, (_, i) => ({
       id: i + 1,
       user: { login: `user${i}`, type: 'User' },
@@ -238,26 +228,51 @@ describe('handleFindUnresolvedComments', () => {
       path: 'src/file.ts',
       line: i + 1,
       body: `Comment ${i}`,
+      html_url: `https://github.com/owner/repo/pull/123#discussion_r${i}`,
       reactions: { total_count: 0, '+1': 0, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 }
     }));
 
+    // Each handler call makes 2 paginate calls (review + issue comments)
+    // We're calling handler 3 times, so need 6 mock responses
     mockOctokit.paginate
-      .mockResolvedValueOnce(manyComments)
-      .mockResolvedValueOnce([]);
+      .mockResolvedValueOnce(manyComments)  // Page 1: review comments
+      .mockResolvedValueOnce([])            // Page 1: issue comments  
+      .mockResolvedValueOnce(manyComments)  // Page 2: review comments
+      .mockResolvedValueOnce([])            // Page 2: issue comments
+      .mockResolvedValueOnce(manyComments)  // Page 3: review comments
+      .mockResolvedValueOnce([]);           // Page 3: issue comments
 
-    const result = await handleFindUnresolvedComments(mockClient, {
+    // First page (no cursor)
+    const page1 = await handleFindUnresolvedComments(mockClient, {
       pr: 'owner/repo#123',
       include_bots: true,
-      page: 1,
-      page_size: 20,
       sort: 'chronological'
     });
 
-    expect(result.comments).toHaveLength(20);
-    expect(result.pagination.total_items).toBe(50);
-    expect(result.pagination.total_pages).toBe(3);
-    expect(result.pagination.has_next).toBe(true);
-    expect(result.pagination.has_previous).toBe(false);
+    expect(page1.comments).toHaveLength(20); // Server page size
+    expect(page1.nextCursor).toBeDefined(); // More results
+    
+    // Second page using cursor
+    const page2 = await handleFindUnresolvedComments(mockClient, {
+      pr: 'owner/repo#123',
+      include_bots: true,
+      sort: 'chronological',
+      cursor: page1.nextCursor
+    });
+    
+    expect(page2.comments).toHaveLength(20);
+    expect(page2.nextCursor).toBeDefined();
+    
+    // Third page (last)
+    const page3 = await handleFindUnresolvedComments(mockClient, {
+      pr: 'owner/repo#123',
+      include_bots: true,
+      sort: 'chronological',
+      cursor: page2.nextCursor
+    });
+    
+    expect(page3.comments).toHaveLength(10); // Remaining
+    expect(page3.nextCursor).toBeUndefined(); // No more
   });
 
   it('should generate summary statistics', async () => {
@@ -312,8 +327,6 @@ describe('handleFindUnresolvedComments', () => {
     const result = await handleFindUnresolvedComments(mockClient, {
       pr: 'owner/repo#123',
       include_bots: true,
-      page: 1,
-      page_size: 20,
       sort: 'chronological'
     });
 

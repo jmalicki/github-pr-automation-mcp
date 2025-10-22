@@ -6,18 +6,13 @@ export interface PRIdentifier {
   number: number;
 }
 
-export interface PaginationMeta {
-  page: number;
-  page_size: number;
-  total_items: number;
-  total_pages: number;
-  has_next: boolean;
-  has_previous: boolean;
-}
-
+/**
+ * MCP-compliant cursor-based pagination
+ * Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/pagination
+ */
 export interface PaginatedResult<T> {
   items: T[];
-  pagination: PaginationMeta;
+  nextCursor?: string;  // Opaque cursor, only present if more results exist
 }
 
 export type ErrorCategory = 

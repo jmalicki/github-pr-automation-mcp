@@ -5,8 +5,7 @@ export const GetFailingTestsSchema = z.object({
   pr: PRIdentifierStringSchema,
   wait: z.boolean().default(false),
   bail_on_first: z.boolean().default(true),
-  page: z.number().int().min(1).default(1),
-  page_size: z.number().int().min(1).max(50).default(10)
+  cursor: z.string().optional() // MCP cursor-based pagination
 });
 
 export type GetFailingTestsInput = z.infer<typeof GetFailingTestsSchema>;
@@ -25,14 +24,7 @@ export interface GetFailingTestsOutput {
   pr: string;
   status: 'pending' | 'running' | 'failed' | 'passed' | 'unknown';
   failures: FailedTest[];
-  pagination: {
-    page: number;
-    page_size: number;
-    total_items: number;
-    total_pages: number;
-    has_next: boolean;
-    has_previous: boolean;
-  };
+  nextCursor?: string; // MCP cursor-based pagination
   instructions: {
     summary: string;
     commands: string[];

@@ -1,90 +1,109 @@
 import { describe, it, expect } from 'vitest';
-import { paginateResults, createPaginationMeta } from '../../src/utils/pagination.js';
+import { paginateResults, encodeCursor, decodeCursor } from '../../src/utils/pagination.js';
 
-describe('paginateResults', () => {
-  const testItems = Array.from({ length: 50 }, (_, i) => ({ id: i + 1 }));
-  
-  // Test: Validates basic pagination functionality
-  // Requirement: API Design - Pagination
-  it('should paginate items correctly', () => {
-    const result = paginateResults(testItems, 1, 10);
+/**
+ * Tests for MCP-compliant cursor-based pagination
+ * Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/pagination
+ */
+describe('Cursor pagination', () => {
+  describe('encodeCursor / decodeCursor', () => {
+    it('should encode and decode cursor correctly', () => {
+      const cursor = encodeCursor(20, 10);
+      const decoded = decodeCursor(cursor);
+      
+      expect(decoded.offset).toBe(20);
+      expect(decoded.pageSize).toBe(10);
+    });
     
-    expect(result.items).toHaveLength(10);
-    expect(result.items[0].id).toBe(1);
-    expect(result.items[9].id).toBe(10);
-    expect(result.pagination.page).toBe(1);
-    expect(result.pagination.total_pages).toBe(5);
-    expect(result.pagination.has_next).toBe(true);
-    expect(result.pagination.has_previous).toBe(false);
+    it('should produce opaque base64 cursor', () => {
+      const cursor = encodeCursor(0, 10);
+      
+      // Should be base64
+      expect(cursor).toMatch(/^[A-Za-z0-9+/]+=*$/);
+      
+      // Should be opaque (not obvious what it contains)
+      expect(cursor).not.toContain('offset');
+      expect(cursor).not.toContain('page');
+    });
+    
+    it('should throw error for invalid cursor', () => {
+      expect(() => decodeCursor('invalid-base64!@#')).toThrow('Invalid cursor');
+    });
+    
+    it('should throw error for malformed cursor data', () => {
+      const badCursor = Buffer.from('{"offset": -1}').toString('base64');
+      expect(() => decodeCursor(badCursor)).toThrow('Invalid cursor');
+    });
   });
   
-  // Test: Validates pagination for middle page
-  // Requirement: API Design - Pagination
-  it('should handle middle page correctly', () => {
-    const result = paginateResults(testItems, 3, 10);
+  describe('paginateResults', () => {
+    const items = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'];
     
-    expect(result.items).toHaveLength(10);
-    expect(result.items[0].id).toBe(21);
-    expect(result.pagination.has_next).toBe(true);
-    expect(result.pagination.has_previous).toBe(true);
-  });
-  
-  // Test: Validates pagination for last page
-  // Requirement: API Design - Pagination
-  it('should handle last page correctly', () => {
-    const result = paginateResults(testItems, 5, 10);
+    it('should return first page when no cursor provided', () => {
+      const result = paginateResults(items, undefined, 3);
+      
+      expect(result.items).toEqual(['a', 'b', 'c']);
+      expect(result.nextCursor).toBeDefined(); // More results exist
+    });
     
-    expect(result.items).toHaveLength(10);
-    expect(result.items[0].id).toBe(41);
-    expect(result.pagination.has_next).toBe(false);
-    expect(result.pagination.has_previous).toBe(true);
-  });
-  
-  // Test: Validates handling of partial last page
-  // Requirement: API Design - Pagination edge cases
-  it('should handle partial last page', () => {
-    const items = Array.from({ length: 25 }, (_, i) => ({ id: i + 1 }));
-    const result = paginateResults(items, 3, 10);
+    it('should return next page using cursor', () => {
+      // Get first page
+      const page1 = paginateResults(items, undefined, 3);
+      expect(page1.items).toEqual(['a', 'b', 'c']);
+      
+      // Get second page using nextCursor
+      const page2 = paginateResults(items, page1.nextCursor, 3);
+      expect(page2.items).toEqual(['d', 'e', 'f']);
+      expect(page2.nextCursor).toBeDefined();
+    });
     
-    expect(result.items).toHaveLength(5);
-    expect(result.pagination.total_pages).toBe(3);
-  });
-  
-  // Test: Validates handling of invalid page numbers
-  // Requirement: API Design - Pagination validation
-  it('should clamp invalid page numbers', () => {
-    const result = paginateResults(testItems, 999, 10);
+    it('should not include nextCursor on last page', () => {
+      // Navigate to last page
+      const page1 = paginateResults(items, undefined, 3);
+      const page2 = paginateResults(items, page1.nextCursor, 3);
+      const page3 = paginateResults(items, page2.nextCursor, 3);
+      const page4 = paginateResults(items, page3.nextCursor, 3);
+      
+      expect(page4.items).toEqual(['j']); // Last item
+      expect(page4.nextCursor).toBeUndefined(); // No more results
+    });
     
-    // Should return last page instead of empty
-    expect(result.pagination.page).toBe(5);
-    expect(result.items).toHaveLength(10);
-  });
-  
-  // Test: Validates handling of empty arrays
-  // Requirement: API Design - Pagination edge cases
-  it('should handle empty arrays', () => {
-    const result = paginateResults([], 1, 10);
+    it('should handle empty arrays', () => {
+      const result = paginateResults([], undefined, 10);
+      
+      expect(result.items).toEqual([]);
+      expect(result.nextCursor).toBeUndefined();
+    });
     
-    expect(result.items).toHaveLength(0);
-    expect(result.pagination.total_pages).toBe(1);
-    expect(result.pagination.has_next).toBe(false);
-  });
-});
-
-describe('createPaginationMeta', () => {
-  // Test: Validates pagination metadata creation
-  // Requirement: API Design - Pagination metadata
-  it('should create correct pagination metadata', () => {
-    const meta = createPaginationMeta(50, 2, 10);
+    it('should handle items count less than page size', () => {
+      const result = paginateResults(['a', 'b'], undefined, 10);
+      
+      expect(result.items).toEqual(['a', 'b']);
+      expect(result.nextCursor).toBeUndefined(); // No more results
+    });
     
-    expect(meta).toEqual({
-      page: 2,
-      page_size: 10,
-      total_items: 50,
-      total_pages: 5,
-      has_next: true,
-      has_previous: true
+    it('should handle exact page boundary', () => {
+      const items3 = ['a', 'b', 'c'];
+      const result = paginateResults(items3, undefined, 3);
+      
+      expect(result.items).toEqual(['a', 'b', 'c']);
+      expect(result.nextCursor).toBeUndefined(); // Exactly one page
+    });
+    
+    it('should throw error for invalid page size', () => {
+      expect(() => paginateResults(items, undefined, 0)).toThrow('pageSize must be');
+      expect(() => paginateResults(items, undefined, -1)).toThrow('pageSize must be');
+      expect(() => paginateResults(items, undefined, Infinity)).toThrow('pageSize must be');
+    });
+    
+    it('should respect page size from cursor', () => {
+      // First page with size 5
+      const page1 = paginateResults(items, undefined, 5);
+      expect(page1.items).toEqual(['a', 'b', 'c', 'd', 'e']);
+      
+      // Second page should use same size (5) from cursor
+      const page2 = paginateResults(items, page1.nextCursor, 10); // Different default
+      expect(page2.items).toEqual(['f', 'g', 'h', 'i', 'j']); // Still 5 items
     });
   });
 });
-

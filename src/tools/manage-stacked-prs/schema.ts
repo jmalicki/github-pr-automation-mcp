@@ -8,8 +8,7 @@ export const ManageStackedPRsSchema = z.object({
   use_onto: z.boolean().optional(),
   onto_base: z.string().optional(),
   max_iterations: z.number().int().min(1).default(3),
-  page: z.number().int().min(1).default(1),
-  page_size: z.number().int().min(1).max(20).default(5)
+  cursor: z.string().optional() // MCP cursor-based pagination
 });
 
 export type ManageStackedPRsInput = z.infer<typeof ManageStackedPRsSchema>;
@@ -52,13 +51,7 @@ export interface ManageStackedPRsOutput {
     considerations: string[];
   };
   commands: Command[];
-  pagination: {
-    page: number;
-    page_size: number;
-    total_items: number;
-    total_pages: number;
-    has_next: boolean;
-  };
+  nextCursor?: string; // MCP cursor-based pagination
   summary: {
     action_required: boolean;
     reason: string;
