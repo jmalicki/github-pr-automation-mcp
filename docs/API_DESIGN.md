@@ -18,10 +18,9 @@
 ```typescript
 interface GetFailingTestsInput {
   pr: string;              // Format: "owner/repo#number" or "owner/repo/pulls/number"
-  wait?: boolean;          // Wait for CI completion (default: false)
-  bail_on_first?: boolean; // Stop at first failure when waiting (default: true)
-  page?: number;           // Page number, 1-indexed (default: 1)
-  page_size?: number;      // Results per page (default: 10, max: 50)
+  wait?: boolean;          // Wait for CI completion (default: false) 💾
+  bail_on_first?: boolean; // Stop at first failure when waiting (default: true) 💾
+  cursor?: string;         // MCP cursor for pagination
 }
 ```
 
@@ -51,15 +50,8 @@ interface GetFailingTestsOutput {
     confidence: "high" | "medium" | "low"; // Parse confidence
   }>;
   
-  // Pagination metadata
-  pagination: {
-    page: number;
-    page_size: number;
-    total_items: number;
-    total_pages: number;
-    has_next: boolean;
-    has_previous: boolean;
-  };
+  // MCP cursor-based pagination
+  nextCursor?: string;  // Opaque cursor, only present if more results exist
   
   // AI-ready instructions
   instructions: {
@@ -118,11 +110,10 @@ interface GetFailingTestsOutput {
 ```typescript
 interface FindUnresolvedCommentsInput {
   pr: string;                  // Format: "owner/repo#number"
-  include_bots?: boolean;      // Include bot comments (default: true)
+  include_bots?: boolean;      // Include bot comments (default: true) 💾
   exclude_authors?: string[];  // Specific authors to exclude (optional)
-  page?: number;               // Page number (default: 1)
-  page_size?: number;          // Results per page (default: 20, max: 100)
-  sort?: "chronological" | "by_file" | "by_author"; // Default: chronological
+  cursor?: string;             // MCP cursor for pagination
+  sort?: "chronological" | "by_file" | "by_author"; // Default: chronological 💾
 }
 ```
 
@@ -184,15 +175,8 @@ interface FindUnresolvedCommentsOutput {
     };
   }>;
   
-  // Pagination
-  pagination: {
-    page: number;
-    page_size: number;
-    total_items: number;
-    total_pages: number;
-    has_next: boolean;
-    has_previous: boolean;
-  };
+  // MCP cursor-based pagination
+  nextCursor?: string;  // Opaque cursor, only present if more results exist
   
   // Basic statistics (what tool can know)
   summary: {
@@ -248,12 +232,11 @@ Agent makes fix → Agent verifies fix → Agent resolves comment
 interface ManageStackedPRsInput {
   base_pr: string;           // Earlier PR: "owner/repo#123"
   dependent_pr: string;      // Later PR: "owner/repo#124"
-  auto_fix?: boolean;        // Auto-fix test failures (default: true)
+  auto_fix?: boolean;        // Auto-fix test failures (default: true) 💾
   max_iterations?: number;   // Max fix iterations (default: 3)
-  use_onto?: boolean;        // Use --onto for rebase (default: auto-detect)
+  use_onto?: boolean;        // Use --onto for rebase (default: auto-detect) 💾
   onto_base?: string;        // Explicit base for --onto (e.g., "main")
-  page?: number;             // Command page (default: 1)
-  page_size?: number;        // Commands per page (default: 5, max: 20)
+  cursor?: string;           // MCP cursor for pagination
 }
 ```
 
@@ -315,14 +298,8 @@ interface ManageStackedPRsOutput {
     max_retries?: number;
   }>;
   
-  // Pagination
-  pagination: {
-    page: number;
-    page_size: number;
-    total_items: number;
-    total_pages: number;
-    has_next: boolean;
-  };
+  // MCP cursor-based pagination
+  nextCursor?: string;  // Opaque cursor, only present if more results exist
   
   // Automation status
   automation: {
@@ -614,13 +591,15 @@ Support multiple formats:
 - `owner/repo/pulls/123`
 - `https://github.com/owner/repo/pull/123`
 
-### Pagination
-All paginated responses include:
-- Current page number
-- Total items
-- Total pages
-- `has_next` / `has_previous` booleans
-- Consistent `page` and `page_size` parameters
+### Pagination (MCP-Compliant Cursor-Based)
+All paginated responses use MCP cursor-based pagination:
+- `nextCursor?: string` - Opaque base64-encoded cursor
+- Only present if more results exist
+- Server controls page size (not exposed to client)
+- Clients pass cursor to get next page
+- Cursors are opaque - clients must not parse or modify them
+
+Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/pagination
 
 ### Error Responses
 ```typescript
