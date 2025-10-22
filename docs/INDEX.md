@@ -1,6 +1,6 @@
 # Documentation Index
 
-Complete documentation for the Resolve PR MCP Server.
+Complete documentation for the GitHub PR Automation MCP Server.
 
 ## Quick Start
 

@@ -1,6 +1,6 @@
-# Resolve PR MCP Server
+# GitHub PR Automation
 
-An MCP (Model Context Protocol) server that provides AI-assisted tools for managing GitHub Pull Requests, including automated test failure analysis, comment resolution, and stacked PR management.
+An MCP (Model Context Protocol) server and CLI that provides AI-assisted tools for automated GitHub Pull Request management, including test failure analysis, comment resolution, stacked PR management, and workflow optimization.
 
 ## Features
 
@@ -94,9 +94,9 @@ Add to your Claude Desktop MCP configuration:
 ```json
 {
   "mcpServers": {
-    "resolve-pr": {
+    "github-pr-automation": {
       "command": "node",
-      "args": ["/path/to/resolve-pr-mcp/dist/index.js"],
+      "args": ["/path/to/github-pr-automation/dist/index.js"],
       "env": {
         "GITHUB_TOKEN": "your_github_token"
       }
@@ -111,22 +111,22 @@ You can also use the tools directly from the command line:
 
 ```bash
 # Get failing tests
-resolve-pr-mcp get-failing-tests --pr "owner/repo#123" --wait --bail-on-first
+github-pr-automation get-failing-tests --pr "owner/repo#123" --wait --bail-on-first
 
 # Find unresolved comments
-resolve-pr-mcp find-unresolved-comments --pr "owner/repo#456" --page 1
+github-pr-automation find-unresolved-comments --pr "owner/repo#456" --page 1
 
 # Manage stacked PRs
-resolve-pr-mcp manage-stacked-prs --base-pr "owner/repo#100" --dependent-pr "owner/repo#101"
+github-pr-automation manage-stacked-prs --base-pr "owner/repo#100" --dependent-pr "owner/repo#101"
 
 # Rebase after upstream squash-merge (uses --onto to skip upstream commits)
-resolve-pr-mcp rebase-after-squash-merge --pr "owner/repo#101" --upstream-pr "owner/repo#100"
+github-pr-automation rebase-after-squash-merge --pr "owner/repo#101" --upstream-pr "owner/repo#100"
 
 # Check merge readiness
-resolve-pr-mcp check-merge-readiness --pr "owner/repo#789"
+github-pr-automation check-merge-readiness --pr "owner/repo#789"
 
 # Output as JSON
-resolve-pr-mcp get-failing-tests --pr "owner/repo#123" --json
+github-pr-automation get-failing-tests --pr "owner/repo#123" --json
 ```
 
 CLI mode is perfect for:
