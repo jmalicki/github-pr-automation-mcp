@@ -10,9 +10,75 @@ The implementation is divided into 5 phases, each building on the previous:
 4. **Optimization** - Performance, caching, and error handling improvements
 5. **Polish** - Documentation, examples, and deployment tooling
 
+## PR Strategy: Stacked PRs
+
+**Each phase = One PR, stacked on the previous phase**
+
+```
+main
+ ├─ PR #1: Phase 1 - Foundation
+     ├─ PR #2: Phase 2 - Core Tools (stacked on Phase 1)
+         ├─ PR #3: Phase 3 - Enhanced Tools (stacked on Phase 2)
+             ├─ PR #4: Phase 4 - Optimization (stacked on Phase 3)
+                 ├─ PR #5: Phase 5 - Polish (stacked on Phase 4)
+```
+
+### Branch Strategy
+
+**Phase 1**:
+- Branch: `phase-1-foundation` (off `main`)
+- PR: `phase-1-foundation` → `main`
+
+**Phase 2**:
+- Branch: `phase-2-core-tools` (off `phase-1-foundation`)
+- PR: `phase-2-core-tools` → `phase-1-foundation`
+
+**Phase 3**:
+- Branch: `phase-3-enhanced-tools` (off `phase-2-core-tools`)
+- PR: `phase-3-enhanced-tools` → `phase-2-core-tools`
+
+**Phase 4**:
+- Branch: `phase-4-optimization` (off `phase-3-enhanced-tools`)
+- PR: `phase-4-optimization` → `phase-3-enhanced-tools`
+
+**Phase 5**:
+- Branch: `phase-5-polish` (off `phase-4-optimization`)
+- PR: `phase-5-polish` → `phase-4-optimization`
+
+### Merge Strategy
+
+**As each phase completes**:
+1. Merge Phase 1 → `main`
+2. Update Phase 2's base to `main` (rebase or merge)
+3. Merge Phase 2 → `main`
+4. Update Phase 3's base to `main`
+5. Continue pattern...
+
+**Benefits**:
+- ✅ Each PR is focused and reviewable
+- ✅ Can work on later phases before earlier ones merge
+- ✅ Easy to rollback or adjust individual phases
+- ✅ Progressive delivery - can ship Phase 1 while working on Phase 2
+
+### Using manage_stacked_prs (Dogfooding!)
+
+Once Phase 2 is complete, we can use our own `manage_stacked_prs` tool to manage the stack:
+
+```bash
+# After Phase 1 merges, update Phase 2
+resolve-pr-mcp manage-stacked-prs \
+  --base-pr "jmalicki/resolve-pr-mcp#1" \
+  --dependent-pr "jmalicki/resolve-pr-mcp#2"
+
+# Iterative testing of our own tools!
+```
+
 ---
 
 ## Phase 1: Foundation (Week 1)
+
+**Branch**: `phase-1-foundation` (off `main`)  
+**PR**: → `main`
 
 ### Goals
 - Set up TypeScript project structure
@@ -135,6 +201,9 @@ The implementation is divided into 5 phases, each building on the previous:
 
 ## Phase 2: Core Tools Implementation (Week 2-3)
 
+**Branch**: `phase-2-core-tools` (off `phase-1-foundation`)  
+**PR**: → `phase-1-foundation` (stacked on Phase 1)
+
 ### Goals
 - Implement `get_failing_tests`
 - Implement `find_unresolved_comments`
@@ -225,6 +294,9 @@ The implementation is divided into 5 phases, each building on the previous:
 
 ## Phase 3: Enhanced Tools (Week 4)
 
+**Branch**: `phase-3-enhanced-tools` (off `phase-2-core-tools`)  
+**PR**: → `phase-2-core-tools` (stacked on Phase 2)
+
 ### Goals
 - Implement 5 supplementary tools
 - Add value beyond core functionality
@@ -302,11 +374,15 @@ The implementation is divided into 5 phases, each building on the previous:
 
 ## Phase 4: Optimization (Week 5)
 
+**Branch**: `phase-4-optimization` (off `phase-3-enhanced-tools`)  
+**PR**: → `phase-3-enhanced-tools` (stacked on Phase 3)
+
 ### Goals
 - Improve performance
 - Add caching layer
 - Enhance error handling
 - Implement retries and backoff
+- Implement user preferences system
 
 ### Tasks
 
@@ -372,6 +448,9 @@ The implementation is divided into 5 phases, each building on the previous:
 ---
 
 ## Phase 5: Polish (Week 6)
+
+**Branch**: `phase-5-polish` (off `phase-4-optimization`)  
+**PR**: → `phase-4-optimization` (stacked on Phase 4)
 
 ### Goals
 - Complete documentation
