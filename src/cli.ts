@@ -128,10 +128,29 @@ program
         
         result.comments.forEach((comment, i) => {
           const icon = comment.is_bot ? '🤖' : '👤';
-          console.log(`\n${i + 1}. ${icon} ${comment.author} (${comment.type})`);
+          const severityIcon = comment.hints.severity_estimate === 'high' ? '🔴' : 
+                               comment.hints.severity_estimate === 'medium' ? '🟡' : '🟢';
+          
+          console.log(`\n${i + 1}. ${severityIcon} ${icon} ${comment.author} (${comment.type})`);
           if (comment.file_path) console.log(`   File: ${comment.file_path}${comment.line_number ? `:${comment.line_number}` : ''}`);
-          console.log(`   ${comment.body.substring(0, 100)}${comment.body.length > 100 ? '...' : ''}`);
+          console.log(`   ${comment.body.substring(0, 150)}${comment.body.length > 150 ? '...' : ''}`);
           console.log(`   Created: ${comment.created_at}`);
+          
+          // Show hints
+          const hints = [];
+          if (comment.hints.has_security_keywords) hints.push('🔒 Security');
+          if (comment.hints.has_blocking_keywords) hints.push('⛔ Blocking');
+          if (comment.hints.is_question) hints.push('❓ Question');
+          if (hints.length > 0) {
+            console.log(`   Tags: ${hints.join(', ')}`);
+          }
+          
+          // Show action commands
+          console.log(`\n   📝 Reply: ${comment.action_commands.reply_command}`);
+          if (comment.action_commands.resolve_command) {
+            console.log(`   ✅ Resolve: ${comment.action_commands.resolve_command}`);
+            console.log(`   ⚠️  ${comment.action_commands.resolve_condition}`);
+          }
         });
         
         console.log(`\n📊 Summary:`);

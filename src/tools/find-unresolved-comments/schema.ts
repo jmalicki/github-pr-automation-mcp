@@ -39,6 +39,22 @@ export interface Comment {
     eyes: number;
   };
   html_url: string;
+  
+  // Action commands for AI agent to execute
+  action_commands: {
+    reply_command: string;          // GitHub CLI command to reply (agent fills in text)
+    resolve_command?: string;       // GitHub CLI command to resolve (ONLY after fix verified)
+    resolve_condition: string;      // Warning: when this should be run
+    view_in_browser: string;        // Open in browser for context
+  };
+  
+  // Categorization hints to help agent prioritize
+  hints: {
+    has_security_keywords: boolean;
+    has_blocking_keywords: boolean;
+    is_question: boolean;
+    severity_estimate: 'low' | 'medium' | 'high' | 'unknown';
+  };
 }
 
 export interface FindUnresolvedCommentsOutput {

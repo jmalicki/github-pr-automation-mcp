@@ -2,6 +2,8 @@ import type { GitHubClient } from '../../github/client.js';
 import { parsePRIdentifier, formatPRIdentifier } from '../../utils/parser.js';
 import { paginateResults } from '../../utils/pagination.js';
 import type { FindUnresolvedCommentsInput, FindUnresolvedCommentsOutput, Comment } from './schema.js';
+import { generateActionCommands } from './command-generator.js';
+import { generateHints } from './categorization.js';
 
 export async function handleFindUnresolvedComments(
   client: GitHubClient,
@@ -30,57 +32,75 @@ export async function handleFindUnresolvedComments(
     }
   );
   
-  // Convert to our Comment type
+  // Convert to our Comment type with action commands and hints
   const allComments: Comment[] = [
-    ...reviewComments.map(c => ({
-      id: c.id,
-      type: 'review_comment' as const,
-      author: c.user?.login || 'unknown',
-      author_association: c.author_association || 'NONE',
-      is_bot: c.user?.type === 'Bot',
-      created_at: c.created_at,
-      updated_at: c.updated_at,
-      file_path: c.path,
-      line_number: c.line || undefined,
-      start_line: c.start_line || undefined,
-      diff_hunk: c.diff_hunk || undefined,
-      body: c.body,
-      in_reply_to_id: c.in_reply_to_id || undefined,
-      reactions: c.reactions ? {
-        total_count: c.reactions.total_count,
-        '+1': c.reactions['+1'],
-        '-1': c.reactions['-1'],
-        laugh: c.reactions.laugh,
-        hooray: c.reactions.hooray,
-        confused: c.reactions.confused,
-        heart: c.reactions.heart,
-        rocket: c.reactions.rocket,
-        eyes: c.reactions.eyes
-      } : undefined,
-      html_url: c.html_url
-    })),
-    ...issueComments.map(c => ({
-      id: c.id,
-      type: 'issue_comment' as const,
-      author: c.user?.login || 'unknown',
-      author_association: c.author_association || 'NONE',
-      is_bot: c.user?.type === 'Bot',
-      created_at: c.created_at,
-      updated_at: c.updated_at,
-      body: c.body || '',
-      reactions: c.reactions ? {
-        total_count: c.reactions.total_count,
-        '+1': c.reactions['+1'],
-        '-1': c.reactions['-1'],
-        laugh: c.reactions.laugh,
-        hooray: c.reactions.hooray,
-        confused: c.reactions.confused,
-        heart: c.reactions.heart,
-        rocket: c.reactions.rocket,
-        eyes: c.reactions.eyes
-      } : undefined,
-      html_url: c.html_url
-    }))
+    ...reviewComments.map(c => {
+      const author = c.user?.login || 'unknown';
+      const authorAssociation = c.author_association || 'NONE';
+      const isBot = c.user?.type === 'Bot';
+      const body = c.body;
+      
+      return {
+        id: c.id,
+        type: 'review_comment' as const,
+        author,
+        author_association: authorAssociation,
+        is_bot: isBot,
+        created_at: c.created_at,
+        updated_at: c.updated_at,
+        file_path: c.path,
+        line_number: c.line || undefined,
+        start_line: c.start_line || undefined,
+        diff_hunk: c.diff_hunk || undefined,
+        body,
+        in_reply_to_id: c.in_reply_to_id || undefined,
+        reactions: c.reactions ? {
+          total_count: c.reactions.total_count,
+          '+1': c.reactions['+1'],
+          '-1': c.reactions['-1'],
+          laugh: c.reactions.laugh,
+          hooray: c.reactions.hooray,
+          confused: c.reactions.confused,
+          heart: c.reactions.heart,
+          rocket: c.reactions.rocket,
+          eyes: c.reactions.eyes
+        } : undefined,
+        html_url: c.html_url,
+        action_commands: generateActionCommands(pr, c.id, 'review_comment', body, c.path),
+        hints: generateHints(body, authorAssociation, isBot)
+      };
+    }),
+    ...issueComments.map(c => {
+      const author = c.user?.login || 'unknown';
+      const authorAssociation = c.author_association || 'NONE';
+      const isBot = c.user?.type === 'Bot';
+      const body = c.body || '';
+      
+      return {
+        id: c.id,
+        type: 'issue_comment' as const,
+        author,
+        author_association: authorAssociation,
+        is_bot: isBot,
+        created_at: c.created_at,
+        updated_at: c.updated_at,
+        body,
+        reactions: c.reactions ? {
+          total_count: c.reactions.total_count,
+          '+1': c.reactions['+1'],
+          '-1': c.reactions['-1'],
+          laugh: c.reactions.laugh,
+          hooray: c.reactions.hooray,
+          confused: c.reactions.confused,
+          heart: c.reactions.heart,
+          rocket: c.reactions.rocket,
+          eyes: c.reactions.eyes
+        } : undefined,
+        html_url: c.html_url,
+        action_commands: generateActionCommands(pr, c.id, 'issue_comment', body),
+        hints: generateHints(body, authorAssociation, isBot)
+      };
+    })
   ];
   
   // Filter by bots if requested
