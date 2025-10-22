@@ -18,6 +18,6 @@
     "@typescript-eslint/no-explicit-any": "warn",
     "no-console": ["warn", { "allow": ["error", "warn"] }]
   },
-  "ignorePatterns": ["dist/", "node_modules/", "coverage/", "*.js"]
+  "ignorePatterns": ["dist/", "node_modules/", "coverage/", "*.js", "!scripts/*.js"]
 }
 
