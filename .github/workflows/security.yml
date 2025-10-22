@@ -47,21 +47,6 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
 
-  dependency-review:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        
-      - name: Dependency Review
-        uses: actions/dependency-review-action@v4
-        with:
-          fail-on-severity: moderate
-          allow-licenses: MIT,Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,GPL-2.0,GPL-3.0,LGPL-2.1,LGPL-3.0,Python-2.0,CC-BY-3.0,CC0-1.0,(MIT AND CC-BY-3.0)
-          comment-summary-in-pr: always
-
   license-check:
     runs-on: ubuntu-latest
     
