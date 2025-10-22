@@ -18,11 +18,7 @@ export default defineConfig({
         '**/*.d.ts',
         '**/types/',
         '**/*.config.ts',
-        'src/cli.ts',     // CLI tested via CLI tests
-        'src/index.ts',   // MCP server entry point tested via integration
-        'scripts/**',     // Build scripts
-        'src/github/errors.ts',    // Error handling tested via integration
-        'src/utils/validation.ts'  // Zod schemas tested via tool usage
+        'scripts/**'     // Build scripts only
       ],
       thresholds: {
         lines: 30,
