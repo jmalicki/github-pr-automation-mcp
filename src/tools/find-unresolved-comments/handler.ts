@@ -216,7 +216,7 @@ async function fetchReviewCommentNodeIds(
   `;
   
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const response = await octokit.graphql(query, {
       owner: pr.owner,
       repo: pr.repo,
@@ -229,7 +229,7 @@ async function fetchReviewCommentNodeIds(
     // Map each comment's databaseId (numeric ID) to its thread's GraphQL node ID
     // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     threads.forEach((thread: any) => {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
       const threadId = thread.id as string;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
       const comments = thread.comments?.nodes || [];

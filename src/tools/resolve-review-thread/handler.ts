@@ -59,7 +59,7 @@ export async function handleResolveReviewThread(client: GitHubClient, input: Res
   `;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
   const statusResp = await octokit.graphql(statusQuery, { threadId }) as any;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const threadNode = statusResp?.node as { id?: string; isResolved?: boolean } | undefined;
   if (threadNode && threadNode.isResolved) {
     return { ok: true, thread_id: threadId!, alreadyResolved: true, message: 'Thread already resolved' };
