@@ -21,17 +21,30 @@
     "lint:fix": "eslint src --ext .ts --fix",
     "type-check": "tsc --noEmit",
     "prepare": "husky install && npm run build",
-    "postinstall": "husky install"
+    "postinstall": "husky install",
+    "release": "node scripts/release.js",
+    "release:patch": "node scripts/release.js patch",
+    "release:minor": "node scripts/release.js minor",
+    "release:major": "node scripts/release.js major",
+    "release:prerelease": "node scripts/release.js prerelease",
+    "prepack": "npm run build",
+    "postpack": "echo 'Package ready for distribution'"
   },
   "keywords": [
     "mcp",
+    "mcp-server",
+    "model-context-protocol",
     "github",
     "pull-request",
     "automation",
     "ci",
     "pr-management",
     "code-review",
-    "workflow-optimization"
+    "workflow-optimization",
+    "claude",
+    "ai-tools",
+    "github-api",
+    "pull-request-automation"
   ],
   "author": "GitHub PR Automation Contributors",
   "license": "MIT",
@@ -62,6 +75,27 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "mcp": {
+    "version": "1.0.0",
+    "protocol": "stdio",
+    "server": "dist/index.js",
+    "tools": [
+      "get_failing_tests",
+      "find_unresolved_comments",
+      "manage_stacked_prs",
+      "detect_merge_conflicts",
+      "check_merge_readiness",
+      "analyze_pr_impact",
+      "get_review_suggestions",
+      "rebase_after_squash_merge",
+      "resolve_review_thread"
+    ],
+    "capabilities": {
+      "tools": true,
+      "resources": false,
+      "prompts": false
+    }
   }
 }
 
