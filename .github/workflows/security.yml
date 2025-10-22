@@ -33,8 +33,8 @@ jobs:
           echo "Running comprehensive security audit..."
           npm run audit:ci
           
-          echo "Summary of moderate vulnerabilities (non-blocking):"
-          npm audit --audit-level=moderate --json | jq -r '.metadata.vulnerabilities.moderate // 0' | xargs -I {} echo "Moderate vulnerabilities: {}"
+          echo "Summary of high vulnerabilities (blocking):"
+          npm audit --audit-level=high --json | jq -r '.metadata.vulnerabilities.high // 0' | xargs -I {} echo "High vulnerabilities: {}"
           
       - name: License compliance check
         run: npm run license-check
