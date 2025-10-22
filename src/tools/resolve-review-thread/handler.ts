@@ -4,8 +4,8 @@ import { parsePRIdentifier } from '../../utils/parser.js';
 
 export async function handleResolveReviewThread(client: GitHubClient, input: ResolveReviewThreadInput): Promise<ResolveReviewThreadOutput> {
   const parsed = ResolveReviewThreadInputSchema.parse(input);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const pr = parsePRIdentifier(parsed.pr);
+  // Parse PR for validation only (GraphQL operations use thread/comment node IDs)
+  parsePRIdentifier(parsed.pr);
 
   const octokit = client.getOctokit();
 

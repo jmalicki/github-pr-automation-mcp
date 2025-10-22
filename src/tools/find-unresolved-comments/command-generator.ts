@@ -15,7 +15,7 @@ export function generateActionCommands(
   commentType: 'review_comment' | 'issue_comment' | 'review',
   body: string,
   filePath?: string,
-  pullRequestReviewId?: number
+  threadId?: string
 ): {
   reply_command: string;
   resolve_command?: string;
@@ -59,15 +59,14 @@ export function generateActionCommands(
   // Browser view command
   const view_in_browser = `gh pr view ${prNumber} --repo ${repo} --web`;
   
-  // Generate MCP action for review comments only (need pullRequestReviewId for thread lookup)
+  // Generate MCP action for review comments if we have the GraphQL thread ID
   let mcp_action: { tool: 'resolve_review_thread'; args: { pr: string; thread_id: string } } | undefined;
-  if (commentType === 'review_comment' && pullRequestReviewId) {
-    // For review comments, we provide the comment_id and the MCP tool will map to thread
+  if (commentType === 'review_comment' && threadId) {
     mcp_action = {
       tool: 'resolve_review_thread',
       args: {
         pr: `${repo}#${prNumber}`,
-        thread_id: `comment-${commentId}` // Will be mapped to actual thread ID
+        thread_id: threadId
       }
     };
   }
