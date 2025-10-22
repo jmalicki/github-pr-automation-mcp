@@ -2,11 +2,12 @@
 
 ## Phase Overview
 
-The implementation is divided into 6 phases, each building on the previous:
+The implementation is divided into 7 phases, each building on the previous:
 
 1. **CI/CD Setup** - Establish automated testing and quality checks for all future PRs
 2. **Foundation** - Core infrastructure and GitHub integration
 3. **Core Tools** - Implement the 3 primary tools requested
+3.5. **Fix Pagination** - Convert to MCP cursor-based pagination (protocol compliance)
 4. **Enhanced Tools** - Add supplementary tools for comprehensive PR management
 5. **Optimization** - Performance, caching, and error handling improvements
 6. **Polish** - Documentation, examples, and deployment tooling
@@ -20,9 +21,10 @@ main
  ├─ PR #1: Phase 1 - CI/CD Setup
      ├─ PR #2: Phase 2 - Foundation (stacked on Phase 1)
          ├─ PR #3: Phase 3 - Core Tools (stacked on Phase 2)
-             ├─ PR #4: Phase 4 - Enhanced Tools (stacked on Phase 3)
-                 ├─ PR #5: Phase 5 - Optimization (stacked on Phase 4)
-                     ├─ PR #6: Phase 6 - Polish (stacked on Phase 5)
+             ├─ PR #4: Phase 3.5 - Fix Pagination (stacked on Phase 3) 🆕
+                 ├─ PR #5: Phase 4 - Enhanced Tools (stacked on Phase 3.5)
+                     ├─ PR #6: Phase 5 - Optimization (stacked on Phase 4)
+                         ├─ PR #7: Phase 6 - Polish (stacked on Phase 5)
 ```
 
 ### Branch Strategy
@@ -39,9 +41,13 @@ main
 - Branch: `phase-3-core-tools` (off `phase-2-foundation`)
 - PR: `phase-3-core-tools` → `phase-2-foundation`
 
+**Phase 3.5** 🆕:
+- Branch: `phase-3.5-fix-pagination` (off `phase-3-core-tools`)
+- PR: `phase-3.5-fix-pagination` → `phase-3-core-tools`
+
 **Phase 4**:
-- Branch: `phase-4-enhanced-tools` (off `phase-3-core-tools`)
-- PR: `phase-4-enhanced-tools` → `phase-3-core-tools`
+- Branch: `phase-4-enhanced-tools` (off `phase-3.5-fix-pagination`)
+- PR: `phase-4-enhanced-tools` → `phase-3.5-fix-pagination`
 
 **Phase 5**:
 - Branch: `phase-5-optimization` (off `phase-4-enhanced-tools`)
@@ -55,10 +61,14 @@ main
 
 **As each phase completes**:
 1. Merge Phase 1 → `main`
-2. Update Phase 2's base to `main` (rebase or merge)
+2. Update Phase 2's base to `main` (rebase)
 3. Merge Phase 2 → `main`
-4. Update Phase 3's base to `main`
-5. Continue pattern...
+4. Update Phase 3's base to `main` (rebase)
+5. Merge Phase 3 → `main`
+6. Update Phase 3.5's base to `main` (rebase)
+7. Merge Phase 3.5 → `main`
+8. Update Phase 4's base to `main` (rebase)
+9. Continue pattern...
 
 **Benefits**:
 - ✅ Each PR is focused and reviewable
@@ -564,12 +574,113 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [x] All 3 core tools functional and tested
 - [x] Test coverage: 60.73% lines, 62.5% functions, 80.64% branches (>60% target met)
 - [x] Input validation working with Zod schemas
-- [x] Pagination implemented and tested
+- [x] Pagination implemented and tested (page numbers - to be fixed in Phase 3.5)
 - [x] Error handling robust (normalized GitHub errors)
 - [ ] User preferences system (deferred to Phase 5)
 - [ ] Advanced rebase strategy detection (deferred to Phase 4 - rebase_after_squash_merge tool)
 - [x] CI validates all tools
 - [x] **Successfully dogfooded on our own PRs!**
+
+---
+
+## Phase 3.5: Fix MCP Pagination (Week 2.5)
+
+**Branch**: `phase-3.5-fix-pagination` (off `phase-3-core-tools`)  
+**PR**: → `phase-3-core-tools` (stacked between Phase 3 and Phase 4)
+
+### Goals
+- Fix pagination to comply with MCP specification
+- Convert from page numbers to opaque cursors
+- Ensure protocol compliance
+
+### Problem
+
+**Current**: Page-based pagination (non-compliant)
+```typescript
+{ page: 1, page_size: 20, total_pages: 5, has_next: true }
+```
+
+**MCP Spec**: Cursor-based pagination
+```typescript
+{ nextCursor: "eyJwYWdlIjogM30=" }
+```
+
+Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/pagination
+
+### Tasks
+
+#### 3.5.1 Update Pagination Model
+
+- [ ] Update `src/types/index.ts`:
+  - [ ] Remove `PaginationMeta` interface
+  - [ ] Add `CursorPagination` interface: `{ nextCursor?: string }`
+  - [ ] Update `PaginatedResult<T>` to use cursor model
+
+- [ ] Update `src/utils/pagination.ts`:
+  - [ ] Implement `encodeCursor(offset: number, pageSize: number): string`
+  - [ ] Implement `decodeCursor(cursor: string): { offset: number, pageSize: number }`
+  - [ ] Update `paginateResults` to accept cursor instead of page
+  - [ ] Return `nextCursor` only if more results exist
+  - [ ] Use base64 encoding for opaque cursors
+
+#### 3.5.2 Update Tool Schemas
+
+- [ ] `get_failing_tests/schema.ts`:
+  - [ ] Replace `page` with optional `cursor?: string`
+  - [ ] Remove `page_size` from input (server controlled)
+  - [ ] Update output pagination to `{ nextCursor?: string }`
+
+- [ ] `find_unresolved_comments/schema.ts`:
+  - [ ] Replace `page` with optional `cursor?: string`
+  - [ ] Remove `page_size` from input (server controlled)
+  - [ ] Update output pagination to `{ nextCursor?: string }`
+
+- [ ] `manage_stacked_prs/schema.ts`:
+  - [ ] Replace `page` with optional `cursor?: string`
+  - [ ] Remove `page_size` from input (server controlled)
+  - [ ] Update output pagination to `{ nextCursor?: string }`
+
+#### 3.5.3 Update Handlers
+
+- [ ] Update all 3 tool handlers to:
+  - [ ] Accept `cursor` parameter instead of `page`
+  - [ ] Decode cursor to get offset
+  - [ ] Use server-defined page sizes (10, 20, 5 respectively)
+  - [ ] Return `nextCursor` if more results exist
+  - [ ] Handle missing cursor as "start from beginning"
+
+#### 3.5.4 Update CLI
+
+- [ ] Remove `--page` and `--page-size` flags from all commands
+- [ ] Add `--cursor` flag for continuation
+- [ ] Update human-readable output to show cursor for next page
+- [ ] Update JSON output to include nextCursor
+
+#### 3.5.5 Update Tests
+
+- [ ] Update all unit tests to use cursor model
+- [ ] Test cursor encoding/decoding
+- [ ] Test missing cursor (start from beginning)
+- [ ] Test invalid cursor handling
+- [ ] Update CLI tests to remove page flags
+- [ ] Update integration tests
+
+### Phase 3.5 Deliverables
+
+- [ ] Cursor-based pagination implemented
+- [ ] All tests updated and passing
+- [ ] MCP protocol compliant
+- [ ] CLI updated for cursor model
+- [ ] Documentation updated
+
+### Phase 3.5 Success Criteria
+
+- [ ] No page numbers in schemas
+- [ ] Cursors are opaque (base64 encoded)
+- [ ] Server controls page size
+- [ ] nextCursor only present when more results exist
+- [ ] All tests passing
+- [ ] CI validates changes
 
 ---
 
