@@ -31,7 +31,8 @@ describe('handleGetFailingTests', () => {
     mockOctokit.checks.listForRef.mockResolvedValue({
       data: {
         check_runs: []
-      }
+      },
+      headers: { link: '' } // No next page
     });
 
     const result = await handleGetFailingTests(mockClient, {
@@ -68,7 +69,8 @@ describe('handleGetFailingTests', () => {
             html_url: 'https://github.com/owner/repo/runs/2'
           }
         ]
-      }
+      },
+      headers: { link: '' } // No next page
     });
 
     const result = await handleGetFailingTests(mockClient, {
@@ -103,7 +105,8 @@ describe('handleGetFailingTests', () => {
             }
           }
         ]
-      }
+      },
+      headers: { link: '' } // No next page
     });
 
     const result = await handleGetFailingTests(mockClient, {
@@ -147,7 +150,8 @@ describe('handleGetFailingTests', () => {
             html_url: 'https://github.com/owner/repo/runs/2'
           }
         ]
-      }
+      },
+      headers: { link: '' } // No next page
     });
 
     const result = await handleGetFailingTests(mockClient, {
@@ -257,7 +261,8 @@ describe('handleGetFailingTests', () => {
             html_url: 'https://github.com/owner/repo/runs/3'
           }
         ]
-      }
+      },
+      headers: { link: '' } // No next page
     });
 
     const result = await handleGetFailingTests(mockClient, {
@@ -283,7 +288,8 @@ describe('handleGetFailingTests', () => {
     mockOctokit.checks.listForRef.mockResolvedValue({
       data: {
         check_runs: []
-      }
+      },
+      headers: { link: '' } // No next page
     });
 
     const formats = [
