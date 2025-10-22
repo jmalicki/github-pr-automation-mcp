@@ -1,0 +1,124 @@
+import { describe, it, expect, beforeAll, vi } from 'vitest';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
+
+// CLI tests verify the command-line interface works correctly
+// These test argument parsing, output formatting, and error handling
+describe('CLI: get-failing-tests', () => {
+  // Skip if GITHUB_TOKEN not set (CLI requires it)
+  const hasToken = !!process.env.GITHUB_TOKEN;
+  const skipMessage = 'Skipping CLI test - GITHUB_TOKEN not set';
+
+  it('should show help when no arguments provided', async () => {
+    const { stdout } = await execAsync('node dist/cli.js get-failing-tests --help');
+    expect(stdout).toContain('Analyze PR CI failures');
+    expect(stdout).toContain('--pr');
+  });
+
+  it('should require --pr argument', async () => {
+    try {
+      await execAsync('GITHUB_TOKEN=fake_token node dist/cli.js get-failing-tests');
+      expect.fail('Should have thrown error');
+    } catch (error: any) {
+      expect(error.message).toMatch(/required option|missing required/i);
+    }
+  });
+
+  it('should accept --pr in multiple formats', async () => {
+    if (!hasToken) {
+      console.log(skipMessage);
+      return;
+    }
+
+    // Test owner/repo#123 format
+    const { stdout: json1 } = await execAsync(
+      'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js get-failing-tests --pr "jmalicki/resolve-pr-mcp#2" --json'
+    );
+    const result1 = JSON.parse(json1);
+    expect(result1.pr).toBe('jmalicki/resolve-pr-mcp#2');
+  }, 15000);
+
+  it('should output JSON when --json flag provided', async () => {
+    if (!hasToken) {
+      console.log(skipMessage);
+      return;
+    }
+
+    const { stdout } = await execAsync(
+      'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js get-failing-tests --pr "jmalicki/resolve-pr-mcp#2" --json'
+    );
+    
+    // Should be valid JSON
+    const result = JSON.parse(stdout);
+    expect(result).toHaveProperty('pr');
+    expect(result).toHaveProperty('status');
+    expect(result).toHaveProperty('failures');
+    expect(result).toHaveProperty('pagination');
+  }, 15000);
+
+  it('should output human-readable format by default', async () => {
+    if (!hasToken) {
+      console.log(skipMessage);
+      return;
+    }
+
+    const { stdout } = await execAsync(
+      'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js get-failing-tests --pr "jmalicki/resolve-pr-mcp#2"'
+    );
+    
+    // Should contain human-friendly formatting
+    expect(stdout).toContain('PR:');
+    expect(stdout).toContain('Status:');
+  }, 15000);
+
+  it('should handle pagination arguments', async () => {
+    if (!hasToken) {
+      console.log(skipMessage);
+      return;
+    }
+
+    const { stdout } = await execAsync(
+      'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js get-failing-tests --pr "jmalicki/resolve-pr-mcp#2" --page 1 --page-size 5 --json'
+    );
+    
+    const result = JSON.parse(stdout);
+    expect(result.pagination.page).toBe(1);
+    expect(result.pagination.page_size).toBe(5);
+  }, 15000);
+
+  it('should handle invalid PR format', async () => {
+    if (!hasToken) {
+      console.log(skipMessage);
+      return;
+    }
+
+    try {
+      await execAsync(
+        'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js get-failing-tests --pr "invalid" --json'
+      );
+      expect.fail('Should have thrown error');
+    } catch (error: any) {
+      // Should exit with non-zero code
+      expect(error.code).toBeGreaterThan(0);
+    }
+  }, 10000);
+
+  it('should exit with error code when GitHub API fails', async () => {
+    if (!hasToken) {
+      console.log(skipMessage);
+      return;
+    }
+
+    try {
+      await execAsync(
+        'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js get-failing-tests --pr "nonexistent/repo#99999" --json'
+      );
+      expect.fail('Should have thrown error');
+    } catch (error: any) {
+      expect(error.code).toBeGreaterThan(0);
+    }
+  }, 10000);
+});
+

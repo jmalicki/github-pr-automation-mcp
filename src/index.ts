@@ -6,6 +6,14 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
+import { GitHubClient } from './github/client.js';
+import { GetFailingTestsSchema } from './tools/get-failing-tests/schema.js';
+import { FindUnresolvedCommentsSchema } from './tools/find-unresolved-comments/schema.js';
+import { ManageStackedPRsSchema } from './tools/manage-stacked-prs/schema.js';
+import { handleGetFailingTests } from './tools/get-failing-tests/handler.js';
+import { handleFindUnresolvedComments } from './tools/find-unresolved-comments/handler.js';
+import { handleManageStackedPRs } from './tools/manage-stacked-prs/handler.js';
+import { handleGitHubError } from './github/errors.js';
 
 const server = new Server(
   {
@@ -147,45 +155,79 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
   };
 });
 
+// Initialize GitHub client
+let githubClient: GitHubClient;
+try {
+  githubClient = new GitHubClient();
+} catch (error) {
+  console.error('Failed to initialize GitHub client:', error);
+  process.exit(1);
+}
+
 // Handle tool calls
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
-  const { name } = request.params;
+  const { name, arguments: args } = request.params;
   
   try {
     switch (name) {
-      case 'get_failing_tests':
+      case 'get_failing_tests': {
+        const input = GetFailingTestsSchema.parse(args);
+        const result = await handleGetFailingTests(githubClient, input);
         return {
           content: [{
             type: 'text',
-            text: 'Tool not yet implemented. This is Phase 2 foundation - tool implementation comes in Phase 3.'
+            text: JSON.stringify(result, null, 2)
           }]
         };
+      }
       
-      case 'find_unresolved_comments':
+      case 'find_unresolved_comments': {
+        const input = FindUnresolvedCommentsSchema.parse(args);
+        const result = await handleFindUnresolvedComments(githubClient, input);
         return {
           content: [{
             type: 'text',
-            text: 'Tool not yet implemented. This is Phase 2 foundation - tool implementation comes in Phase 3.'
+            text: JSON.stringify(result, null, 2)
           }]
         };
+      }
       
-      case 'manage_stacked_prs':
+      case 'manage_stacked_prs': {
+        const input = ManageStackedPRsSchema.parse(args);
+        const result = await handleManageStackedPRs(githubClient, input);
         return {
           content: [{
             type: 'text',
-            text: 'Tool not yet implemented. This is Phase 2 foundation - tool implementation comes in Phase 3.'
+            text: JSON.stringify(result, null, 2)
           }]
         };
+      }
       
       default:
         throw new Error(`Unknown tool: ${name}`);
     }
   } catch (error: unknown) {
+    // Handle GitHub API errors
+    if (error && typeof error === 'object' && 'status' in error) {
+      const toolError = handleGitHubError(error, name);
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify(toolError, null, 2)
+        }],
+        isError: true
+      };
+    }
+    
+    // Handle other errors
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return {
       content: [{
         type: 'text',
-        text: `Error: ${errorMessage}`
+        text: JSON.stringify({
+          error: errorMessage,
+          category: 'unknown'
+        }, null, 2)
       }],
       isError: true
     };

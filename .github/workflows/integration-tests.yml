@@ -1,0 +1,28 @@
+# Integration Tests (Optional)
+# These tests make real GitHub API calls
+# Only run manually or on a schedule to avoid consuming rate limits
+
+name: Integration Tests
+on:
+  workflow_dispatch: # Manual trigger only
+  schedule:
+    - cron: '0 2 * * 1' # Weekly on Monday at 2am UTC
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - name: Run integration tests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_INTEGRATION_TESTS: true
+          TEST_PR: jmalicki/resolve-pr-mcp#2
+        run: npm run test:integration
+

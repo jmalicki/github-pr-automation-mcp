@@ -11,6 +11,12 @@ Complete documentation for the Resolve PR MCP Server.
 
 ### Core Design
 
+- **[DESIGN_PHILOSOPHY](./DESIGN_PHILOSOPHY.md)** ⭐ **START HERE** - Dumb tool, smart agent
+  - What tool does vs. what agent does
+  - Why we don't interpret data
+  - Responsibility boundaries
+  - Real-world examples
+
 - **[DESIGN_DECISIONS](./DESIGN_DECISIONS.md)** - Key design choices and rationale
   - PR identifier format
   - Tool vs. LLM responsibilities
