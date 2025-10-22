@@ -3,7 +3,6 @@ import { parsePRIdentifier, formatPRIdentifier } from '../../utils/parser.js';
 import { paginateResults } from '../../utils/pagination.js';
 import type { FindUnresolvedCommentsInput, FindUnresolvedCommentsOutput, Comment } from './schema.js';
 import { generateActionCommands } from './command-generator.js';
-import { generateHints } from './categorization.js';
 
 export async function handleFindUnresolvedComments(
   client: GitHubClient,
@@ -66,8 +65,7 @@ export async function handleFindUnresolvedComments(
           eyes: c.reactions.eyes
         } : undefined,
         html_url: c.html_url,
-        action_commands: generateActionCommands(pr, c.id, 'review_comment', body, c.path),
-        hints: generateHints(body, authorAssociation, isBot)
+        action_commands: generateActionCommands(pr, c.id, 'review_comment', body, c.path)
       };
     }),
     ...issueComments.map(c => {
@@ -97,8 +95,7 @@ export async function handleFindUnresolvedComments(
           eyes: c.reactions.eyes
         } : undefined,
         html_url: c.html_url,
-        action_commands: generateActionCommands(pr, c.id, 'issue_comment', body),
-        hints: generateHints(body, authorAssociation, isBot)
+        action_commands: generateActionCommands(pr, c.id, 'issue_comment', body)
       };
     })
   ];

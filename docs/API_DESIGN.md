@@ -1,5 +1,8 @@
 # API Design Specification
 
+> **Philosophy**: See [DESIGN_PHILOSOPHY.md](./DESIGN_PHILOSOPHY.md) - We're a dumb tool, the agent is smart.
+> We fetch data and provide commands. The agent interprets and decides.
+
 ## Tool Catalog
 
 ### 1. get_failing_tests
@@ -173,19 +176,11 @@ interface FindUnresolvedCommentsOutput {
       reply_command: string;           // e.g., 'gh pr comment 123 --body "YOUR_RESPONSE_HERE"'
       
       // Resolve comment - ONLY run AFTER verifying fix is complete
-      resolve_command?: string;        // e.g., 'gh api -X PATCH .../pulls/comments/1234 -f resolved=true'
-      resolve_condition: string;       // e.g., "Run ONLY after fixing the SQL injection issue"
+      resolve_command?: string;        // e.g., 'gh api -X POST .../comments/1234/replies -f body="✅ Fixed"'
+      resolve_condition: string;       // e.g., "Run ONLY after verifying fix for: 'SQL injection...'"
       
       // View in browser for context
-      view_in_browser: string;         // e.g., 'gh pr view 123 --web --comments'
-    };
-    
-    // **Categorization hints** - Help agent prioritize
-    hints?: {
-      has_security_keywords: boolean;  // SQL, XSS, auth, etc.
-      has_blocking_keywords: boolean;  // MUST, required, blocking, etc.
-      is_question: boolean;            // Ends with ?, contains "why", "how", etc.
-      severity_estimate: "low" | "medium" | "high" | "unknown";
+      view_in_browser: string;         // e.g., 'gh pr view 123 --web'
     };
   }>;
   
@@ -216,14 +211,13 @@ interface FindUnresolvedCommentsOutput {
 - Can be filtered via `exclude_authors` parameter if desired
 
 **Tool Provides** (what the tool returns):
-- Raw comment data with metadata
+- Raw comment data with metadata (including CodeRabbit severity markers if present)
 - **GitHub CLI reply commands** (agent fills in response text)
 - **GitHub CLI resolve commands** (with conditional warnings)
-- Categorization hints based on keywords/patterns (security, blocking, question)
 
 **AI Agent Decides** (what the LLM does with this data):
-1. **Analyze** each comment for urgency and category
-2. **Decide** action: fix, discuss, defer, or escalate
+1. **Analyze** comment body for urgency and category (agent parses CodeRabbit markers, etc.)
+2. **Decide** action: fix, discuss, defer, or escalate to human
 3. **Generate response content** (agent writes the actual reply text)
 4. **Execute reply command** with agent's response text
 5. **Make the fix** (edit code, add tests, etc.)

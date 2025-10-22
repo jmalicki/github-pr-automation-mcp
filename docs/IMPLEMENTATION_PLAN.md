@@ -396,39 +396,37 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 
 **Reference**: See [API_DESIGN.md](./API_DESIGN.md#2-find_unresolved_comments) for full spec
 
-**Important**: Tool returns raw data + action commands. AI agent decides response content and when to resolve.
+**Important**: Tool returns raw data + action commands. AI agent interprets content and decides actions.
+
+**Design Boundary**: Tool does NOT categorize, interpret, or suggest responses. Agent does that.
 
 **Schema & Handler**:
 - [ ] Create `src/tools/find-unresolved-comments/schema.ts` with Zod schemas
 - [ ] Add 💾 emoji to preference parameters (include_bots, page_size, sort)
-- [ ] Update Comment interface to include `action_commands` and `hints`
+- [ ] Update Comment interface to include `action_commands`
 - [ ] Implement `src/tools/find-unresolved-comments/handler.ts` main function
 - [ ] Fetch review comments (inline code comments)
 - [ ] Fetch issue comments (general PR comments)
 - [ ] Normalize both comment types to unified Comment type
-- [ ] Detect bot comments (user.type === 'Bot')
+- [ ] Detect bot comments (user.type === 'Bot') - objective fact only
 - [ ] Filter by include_bots parameter
 - [ ] Filter by exclude_authors parameter
 - [ ] Implement sorting: chronological, by_file, by_author
 - [ ] **Generate GitHub CLI reply command for each comment**
 - [ ] **Generate GitHub CLI resolve command for each comment**
 - [ ] **Add resolve_condition warning (only run after fix verified)**
-- [ ] **Generate categorization hints (security, blocking, question keywords)**
 - [ ] Build summary statistics (by_author, by_type, bot/human counts)
 - [ ] Implement pagination using paginateResults utility
-- [ ] Return comments with file paths, line numbers, bodies, commands, hints
+- [ ] Return comments with file paths, line numbers, bodies, commands
+- [ ] **DO NOT add categorization/severity/keyword detection (agent's job!)**
 
 **Supporting Code**:
 - [ ] Create `src/github/comment-manager.ts` for comment API interactions
 - [ ] Create `command-generator.ts` for GitHub CLI command templates
   - [ ] Generate reply commands (gh pr comment, gh pr review comment)
-  - [ ] Generate resolve commands (gh api PATCH for review comments)
-  - [ ] Include resolve_condition warnings
-- [ ] Create `categorization.ts` for hint generation
-  - [ ] Detect security keywords (SQL, XSS, injection, auth, crypto, password)
-  - [ ] Detect blocking keywords (MUST, required, critical, blocking, breaking)
-  - [ ] Detect questions (ends with ?, contains why/how/what/when)
-  - [ ] Estimate severity based on keywords and author_association
+  - [ ] Generate resolve commands (gh api POST for review comment replies)
+  - [ ] Include resolve_condition warnings (first line of comment)
+  - [ ] **NO categorization/severity logic** (agent does this)
 - [ ] Add user preference loading in handler
 
 **CLI Integration**:
@@ -450,9 +448,8 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [ ] Test pagination (multiple pages)
 - [ ] Test summary statistics generation
 - [ ] **Test action_commands generation** (reply_command, resolve_command, view_in_browser)
-- [ ] **Test resolve_condition includes fix verification warning**
-- [ ] **Test categorization hints** (security, blocking, question keywords)
-- [ ] **Test severity estimation** based on keywords and author
+- [ ] **Test resolve_condition includes comment excerpt**
+- [ ] **Test commands use correct GitHub CLI syntax**
 
 **Integration Tests**:
 - [ ] Test against real GitHub PR with comments
@@ -475,15 +472,13 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [ ] Summary statistics accurate
 - [ ] **Each comment includes valid reply_command**
 - [ ] **Each comment includes resolve_command with warning**
-- [ ] **Categorization hints identify security/blocking/question comments**
-- [ ] **Agent can execute reply commands with custom text**
-- [ ] **Resolve commands clearly state "only after fix verified"**
+- [ ] **Resolve commands clearly state "only after verifying fix"**
+- [ ] **NO categorization/interpretation logic in tool** (agent does this)
 
 **Key Files**:
 - `src/tools/find-unresolved-comments/schema.ts`
 - `src/tools/find-unresolved-comments/handler.ts`
 - `src/tools/find-unresolved-comments/command-generator.ts` (NEW)
-- `src/tools/find-unresolved-comments/categorization.ts` (NEW)
 - `src/github/comment-manager.ts`
 
 ### 3.3 Tool: manage_stacked_prs

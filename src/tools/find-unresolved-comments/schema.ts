@@ -47,14 +47,6 @@ export interface Comment {
     resolve_condition: string;      // Warning: when this should be run
     view_in_browser: string;        // Open in browser for context
   };
-  
-  // Categorization hints to help agent prioritize
-  hints: {
-    has_security_keywords: boolean;
-    has_blocking_keywords: boolean;
-    is_question: boolean;
-    severity_estimate: 'low' | 'medium' | 'high' | 'unknown';
-  };
 }
 
 export interface FindUnresolvedCommentsOutput {
