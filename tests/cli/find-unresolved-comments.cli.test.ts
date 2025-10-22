@@ -34,6 +34,7 @@ describe('CLI: find-unresolved-comments', () => {
       expect(stdout.trim()).toMatch(/^\{.*$/);
       expect(stdout).toContain('"pr":');
       expect(stdout).toContain('"unresolved_in_page":');
+      expect(stdout).toContain('⚠️  Large output detected');
       return; // Skip further assertions for truncated output
     }
     
@@ -77,6 +78,7 @@ describe('CLI: find-unresolved-comments', () => {
       // If JSON parsing fails due to truncation, check if it starts with valid JSON
       expect(stdout.trim()).toMatch(/^\{.*$/);
       expect(stdout).toContain('"comments":');
+      expect(stdout).toContain('⚠️  Large output detected');
       return; // Skip further assertions for truncated output
     }
   }, 30000);
