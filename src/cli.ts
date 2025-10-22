@@ -125,7 +125,7 @@ program
       } else {
         /* eslint-disable no-console */
         console.log(`\n💬 Comments for ${result.pr}`);
-        console.log(`Total unresolved: ${result.total_unresolved}`);
+        console.log(`Unresolved in page: ${result.unresolved_in_page}`);
         console.log(`Showing: ${result.comments.length}\n`);
         
         result.comments.forEach((comment, i) => {

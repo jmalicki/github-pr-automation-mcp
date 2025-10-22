@@ -80,7 +80,7 @@ describe('handleFindUnresolvedComments', () => {
     expect(result.comments[0].type).toBe('review_comment');
     expect(result.comments[0].file_path).toBe('src/file.ts');
     expect(result.comments[1].type).toBe('issue_comment');
-    expect(result.summary.total_comments).toBe(2);
+    expect(result.summary.comments_in_page).toBe(2);
   });
 
   it('should filter out bot comments when include_bots is false', async () => {
@@ -466,7 +466,7 @@ describe('handleFindUnresolvedComments', () => {
       sort: 'chronological'
     });
 
-    expect(result.summary.total_comments).toBe(4);
+    expect(result.summary.comments_in_page).toBe(4);
     expect(result.summary.by_author).toEqual({
       alice: 2,
       bot: 1,

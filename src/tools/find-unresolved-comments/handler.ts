@@ -165,11 +165,11 @@ export async function handleFindUnresolvedComments(
   
   return {
     pr: formatPRIdentifier(pr),
-    total_unresolved: filtered.length, // Current page count
+    unresolved_in_page: filtered.length, // Current page count
     comments: filtered, // Current page comments
     nextCursor,
     summary: {
-      total_comments: filtered.length, // Current page count
+      comments_in_page: filtered.length, // Current page count
       by_author: byAuthor,
       by_type: byType,
       bot_comments: botCount,

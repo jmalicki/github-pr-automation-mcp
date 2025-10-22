@@ -57,11 +57,11 @@ export interface Comment {
 
 export interface FindUnresolvedCommentsOutput {
   pr: string;
-  total_unresolved: number;
+  unresolved_in_page: number;
   comments: Comment[];
   nextCursor?: string; // MCP cursor-based pagination
   summary: {
-    total_comments: number;
+    comments_in_page: number;
     by_author: Record<string, number>;
     by_type: Record<string, number>;
     bot_comments: number;
