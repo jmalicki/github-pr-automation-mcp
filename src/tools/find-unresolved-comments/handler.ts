@@ -4,6 +4,12 @@ import { cursorToGitHubPagination, createNextCursor } from '../../utils/paginati
 import type { FindUnresolvedCommentsInput, FindUnresolvedCommentsOutput, Comment } from './schema.js';
 import { generateActionCommands } from './command-generator.js';
 
+/**
+ * Find unresolved comments in a GitHub pull request
+ * @param client - GitHub API client instance
+ * @param input - Input parameters including PR identifier and options
+ * @returns Promise resolving to unresolved comments and pagination info
+ */
 export async function handleFindUnresolvedComments(
   client: GitHubClient,
   input: FindUnresolvedCommentsInput

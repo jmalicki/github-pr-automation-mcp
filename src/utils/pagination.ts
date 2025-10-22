@@ -14,7 +14,10 @@ interface CursorData {
 }
 
 /**
- * Encode cursor data to opaque base64 string
+ * Encode pagination cursor from offset and page size
+ * @param offset - Starting offset for pagination
+ * @param pageSize - Number of items per page
+ * @returns Base64-encoded cursor string
  */
 export function encodeCursor(offset: number, pageSize: number): string {
   const data: CursorData = { offset, pageSize };
@@ -22,8 +25,10 @@ export function encodeCursor(offset: number, pageSize: number): string {
 }
 
 /**
- * Decode opaque cursor to extract offset and page size
- * Throws error for invalid cursors (MCP error code -32602)
+ * Decode pagination cursor to offset and page size
+ * @param cursor - Base64-encoded cursor string
+ * @returns Decoded cursor data with offset and pageSize
+ * @throws Error if cursor format is invalid
  */
 export function decodeCursor(cursor: string): CursorData {
   try {
@@ -51,11 +56,10 @@ export function decodeCursor(cursor: string): CursorData {
 }
 
 /**
- * Convert cursor-based pagination to GitHub API pagination parameters
- * 
- * @param cursor - Opaque cursor string (undefined = start from beginning)
- * @param defaultPageSize - Server-controlled page size
- * @returns GitHub API pagination parameters
+ * Convert MCP cursor to GitHub API pagination parameters
+ * @param cursor - Optional MCP cursor string
+ * @param defaultPageSize - Default page size to use if no cursor provided
+ * @returns GitHub API pagination parameters (page, per_page)
  */
 export function cursorToGitHubPagination(
   cursor: string | undefined,
@@ -90,12 +94,11 @@ export function cursorToGitHubPagination(
 }
 
 /**
- * Create next cursor from GitHub API response
- * 
- * @param currentCursor - Current cursor (undefined = first page)
- * @param pageSize - Page size used
- * @param hasMore - Whether there are more results (based on response length)
- * @returns Next cursor or undefined if no more results
+ * Create next cursor for pagination if more results exist
+ * @param currentCursor - Current cursor string
+ * @param pageSize - Size of the current page
+ * @param hasMore - Whether more results exist
+ * @returns Next cursor string or undefined if no more results
  */
 export function createNextCursor(
   currentCursor: string | undefined,
@@ -120,11 +123,10 @@ export function createNextCursor(
 
 /**
  * Paginate an array of items using MCP cursor-based pagination
- * 
- * @param items - Array to paginate
- * @param cursor - Opaque cursor string (undefined = start from beginning)
- * @param defaultPageSize - Server-controlled page size
- * @returns Paginated result with items and optional nextCursor
+ * @param items - Array of items to paginate
+ * @param cursor - Optional cursor string for pagination
+ * @param defaultPageSize - Number of items per page
+ * @returns Paginated result with items and optional next cursor
  */
 export function paginateResults<T>(
   items: T[],

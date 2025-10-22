@@ -3,6 +3,12 @@ import { parsePRIdentifier, formatPRIdentifier } from '../../utils/parser.js';
 import { cursorToGitHubPagination, createNextCursor } from '../../utils/pagination.js';
 import type { GetFailingTestsInput, GetFailingTestsOutput, FailedTest } from './schema.js';
 
+/**
+ * Get failing tests and CI status for a GitHub pull request
+ * @param client - GitHub API client instance
+ * @param input - Input parameters including PR identifier and options
+ * @returns Promise resolving to failing tests and CI status
+ */
 export async function handleGetFailingTests(
   client: GitHubClient,
   input: GetFailingTestsInput
