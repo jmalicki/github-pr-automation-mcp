@@ -165,13 +165,16 @@ describe('handleGetFailingTests', () => {
   });
 
   it('should paginate results correctly', async () => {
+    const PAGE_SIZE = 10; // Server-controlled page size constant
+    const TOTAL_ITEMS = 25;
+    
     mockOctokit.pulls.get.mockResolvedValue({
       data: {
         head: { sha: 'abc123' }
       }
     });
 
-    const failedChecks = Array.from({ length: 25 }, (_, i) => ({
+    const failedChecks = Array.from({ length: TOTAL_ITEMS }, (_, i) => ({
       name: `test-${i}`,
       status: 'completed',
       conclusion: 'failure',

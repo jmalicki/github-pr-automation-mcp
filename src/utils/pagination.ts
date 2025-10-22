@@ -30,19 +30,22 @@ export function decodeCursor(cursor: string): CursorData {
     const json = Buffer.from(cursor, 'base64').toString('utf-8');
     const data = JSON.parse(json) as CursorData;
     
-    // Validate cursor data
-    if (!Number.isFinite(data.offset) || data.offset < 0) {
-      throw new Error('Invalid cursor: offset must be non-negative');
+    // Validate cursor data - ensure integers
+    if (!Number.isInteger(data.offset) || data.offset < 0) {
+      throw new Error('Invalid cursor: offset must be non-negative integer');
     }
-    if (!Number.isFinite(data.pageSize) || data.pageSize < 1) {
-      throw new Error('Invalid cursor: pageSize must be positive');
+    if (!Number.isInteger(data.pageSize) || data.pageSize < 1 || data.pageSize > 100) {
+      throw new Error('Invalid cursor: pageSize must be positive integer (1-100)');
     }
     
     return data;
   } catch (error) {
-    throw new Error(
+    // MCP error code -32602 for invalid params
+    const err = new Error(
       `Invalid cursor: ${error instanceof Error ? error.message : 'malformed cursor'}`
     );
+    (err as any).code = -32602;
+    throw err;
   }
 }
 
@@ -71,7 +74,8 @@ export function paginateResults<T>(
   if (cursor) {
     const decoded = decodeCursor(cursor);
     offset = decoded.offset;
-    pageSize = decoded.pageSize; // Respect page size from cursor
+    // Clamp page size to server-controlled default to prevent abuse
+    pageSize = Math.min(decoded.pageSize, defaultPageSize);
   } else {
     offset = 0;
     pageSize = defaultPageSize;

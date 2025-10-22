@@ -23,7 +23,7 @@ describe('find_unresolved_comments integration', () => {
     expect(result.pr).toContain('#');
     expect(result.total_unresolved).toBeGreaterThanOrEqual(0);
     expect(result.summary).toBeDefined();
-    expect(result.pagination).toBeDefined();
+    expect(result.nextCursor).toBeDefined();
   }, 10000);
 
   it('should filter bot comments', async () => {
