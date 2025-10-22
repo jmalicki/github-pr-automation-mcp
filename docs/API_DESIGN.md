@@ -166,6 +166,27 @@ interface FindUnresolvedCommentsOutput {
     
     // URLs for reference
     html_url: string;        // Web URL to comment
+    
+    // **Action commands** - Ready-to-execute GitHub CLI commands
+    action_commands: {
+      // Reply to comment - agent writes the response content
+      reply_command: string;           // e.g., 'gh pr comment 123 --body "YOUR_RESPONSE_HERE"'
+      
+      // Resolve comment - ONLY run AFTER verifying fix is complete
+      resolve_command?: string;        // e.g., 'gh api -X PATCH .../pulls/comments/1234 -f resolved=true'
+      resolve_condition: string;       // e.g., "Run ONLY after fixing the SQL injection issue"
+      
+      // View in browser for context
+      view_in_browser: string;         // e.g., 'gh pr view 123 --web --comments'
+    };
+    
+    // **Categorization hints** - Help agent prioritize
+    hints?: {
+      has_security_keywords: boolean;  // SQL, XSS, auth, etc.
+      has_blocking_keywords: boolean;  // MUST, required, blocking, etc.
+      is_question: boolean;            // Ends with ?, contains "why", "how", etc.
+      severity_estimate: "low" | "medium" | "high" | "unknown";
+    };
   }>;
   
   // Pagination
@@ -194,13 +215,28 @@ interface FindUnresolvedCommentsOutput {
 - Account type from GitHub API (`is_bot` field)
 - Can be filtered via `exclude_authors` parameter if desired
 
-**LLM Analysis** (not done by tool):
-The LLM consuming this data should:
-- Categorize comments (blocking, nit, question, suggestion)
-- Assess severity/priority
-- Determine which need human review vs. can be auto-resolved
-- Generate appropriate responses
-- Create resolve commands
+**Tool Provides** (what the tool returns):
+- Raw comment data with metadata
+- **GitHub CLI reply commands** (agent fills in response text)
+- **GitHub CLI resolve commands** (with conditional warnings)
+- Categorization hints based on keywords/patterns (security, blocking, question)
+
+**AI Agent Decides** (what the LLM does with this data):
+1. **Analyze** each comment for urgency and category
+2. **Decide** action: fix, discuss, defer, or escalate
+3. **Generate response content** (agent writes the actual reply text)
+4. **Execute reply command** with agent's response text
+5. **Make the fix** (edit code, add tests, etc.)
+6. **Verify fix** is complete and correct
+7. **ONLY THEN execute resolve command** (if satisfied with fix)
+
+**Critical Workflow**:
+```
+Comment → Agent reads → Agent decides action → Agent writes response → 
+Agent makes fix → Agent verifies fix → Agent resolves comment
+```
+
+**Never**: Auto-resolve without verification!
 
 ---
 
