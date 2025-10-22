@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document captures key design decisions made during the development of the Resolve PR MCP server, along with the rationale behind each choice.
+This document captures key design decisions made during the development of the GitHub PR Automation MCP server, along with the rationale behind each choice.
 
 ---
 

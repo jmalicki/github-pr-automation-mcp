@@ -23,8 +23,8 @@ function getClient(): GitHubClient {
 }
 
 program
-  .name('resolve-pr-mcp')
-  .description('GitHub PR automation tools - MCP server')
+  .name('github-pr-automation')
+  .description('MCP server and CLI for automated GitHub PR management, review resolution, and workflow optimization')
   .version('0.1.0');
 
 program

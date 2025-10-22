@@ -1,11 +1,11 @@
 {
-  "name": "resolve-pr-mcp",
+  "name": "github-pr-automation",
   "version": "0.1.0",
-  "description": "MCP server for automated GitHub PR resolution and management",
+  "description": "MCP server and CLI for automated GitHub PR management, review resolution, and workflow optimization",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "resolve-pr-mcp": "dist/cli.js"
+    "github-pr-automation": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc",
@@ -28,7 +28,10 @@
     "github",
     "pull-request",
     "automation",
-    "ci"
+    "ci",
+    "pr-management",
+    "code-review",
+    "workflow-optimization"
   ],
   "author": "",
   "license": "MIT",
