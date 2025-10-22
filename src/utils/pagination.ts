@@ -44,6 +44,7 @@ export function decodeCursor(cursor: string): CursorData {
     const err = new Error(
       `Invalid cursor: ${error instanceof Error ? error.message : 'malformed cursor'}`
     );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
     (err as any).code = -32602;
     throw err;
   }
