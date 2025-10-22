@@ -11,18 +11,19 @@ import type { PRIdentifier } from '../types/index.js';
 export function parsePRIdentifier(input: string): PRIdentifier {
   const formats = [
     // Format: owner/repo#123
+    // Note: GitHub usernames use [\w-]+, but repo names can include dots
     {
-      regex: /^([\w-]+)\/([\w-]+)#(\d+)$/,
+      regex: /^([\w-]+)\/([\w.-]+)#(\d+)$/,
       groups: [1, 2, 3]
     },
     // Format: owner/repo/pull/123 or owner/repo/pulls/123
     {
-      regex: /^([\w-]+)\/([\w-]+)\/pulls?\/(\d+)$/,
+      regex: /^([\w-]+)\/([\w.-]+)\/pulls?\/(\d+)$/,
       groups: [1, 2, 3]
     },
     // Format: https://github.com/owner/repo/pull/123
     {
-      regex: /^https?:\/\/github\.com\/([\w-]+)\/([\w-]+)\/pull\/(\d+)$/,
+      regex: /^https?:\/\/github\.com\/([\w-]+)\/([\w.-]+)\/pull\/(\d+)$/,
       groups: [1, 2, 3]
     }
   ];

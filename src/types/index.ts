@@ -26,6 +26,7 @@ export type ErrorCategory =
   | "logical"
   | "network"
   | "authentication"
+  | "authorization"  // 403 permission errors (not rate limiting)
   | "rate_limit"
   | "timeout"
   | "unknown";

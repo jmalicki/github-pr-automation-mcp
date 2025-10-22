@@ -8,8 +8,16 @@ export function paginateResults<T>(
   page: number,
   pageSize: number
 ): PaginatedResult<T> {
+  // Validate inputs to prevent Infinity/NaN
+  if (!Number.isFinite(pageSize) || pageSize < 1) {
+    throw new RangeError('pageSize must be a positive finite integer');
+  }
+  if (!Number.isFinite(page) || page < 1) {
+    page = 1; // Default to first page if invalid
+  }
+  
   const totalItems = items.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
+  const totalPages = Math.ceil(totalItems / pageSize) || 1;
   
   // Validate page number
   const validPage = Math.max(1, Math.min(page, totalPages || 1));
@@ -35,6 +43,11 @@ export function createPaginationMeta(
   page: number,
   pageSize: number
 ): PaginationMeta {
+  // Validate inputs
+  if (!Number.isFinite(pageSize) || pageSize < 1) {
+    throw new RangeError('pageSize must be a positive finite integer');
+  }
+  
   const totalPages = Math.ceil(totalItems / pageSize) || 1;
   const validPage = Math.max(1, Math.min(page, totalPages));
   

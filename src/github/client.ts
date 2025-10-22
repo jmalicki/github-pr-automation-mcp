@@ -20,18 +20,25 @@ export class GitHubClient {
   
   /**
    * Validate token and check permissions
+   * Supports both classic PATs and fine-grained tokens
    */
   async validateToken() {
     try {
-      const { data: user } = await this.octokit.users.getAuthenticated();
+      // Use single request - reuse response headers
+      const response = await this.octokit.users.getAuthenticated();
+      const user = response.data;
       
-      // Check scopes
-      const response = await this.octokit.request('GET /user');
-      const scopes = response.headers['x-oauth-scopes']?.split(', ') || [];
+      // Parse scopes header (may be undefined for fine-grained tokens)
+      const scopeHeader = response.headers?.['x-oauth-scopes'] ?? '';
+      const scopes = scopeHeader
+        ? String(scopeHeader).split(',').map(s => s.trim()).filter(Boolean)
+        : [];
       
       const hasRepo = scopes.includes('repo') || scopes.includes('public_repo');
       
-      if (!hasRepo) {
+      // Only enforce classic-scope check when header is present
+      // Fine-grained tokens don't have x-oauth-scopes header
+      if (scopes.length > 0 && !hasRepo) {
         return {
           valid: false,
           error: 'Token missing required "repo" scope'
@@ -53,22 +60,37 @@ export class GitHubClient {
   
   /**
    * Get pull request
+   * Throws normalized errors via handleGitHubError
    */
   async getPullRequest(pr: PRIdentifier) {
-    const { data } = await this.octokit.pulls.get({
-      owner: pr.owner,
-      repo: pr.repo,
-      pull_number: pr.number
-    });
-    return data;
+    try {
+      const { data } = await this.octokit.pulls.get({
+        owner: pr.owner,
+        repo: pr.repo,
+        pull_number: pr.number
+      });
+      return data;
+    } catch (error) {
+      // Normalize GitHub API errors
+      const { handleGitHubError } = await import('./errors.js');
+      const toolError = handleGitHubError(error, `GET /repos/${pr.owner}/${pr.repo}/pulls/${pr.number}`);
+      throw new Error(JSON.stringify(toolError));
+    }
   }
   
   /**
    * Get rate limit status
+   * Throws normalized errors via handleGitHubError
    */
   async getRateLimit() {
-    const { data } = await this.octokit.rateLimit.get();
-    return data;
+    try {
+      const { data } = await this.octokit.rateLimit.get();
+      return data;
+    } catch (error) {
+      const { handleGitHubError } = await import('./errors.js');
+      const toolError = handleGitHubError(error, 'GET /rate_limit');
+      throw new Error(JSON.stringify(toolError));
+    }
   }
   
   /**

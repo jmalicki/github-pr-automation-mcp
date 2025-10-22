@@ -34,8 +34,17 @@ export function formatTimestamp(date: Date): string {
  * Truncate text to max length with ellipsis
  */
 export function truncateText(text: string, maxLength: number): string {
+  if (maxLength < 1) {
+    throw new Error('maxLength must be at least 1');
+  }
+  
   if (text.length <= maxLength) {
     return text;
+  }
+  
+  // If maxLength <= 3, return substring without ellipsis
+  if (maxLength <= 3) {
+    return text.substring(0, maxLength);
   }
   
   return text.substring(0, maxLength - 3) + '...';
