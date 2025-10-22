@@ -26,21 +26,12 @@ jobs:
           cache: 'npm'
           
       - name: Install dependencies
-        run: npm ci --audit-level=moderate
+        run: npm ci
         
       - name: Comprehensive security audit
         run: |
           echo "Running comprehensive security audit..."
-          npm audit --audit-level=moderate
-          
-          echo "Checking for high and critical vulnerabilities..."
-          if npm audit --audit-level=high --json | jq -r '.metadata.vulnerabilities.high, .metadata.vulnerabilities.critical' | grep -q '[1-9]'; then
-            echo "❌ High or critical vulnerabilities found!"
-            npm audit --audit-level=high
-            exit 1
-          else
-            echo "✅ No high or critical vulnerabilities found"
-          fi
+          npm run audit:ci
           
           echo "Summary of moderate vulnerabilities (non-blocking):"
           npm audit --audit-level=moderate --json | jq -r '.metadata.vulnerabilities.moderate // 0' | xargs -I {} echo "Moderate vulnerabilities: {}"
