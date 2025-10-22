@@ -45,6 +45,13 @@ export interface Comment {
     resolve_command?: string;       // GitHub CLI command to resolve (ONLY after fix verified)
     resolve_condition: string;      // Warning: when this should be run
     view_in_browser: string;        // Open in browser for context
+    mcp_action?: {                  // MCP action for review thread resolution (if applicable)
+      tool: 'resolve_review_thread';
+      args: {
+        pr: string;
+        thread_id: string;
+      };
+    };
   };
 }
 

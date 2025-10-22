@@ -170,7 +170,7 @@ interface FindUnresolvedCommentsOutput {
     // URLs for reference
     html_url: string;        // Web URL to comment
     
-    // **Action commands** - Ready-to-execute GitHub CLI commands
+    // **Action commands** - Ready-to-execute GitHub CLI commands and MCP actions
     action_commands: {
       // Reply to comment - agent writes the response content
       reply_command: string;           // e.g., 'gh pr comment 123 --body "YOUR_RESPONSE_HERE"'
@@ -181,6 +181,12 @@ interface FindUnresolvedCommentsOutput {
       
       // View in browser for context
       view_in_browser: string;         // e.g., 'gh pr view 123 --web'
+      
+      // MCP action for review thread resolution (only for review_comment type)
+      mcp_action?: {                   // MCP tool call - use resolve_review_thread
+        tool: "resolve_review_thread";
+        args: { pr: string; thread_id: string; };
+      };
     };
   }>;
   
@@ -222,103 +228,37 @@ interface FindUnresolvedCommentsOutput {
 4. **Execute reply command** with agent's response text
 5. **Make the fix** (edit code, add tests, etc.)
 6. **Verify fix** is complete and correct
-7. **ONLY THEN execute resolve command** (if satisfied with fix)
+7. **ONLY THEN call resolve_review_thread MCP tool** (if fully satisfied with fix)
 
 **Critical Workflow**:
 ```
 Comment → Agent reads → Agent decides action → Agent writes response → 
-Agent makes fix → Agent verifies fix → Agent resolves comment
+Agent makes fix → Agent verifies fix → Agent calls resolve_review_thread MCP tool
 ```
+
+**Resolution via MCP**:
+- For `review_comment` types, `action_commands.mcp_action` provides ready-to-call MCP action
+- Agent must verify fix **completely addresses** all thread concerns before calling
+- See `resolve_review_thread` tool docs for strict usage requirements
 
 **Never**: Auto-resolve without verification!
 
 ---
 
-### 3.7. resolve_review_conversations 🆕
-
-**Purpose**: List GitHub review threads and provide MCP actions for resolution.
-
-**Use Cases**:
-- AI needs to see review conversations and get MCP actions to resolve them
-- Bulk thread listing with programmatic resolution options
-- Thread management and status overview
-
-**Input Schema**:
-```typescript
-interface ResolveReviewConversationsInput {
-  pr: string;                    // Format: "owner/repo#number"
-  only_unresolved?: boolean;     // Only include unresolved threads (default: true) 💾
-  dry_run?: boolean;            // Do not execute, only print commands (default: true)
-  cursor?: string;              // MCP cursor for pagination
-  limit?: number;               // Limit threads (1-100, optional)
-}
-```
-
-**Output Schema**:
-```typescript
-interface ResolveReviewConversationsOutput {
-  pr: string;
-  
-  threads: Array<{
-    id: string;                 // GitHub thread ID
-    is_resolved: boolean;       // Current resolution status
-    preview: string;            // First 200 chars of thread content
-    action_commands: {
-      mcp_action: {             // MCP tool call object
-        tool: "resolve_review_thread";
-        args: {
-          pr: string;
-          thread_id: string;
-        };
-      };
-      view_in_browser: string;  // Direct link to thread
-    };
-  }>;
-  
-  nextCursor?: string;         // MCP cursor for next page
-  
-  summary: {
-    total: number;             // Total threads found
-    unresolved: number;        // Unresolved threads
-    suggested: number;         // Threads with suggested commands
-  };
-}
-```
-
-**GraphQL Integration**:
-- Uses `reviewThreads` query to fetch thread data
-- Provides MCP action objects for programmatic resolution
-- Supports cursor-based pagination per MCP spec
-
-**Tool Philosophy**:
-- **Dumb tool**: Lists threads, provides MCP actions
-- **Smart agent**: Decides when to call MCP actions, verifies fixes first
-- **MCP integration**: Actions are ready-to-call MCP tool invocations
-
-**Example MCP Actions Generated**:
-```json
-{
-  "mcp_action": {
-    "tool": "resolve_review_thread",
-    "args": {
-      "pr": "owner/repo#123",
-      "thread_id": "thread-abc123"
-    }
-  },
-  "view_in_browser": "https://github.com/owner/repo/pull/123#discussion_rthread-abc123"
-}
-```
-
----
-
-### 3.8. resolve_review_thread 🆕
+### 3.7. resolve_review_thread 🆕
 
 **Purpose**: Immediately resolve a specific GitHub review thread using GraphQL API.
 
+**⚠️ CRITICAL: Only call this tool AFTER:**
+1. The AI has **read and understood** all concerns in the thread
+2. The AI has **made code changes** to address those concerns
+3. The AI has **verified the fix** (tests pass, requirements met)
+4. The AI is **satisfied** the thread's requests are completely fulfilled
+
 **Use Cases**:
 - AI needs to resolve a specific review conversation after addressing feedback
-- One-shot thread resolution
-- Programmatic thread management
+- One-shot thread resolution after verification
+- Programmatic thread management (with human-like judgment)
 
 **Input Schema**:
 ```typescript
@@ -346,9 +286,13 @@ interface ResolveReviewThreadOutput {
 - Checks resolution status before attempting resolution
 
 **Tool Philosophy**:
-- **One-shot execution**: Immediately resolves the thread
+- **One-shot execution**: Immediately resolves the thread (no undo!)
 - **Idempotent**: Safe to call on already-resolved threads
 - **Smart mapping**: Can resolve via comment ID by looking up the thread
+- **AI judgment required**: The AI must exercise judgment like a human reviewer would
+  - Don't auto-resolve just because code compiles
+  - Ensure the spirit of the feedback is addressed, not just the letter
+  - When in doubt, leave unresolved and ask the human
 
 **Example Usage**:
 ```bash

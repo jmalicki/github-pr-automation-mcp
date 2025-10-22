@@ -65,7 +65,7 @@ export async function handleFindUnresolvedComments(
           eyes: c.reactions.eyes
         } : undefined,
         html_url: c.html_url,
-        action_commands: generateActionCommands(pr, c.id, 'review_comment', body, c.path)
+        action_commands: generateActionCommands(pr, c.id, 'review_comment', body, c.path, c.pull_request_review_id ?? undefined)
       };
     }),
     ...issueComments.map(c => {
