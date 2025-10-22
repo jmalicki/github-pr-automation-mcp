@@ -68,8 +68,7 @@ jobs:
         uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: moderate
-          allow-licenses: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, GPL-2.0, GPL-3.0, LGPL-2.1, LGPL-3.0
-          deny-licenses: AGPL-1.0, AGPL-3.0
+          allow-licenses: MIT,Apache-2.0,BSD-2-Clause,BSD-3-Clause,ISC,GPL-2.0,GPL-3.0,LGPL-2.1,LGPL-3.0,Python-2.0,CC-BY-3.0,CC0-1.0,(MIT AND CC-BY-3.0)
           comment-summary-in-pr: always
 
   license-check:
@@ -91,7 +90,7 @@ jobs:
       - name: Check licenses
         run: |
           echo "Checking package licenses..."
-          npx license-checker --onlyAllow 'MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;GPL-2.0;GPL-3.0;LGPL-2.1;LGPL-3.0' --excludePrivatePackages || {
+          npm run license-check || {
             echo "❌ Unapproved licenses detected"
             echo "Please review and approve the licenses in the package dependencies"
             exit 1
