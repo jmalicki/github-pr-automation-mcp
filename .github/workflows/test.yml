@@ -2,9 +2,9 @@ name: Test
 
 on:
   push:
-    branches: ['**']
+    branches: ['main']
   pull_request:
-    branches: ['**']
+    branches: ['main']
 
 jobs:
   test:
@@ -21,10 +21,10 @@ jobs:
           cache: 'npm'
       
       - name: Install dependencies
-        run: npm ci --audit-level=moderate
+        run: npm ci --audit-level=high
       
       - name: Security audit
-        run: npm audit --audit-level=moderate
+        run: npm audit --audit-level=high
       
       - name: Build
         run: npm run build

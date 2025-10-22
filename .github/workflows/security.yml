@@ -42,6 +42,9 @@ jobs:
             echo "✅ No high or critical vulnerabilities found"
           fi
           
+          echo "Summary of moderate vulnerabilities (non-blocking):"
+          npm audit --audit-level=moderate --json | jq -r '.metadata.vulnerabilities.moderate // 0' | xargs -I {} echo "Moderate vulnerabilities: {}"
+          
       - name: License compliance check
         run: npm run license-check
           
