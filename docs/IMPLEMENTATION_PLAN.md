@@ -1260,7 +1260,24 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 
 ### Tasks
 
-#### 6.1 Documentation
+#### 6.1 Code Quality Polish
+
+**From Phase 3.7 CodeRabbit Nitpicks**:
+- [ ] Type-safe GraphQL response handling (resolve-review-thread)
+  - [ ] Define TypeScript interfaces for GraphQL response shapes
+  - [ ] Add runtime validation (Zod) for critical fields
+  - [ ] Add null checks before accessing nested properties
+- [ ] GraphQL node ID format validation
+  - [ ] Add regex validation for thread_id and comment_id in schema
+  - [ ] Ensure base64 GraphQL node ID format: `/^[A-Za-z0-9+/]+=*$/`
+  - [ ] Catch malformed IDs early with clear error messages
+
+**From Other Phases**:
+- [ ] Review and address deferred nitpicks from earlier phases
+- [ ] Add comprehensive JSDoc comments to all public APIs
+- [ ] Improve error messages for better user experience
+
+#### 6.2 Documentation
 
 **Implementation**:
 - [x] Architecture overview (ARCHITECTURE.md)
@@ -1293,7 +1310,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] New users can get started in <5 minutes
 - [ ] Troubleshooting guide covers common issues
 
-#### 6.2 Examples
+#### 6.3 Examples
 
 **Implementation**:
 - [ ] Create examples/ directory with sample workflows
@@ -1324,7 +1341,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] MCP integration guide enables setup in <10 minutes
 - [ ] Examples cover all 8 tools
 
-#### 6.3 Deployment
+#### 6.4 Deployment
 
 **Implementation**:
 - [ ] Prepare for npm package publication:
@@ -1357,7 +1374,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] CHANGELOG is up to date
 - [ ] Release process documented
 
-#### 6.4 Monitoring and Observability
+#### 6.5 Monitoring and Observability
 
 **Implementation**:
 - [ ] Add structured logging:
