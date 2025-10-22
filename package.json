@@ -77,7 +77,7 @@
     "node": ">=18.0.0"
   },
   "mcp": {
-    "version": "1.0.0",
+    "version": "2025-10-22",
     "protocol": "stdio",
     "server": "dist/index.js",
     "tools": [
