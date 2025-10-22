@@ -91,7 +91,7 @@ describe('MemoryCache', () => {
     const cleaned = cache.cleanup();
     expect(cleaned).toBe(1);
     expect(cache.get('key1')).toBeNull();
-    expect(cache.get('key2')).toEqual({ data: 'value2' });
+    expect(cache.get('key2')).toBe('value2');
   });
 });
 

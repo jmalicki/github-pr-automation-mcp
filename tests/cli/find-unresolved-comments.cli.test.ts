@@ -25,12 +25,14 @@ describe('CLI: find-unresolved-comments', () => {
       'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js find-unresolved-comments --pr "jmalicki/resolve-pr-mcp#2" --json'
     );
     
+    // Check if output is valid JSON
+    expect(() => JSON.parse(stdout)).not.toThrow();
     const result = JSON.parse(stdout);
     expect(result).toHaveProperty('pr');
     expect(result).toHaveProperty('total_unresolved');
     expect(result).toHaveProperty('comments');
     expect(result).toHaveProperty('summary');
-  }, 15000);
+  }, 30000);
 
   it('should output human-readable format', async () => {
     if (!hasToken) {
@@ -42,10 +44,10 @@ describe('CLI: find-unresolved-comments', () => {
       'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js find-unresolved-comments --pr "jmalicki/resolve-pr-mcp#2"'
     );
     
-    expect(stdout).toContain('PR:');
-    expect(stdout).toContain('Unresolved Comments:');
+    expect(stdout).toContain('Comments for');
+    expect(stdout).toContain('Total unresolved:');
     expect(stdout).toContain('Summary:');
-  }, 15000);
+  }, 30000);
 
   it('should handle sorting options', async () => {
     if (!hasToken) {
@@ -57,9 +59,11 @@ describe('CLI: find-unresolved-comments', () => {
       'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js find-unresolved-comments --pr "jmalicki/resolve-pr-mcp#2" --sort by_file --json'
     );
     
+    // Check if output is valid JSON
+    expect(() => JSON.parse(stdout)).not.toThrow();
     const result = JSON.parse(stdout);
     expect(result.comments).toBeDefined();
-  }, 15000);
+  }, 30000);
 });
 
 

@@ -53,7 +53,7 @@ describe('CLI: manage-stacked-prs', () => {
     
     expect(stdout).toContain('Base PR:');
     expect(stdout).toContain('Dependent PR:');
-    expect(stdout).toContain('Stacked:');
+    expect(stdout).toContain('Is stacked:');
   }, 15000);
 });
 

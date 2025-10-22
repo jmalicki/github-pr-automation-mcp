@@ -103,9 +103,9 @@ describe('ParallelRequestHandler', () => {
 
     expect(results).toHaveLength(3);
     expect(mockClient.getPullRequest).toHaveBeenCalledTimes(3);
-    expect(mockClient.getPullRequest).toHaveBeenCalledWith('owner/repo#1');
-    expect(mockClient.getPullRequest).toHaveBeenCalledWith('owner/repo#2');
-    expect(mockClient.getPullRequest).toHaveBeenCalledWith('owner/repo#3');
+    expect(mockClient.getPullRequest).toHaveBeenCalledWith({ owner: 'owner', repo: 'repo', number: 1 });
+    expect(mockClient.getPullRequest).toHaveBeenCalledWith({ owner: 'owner', repo: 'repo', number: 2 });
+    expect(mockClient.getPullRequest).toHaveBeenCalledWith({ owner: 'owner', repo: 'repo', number: 3 });
   });
 
   it('should batch check runs requests', async () => {

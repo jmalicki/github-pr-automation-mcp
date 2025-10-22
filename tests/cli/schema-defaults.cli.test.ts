@@ -78,7 +78,7 @@ describe('CLI: Schema Default Behavior', () => {
         return;
       }
 
-      // Run without --include-bots flag
+      // Run without --include-bots flag (updated)
       const { stdout } = await execAsync(
         'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js find-unresolved-comments --pr "jmalicki/resolve-pr-mcp#2" --json'
       );
