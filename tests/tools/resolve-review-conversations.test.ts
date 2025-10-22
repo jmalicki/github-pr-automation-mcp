@@ -70,7 +70,8 @@ describe('resolve-review-conversations', () => {
     expect(result.threads[0].id).toBe('thread-1');
     expect(result.threads[0].is_resolved).toBe(false);
     expect(result.threads[0].preview).toContain('This is a review comment');
-    expect(result.threads[0].action_commands.resolve_command).toContain('resolveReviewThread');
+    expect(result.threads[0].action_commands.mcp_action.tool).toBe('resolve_review_thread');
+    expect(result.threads[0].action_commands.mcp_action.args.thread_id).toBe('thread-1');
     expect(result.threads[0].action_commands.view_in_browser).toContain('github.com/owner/repo/pull/123');
     expect(result.summary.total).toBe(1); // Only unresolved thread returned
     expect(result.summary.unresolved).toBe(1);
@@ -204,8 +205,8 @@ describe('resolve-review-conversations', () => {
 
     const result = await handleResolveReviewConversations(mockClient, input);
 
-    expect(result.threads[0].action_commands.resolve_command).toContain('resolveReviewThread');
-    expect(result.threads[0].action_commands.resolve_command).toContain('thread-abc123');
+    expect(result.threads[0].action_commands.mcp_action.tool).toBe('resolve_review_thread');
+    expect(result.threads[0].action_commands.mcp_action.args.thread_id).toBe('thread-abc123');
     expect(result.threads[0].action_commands.view_in_browser).toBe('https://github.com/owner/repo/pull/123#discussion_rthread-abc123');
   });
 });

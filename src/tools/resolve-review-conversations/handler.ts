@@ -12,11 +12,14 @@ export async function handleResolveReviewConversations(client: GitHubClient, inp
   // Fetch review threads using GraphQL
   const threads = await fetchReviewThreads(client, pr, parsed.only_unresolved, parsed.limit);
   
-  // Generate action commands for each thread
+  // Generate MCP action for each thread
   const threadsWithCommands = threads.map(thread => ({
     ...thread,
     action_commands: {
-      resolve_command: generateResolveCommand(thread.id),
+      mcp_action: {
+        tool: 'resolve_review_thread' as const,
+        args: { pr: parsed.pr, thread_id: thread.id }
+      },
       view_in_browser: generateViewCommand(pr, thread.id)
     }
   }));
@@ -96,10 +99,6 @@ async function fetchReviewThreads(client: GitHubClient, pr: { owner: string; rep
   } catch (error) {
     throw new Error(`Failed to fetch review threads: ${error instanceof Error ? error.message : String(error)}`);
   }
-}
-
-function generateResolveCommand(threadId: string): string {
-  return `gh api graphql -f query='mutation($threadId: ID!) { resolveReviewThread(input: {threadId: $threadId}) { thread { isResolved } } }' -f threadId="${threadId}"`;
 }
 
 function generateViewCommand(pr: { owner: string; repo: string; number: number }, threadId: string): string {

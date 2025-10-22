@@ -15,7 +15,14 @@ export const ReviewThreadSchema = z.object({
   is_resolved: z.boolean(),
   preview: z.string(),
   action_commands: z.object({
-    resolve_command: z.string(),
+    // MCP action instead of shell
+    mcp_action: z.object({
+      tool: z.literal('resolve_review_thread'),
+      args: z.object({
+        pr: z.string(),
+        thread_id: z.string()
+      })
+    }),
     view_in_browser: z.string(),
   }),
 });
