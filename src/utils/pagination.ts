@@ -63,7 +63,7 @@ export function cursorToGitHubPagination(
 ): { page: number; per_page: number } {
   // Validate page size
   if (!Number.isFinite(defaultPageSize) || defaultPageSize < 1) {
-    throw new RangeError('pageSize must be a positive finite integer');
+    throw new RangeError('defaultPageSize must be a positive finite integer');
   }
   
   // Decode cursor or start from beginning

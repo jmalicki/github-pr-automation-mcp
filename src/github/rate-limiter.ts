@@ -104,7 +104,7 @@ export class RateLimiter {
   ): Promise<T> {
     return new Promise((resolve, reject) => {
       const request: QueuedRequest = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: Math.random().toString(36).substring(2, 11),
         fn: fn as () => Promise<unknown>,
         resolve: resolve as (value: unknown) => void,
         reject: reject as (error: Error) => void,
