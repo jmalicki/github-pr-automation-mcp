@@ -2,13 +2,14 @@
 
 ## Phase Overview
 
-The implementation is divided into 5 phases, each building on the previous:
+The implementation is divided into 6 phases, each building on the previous:
 
-1. **Foundation** - Core infrastructure and GitHub integration
-2. **Core Tools** - Implement the 3 primary tools requested
-3. **Enhanced Tools** - Add supplementary tools for comprehensive PR management
-4. **Optimization** - Performance, caching, and error handling improvements
-5. **Polish** - Documentation, examples, and deployment tooling
+1. **CI/CD Setup** - Establish automated testing and quality checks for all future PRs
+2. **Foundation** - Core infrastructure and GitHub integration
+3. **Core Tools** - Implement the 3 primary tools requested
+4. **Enhanced Tools** - Add supplementary tools for comprehensive PR management
+5. **Optimization** - Performance, caching, and error handling improvements
+6. **Polish** - Documentation, examples, and deployment tooling
 
 ## PR Strategy: Stacked PRs
 
@@ -16,34 +17,39 @@ The implementation is divided into 5 phases, each building on the previous:
 
 ```
 main
- ├─ PR #1: Phase 1 - Foundation
-     ├─ PR #2: Phase 2 - Core Tools (stacked on Phase 1)
-         ├─ PR #3: Phase 3 - Enhanced Tools (stacked on Phase 2)
-             ├─ PR #4: Phase 4 - Optimization (stacked on Phase 3)
-                 ├─ PR #5: Phase 5 - Polish (stacked on Phase 4)
+ ├─ PR #1: Phase 1 - CI/CD Setup
+     ├─ PR #2: Phase 2 - Foundation (stacked on Phase 1)
+         ├─ PR #3: Phase 3 - Core Tools (stacked on Phase 2)
+             ├─ PR #4: Phase 4 - Enhanced Tools (stacked on Phase 3)
+                 ├─ PR #5: Phase 5 - Optimization (stacked on Phase 4)
+                     ├─ PR #6: Phase 6 - Polish (stacked on Phase 5)
 ```
 
 ### Branch Strategy
 
 **Phase 1**:
-- Branch: `phase-1-foundation` (off `main`)
-- PR: `phase-1-foundation` → `main`
+- Branch: `phase-1-ci-setup` (off `main`)
+- PR: `phase-1-ci-setup` → `main`
 
 **Phase 2**:
-- Branch: `phase-2-core-tools` (off `phase-1-foundation`)
-- PR: `phase-2-core-tools` → `phase-1-foundation`
+- Branch: `phase-2-foundation` (off `phase-1-ci-setup`)
+- PR: `phase-2-foundation` → `phase-1-ci-setup`
 
 **Phase 3**:
-- Branch: `phase-3-enhanced-tools` (off `phase-2-core-tools`)
-- PR: `phase-3-enhanced-tools` → `phase-2-core-tools`
+- Branch: `phase-3-core-tools` (off `phase-2-foundation`)
+- PR: `phase-3-core-tools` → `phase-2-foundation`
 
 **Phase 4**:
-- Branch: `phase-4-optimization` (off `phase-3-enhanced-tools`)
-- PR: `phase-4-optimization` → `phase-3-enhanced-tools`
+- Branch: `phase-4-enhanced-tools` (off `phase-3-core-tools`)
+- PR: `phase-4-enhanced-tools` → `phase-3-core-tools`
 
 **Phase 5**:
-- Branch: `phase-5-polish` (off `phase-4-optimization`)
-- PR: `phase-5-polish` → `phase-4-optimization`
+- Branch: `phase-5-optimization` (off `phase-4-enhanced-tools`)
+- PR: `phase-5-optimization` → `phase-4-enhanced-tools`
+
+**Phase 6**:
+- Branch: `phase-6-polish` (off `phase-5-optimization`)
+- PR: `phase-6-polish` → `phase-5-optimization`
 
 ### Merge Strategy
 
@@ -62,23 +68,120 @@ main
 
 ### Using manage_stacked_prs (Dogfooding!)
 
-Once Phase 2 is complete, we can use our own `manage_stacked_prs` tool to manage the stack:
+Once Phase 3 is complete, we can use our own `manage_stacked_prs` tool to manage the stack:
 
 ```bash
-# After Phase 1 merges, update Phase 2
+# After Phase 2 merges, update Phase 3
 resolve-pr-mcp manage-stacked-prs \
-  --base-pr "jmalicki/resolve-pr-mcp#1" \
-  --dependent-pr "jmalicki/resolve-pr-mcp#2"
+  --base-pr "jmalicki/resolve-pr-mcp#2" \
+  --dependent-pr "jmalicki/resolve-pr-mcp#3"
 
 # Iterative testing of our own tools!
 ```
 
 ---
 
-## Phase 1: Foundation (Week 1)
+## Phase 1: CI/CD Setup (Week 1, Day 1-2)
 
-**Branch**: `phase-1-foundation` (off `main`)  
+**Branch**: `phase-1-ci-setup` (off `main`)  
 **PR**: → `main`
+
+### Goals
+- Set up automated testing for all future PRs
+- Configure linting and type checking
+- Establish quality gates
+- Enable all stacked PRs to benefit from CI
+
+### Tasks
+
+#### 1.1 GitHub Actions Workflows
+
+- [ ] Create `.github/workflows/test.yml` - Run tests on every PR
+- [ ] Create `.github/workflows/lint.yml` - Linting and type checking
+- [ ] Create `.github/workflows/build.yml` - Verify build succeeds
+- [ ] Configure branch protection rules for `main`
+- [ ] Set up required status checks
+
+**Test Workflow**:
+```yaml
+# .github/workflows/test.yml
+name: Test
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - run: npm test -- --coverage
+      - name: Check coverage thresholds
+        run: npm run test:coverage-check
+```
+
+**Lint Workflow**:
+```yaml
+# .github/workflows/lint.yml
+name: Lint
+on: [push, pull_request]
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run type-check
+```
+
+#### 1.2 Linting Configuration
+
+- [ ] Install ESLint and TypeScript ESLint
+- [ ] Create `.eslintrc.json` with rules
+- [ ] Create `.eslintignore`
+- [ ] Add lint script to package.json
+- [ ] Fix any existing lint issues
+
+#### 1.3 Test Configuration (Vitest)
+
+- [ ] Install Vitest and dependencies
+- [ ] Create `vitest.config.ts`
+- [ ] Set up test directory structure
+- [ ] Create initial test utilities
+- [ ] Add coverage thresholds (85%)
+
+#### 1.4 Pre-commit Hooks (Optional but Recommended)
+
+- [ ] Install Husky
+- [ ] Configure pre-commit hook (lint + type-check)
+- [ ] Configure commit-msg hook (Conventional Commits validation)
+
+### Phase 1 Deliverables
+- [ ] GitHub Actions workflows running on all PRs
+- [ ] Linting enforced
+- [ ] Type checking enforced
+- [ ] Test infrastructure ready
+- [ ] Branch protection enabled on `main`
+
+### Phase 1 Success Criteria
+- [ ] CI passes on this PR
+- [ ] Can push commits and see CI run
+- [ ] Lint errors block merge
+- [ ] Test failures block merge
+
+**Why First?**: All subsequent stacked PRs (Phases 2-6) will automatically get CI validation, ensuring quality from the start.
+
+---
+
+## Phase 2: Foundation (Week 1, Day 3-5)
+
+**Branch**: `phase-2-foundation` (off `phase-1-ci-setup`)  
+**PR**: → `phase-1-ci-setup` (stacked on Phase 1)
 
 ### Goals
 - Set up TypeScript project structure
@@ -166,50 +269,49 @@ resolve-pr-mcp manage-stacked-prs \
 - `src/utils/formatting.ts`
 - `src/utils/validation.ts`
 
-#### 1.5 Testing Infrastructure
+#### 2.5 Testing Infrastructure
 
 **Reference**: See [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for full strategy
 
 **Tasks**:
-- [ ] Set up Vitest
 - [ ] Create test fixtures for GitHub API responses
-- [ ] Write tests for utilities
-- [ ] Set up CI/CD pipeline (GitHub Actions)
-- [ ] Configure coverage reporting
+- [ ] Write tests for utilities (>90% coverage)
+- [ ] Set up mock GitHub client
 
 **Files**:
 - `tests/setup.ts` - Test configuration
 - `tests/fixtures/` - Mock GitHub responses
 - `tests/utils/` - Test helpers
-- `vitest.config.ts` - Vitest configuration
+- `tests/mocks/` - Mock implementations
 
-### Phase 1 Deliverables
+### Phase 2 Deliverables
 - [ ] Working MCP server that can be started
 - [ ] GitHub API client that authenticates
 - [ ] Core utility functions with tests (>90% coverage)
 - [ ] Type definitions for all major entities
 - [ ] CLI mode working for testing
-- [ ] CI/CD pipeline set up
+- [ ] All CI checks passing
 
-### Phase 1 Success Criteria
+### Phase 2 Success Criteria
 - [ ] Server starts and responds to MCP protocol requests
 - [ ] Can fetch a PR from GitHub successfully
 - [ ] All utility tests pass
+- [ ] CI pipeline validates this PR
 - [ ] Documentation updated
 
 ---
 
-## Phase 2: Core Tools Implementation (Week 2-3)
+## Phase 3: Core Tools Implementation (Week 2-3)
 
-**Branch**: `phase-2-core-tools` (off `phase-1-foundation`)  
-**PR**: → `phase-1-foundation` (stacked on Phase 1)
+**Branch**: `phase-3-core-tools` (off `phase-2-foundation`)  
+**PR**: → `phase-2-foundation` (stacked on Phase 2)
 
 ### Goals
 - Implement `get_failing_tests`
 - Implement `find_unresolved_comments`
 - Implement `manage_stacked_prs`
 
-### 2.1 Tool: get_failing_tests
+### 3.1 Tool: get_failing_tests
 
 **Reference**: See [API_DESIGN.md](./API_DESIGN.md#1-get_failing_tests) for full spec
 
@@ -232,7 +334,7 @@ resolve-pr-mcp manage-stacked-prs \
 - `src/tools/get-failing-tests/instructions.ts`
 - `src/github/ci-status-fetcher.ts`
 
-### 2.2 Tool: find_unresolved_comments
+### 3.2 Tool: find_unresolved_comments
 
 **Reference**: See [API_DESIGN.md](./API_DESIGN.md#2-find_unresolved_comments) for full spec
 
@@ -255,7 +357,7 @@ resolve-pr-mcp manage-stacked-prs \
 - `src/tools/find-unresolved-comments/thread-analyzer.ts`
 - `src/github/comment-manager.ts`
 
-### 2.3 Tool: manage_stacked_prs
+### 3.3 Tool: manage_stacked_prs
 
 **Reference**: See [API_DESIGN.md](./API_DESIGN.md#3-manage_stacked_prs) and [AI_DECISION_GUIDE.md](./AI_DECISION_GUIDE.md) for rebase strategy
 
@@ -281,7 +383,7 @@ resolve-pr-mcp manage-stacked-prs \
 - `src/tools/manage-stacked-prs/rebase-strategy.ts`
 - `src/github/pr-analyzer.ts`
 
-### Phase 2 Deliverables
+### Phase 3 Deliverables
 - [ ] All 3 core tools functional
 - [ ] Comprehensive test coverage (>85%)
 - [ ] Input validation working with Zod
@@ -289,13 +391,14 @@ resolve-pr-mcp manage-stacked-prs \
 - [ ] Error handling robust
 - [ ] User preferences system integrated
 - [ ] Rebase strategy detection working
+- [ ] CI validates all tools
 
 ---
 
-## Phase 3: Enhanced Tools (Week 4)
+## Phase 4: Enhanced Tools (Week 4)
 
-**Branch**: `phase-3-enhanced-tools` (off `phase-2-core-tools`)  
-**PR**: → `phase-2-core-tools` (stacked on Phase 2)
+**Branch**: `phase-4-enhanced-tools` (off `phase-3-core-tools`)  
+**PR**: → `phase-3-core-tools` (stacked on Phase 3)
 
 ### Goals
 - Implement 5 supplementary tools
@@ -303,7 +406,7 @@ resolve-pr-mcp manage-stacked-prs \
 - Create composable tool ecosystem
 - Implement rebase strategy detection
 
-### 3.1 Tool: detect_merge_conflicts
+### 4.1 Tool: detect_merge_conflicts
 
 **Reference**: See [API_DESIGN.md](./API_DESIGN.md#4-detect_merge_conflicts)
 
@@ -316,7 +419,7 @@ resolve-pr-mcp manage-stacked-prs \
 - [ ] Generate resolution suggestions
 - [ ] Write tests
 
-### 3.2 Tool: check_merge_readiness
+### 4.2 Tool: check_merge_readiness
 
 **Reference**: See [API_DESIGN.md](./API_DESIGN.md#5-check_merge_readiness)
 
@@ -330,7 +433,7 @@ resolve-pr-mcp manage-stacked-prs \
 - [ ] Ensure branch is up to date
 - [ ] Write tests
 
-### 3.3 Tool: analyze_pr_impact
+### 4.3 Tool: analyze_pr_impact
 
 **Reference**: See [API_DESIGN.md](./API_DESIGN.md#6-analyze_pr_impact)
 
@@ -343,7 +446,7 @@ resolve-pr-mcp manage-stacked-prs \
 - [ ] Find similar PRs (optional)
 - [ ] Write tests
 
-### 3.4 Tool: get_review_suggestions
+### 4.4 Tool: get_review_suggestions
 
 **Reference**: See [API_DESIGN.md](./API_DESIGN.md#7-get_review_suggestions)
 
@@ -356,7 +459,7 @@ resolve-pr-mcp manage-stacked-prs \
 - [ ] Link related issues and PRs
 - [ ] Write tests
 
-### 3.5 Tool: rebase_after_squash_merge
+### 4.5 Tool: rebase_after_squash_merge
 
 **Reference**: See [API_DESIGN.md](./API_DESIGN.md#8-rebase_after_squash_merge)
 
@@ -372,10 +475,10 @@ resolve-pr-mcp manage-stacked-prs \
 
 ---
 
-## Phase 4: Optimization (Week 5)
+## Phase 5: Optimization (Week 5)
 
-**Branch**: `phase-4-optimization` (off `phase-3-enhanced-tools`)  
-**PR**: → `phase-3-enhanced-tools` (stacked on Phase 3)
+**Branch**: `phase-5-optimization` (off `phase-4-enhanced-tools`)  
+**PR**: → `phase-4-enhanced-tools` (stacked on Phase 4)
 
 ### Goals
 - Improve performance
@@ -447,10 +550,10 @@ resolve-pr-mcp manage-stacked-prs \
 
 ---
 
-## Phase 5: Polish (Week 6)
+## Phase 6: Polish (Week 6)
 
-**Branch**: `phase-5-polish` (off `phase-4-optimization`)  
-**PR**: → `phase-4-optimization` (stacked on Phase 4)
+**Branch**: `phase-6-polish` (off `phase-5-optimization`)  
+**PR**: → `phase-5-optimization` (stacked on Phase 5)
 
 ### Goals
 - Complete documentation
@@ -534,6 +637,7 @@ resolve-pr-mcp manage-stacked-prs \
 ## Success Metrics
 
 ### Functional Metrics
+- [ ] CI/CD pipeline running on all PRs
 - [ ] All 8 tools implemented and tested (3 core + 5 supplementary)
 - [ ] Test coverage >85% overall
 - [ ] All documented APIs work as specified
