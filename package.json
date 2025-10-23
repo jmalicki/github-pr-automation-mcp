@@ -86,14 +86,14 @@
   },
   "overrides": {
     "rollup": {
-      "@rollup/rollup-linux-x64-gnu": "$@rollup/rollup-linux-x64-gnu",
-      "@rollup/rollup-linux-x64-musl": "$@rollup/rollup-linux-x64-musl",
-      "@rollup/rollup-linux-arm64-gnu": "$@rollup/rollup-linux-arm64-gnu",
-      "@rollup/rollup-linux-arm64-musl": "$@rollup/rollup-linux-arm64-musl",
-      "@rollup/rollup-darwin-x64": "$@rollup/rollup-darwin-x64",
-      "@rollup/rollup-darwin-arm64": "$@rollup/rollup-darwin-arm64",
-      "@rollup/rollup-win32-x64-msvc": "$@rollup/rollup-win32-x64-msvc",
-      "@rollup/rollup-win32-ia32-msvc": "$@rollup/rollup-win32-ia32-msvc"
+      "@rollup/rollup-linux-x64-gnu": "rollup",
+      "@rollup/rollup-linux-x64-musl": "rollup",
+      "@rollup/rollup-linux-arm64-gnu": "rollup",
+      "@rollup/rollup-linux-arm64-musl": "rollup",
+      "@rollup/rollup-darwin-x64": "rollup",
+      "@rollup/rollup-darwin-arm64": "rollup",
+      "@rollup/rollup-win32-x64-msvc": "rollup",
+      "@rollup/rollup-win32-ia32-msvc": "rollup"
     }
   },
   "mcp": {
