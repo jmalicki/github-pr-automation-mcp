@@ -105,5 +105,63 @@ describe('Cursor pagination', () => {
       const page2 = paginateResults(items, page1.nextCursor, 10); // Different default
       expect(page2.items).toEqual(['f', 'g', 'h', 'i', 'j']); // Still 5 items
     });
+
+    it('should handle cursor with page size larger than server default', () => {
+      // Create cursor with page size 50, but server default is 20
+      const cursor = encodeCursor(0, 50);
+      const result = paginateResults(items, cursor, 20);
+      
+      // Should clamp to server default (20), but we only have 10 items
+      expect(result.items).toEqual(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j']);
+      expect(result.nextCursor).toBeUndefined();
+    });
+
+    it('should handle cursor with page size smaller than server default', () => {
+      // Create cursor with page size 3, server default is 10
+      const cursor = encodeCursor(0, 3);
+      const result = paginateResults(items, cursor, 10);
+      
+      // Should use cursor page size (3)
+      expect(result.items).toEqual(['a', 'b', 'c']);
+      expect(result.nextCursor).toBeDefined();
+    });
+
+    it('should handle pagination across multiple pages with different sizes', () => {
+      const largeItems = Array.from({ length: 50 }, (_, i) => `item-${i}`);
+      
+      // First page: size 10
+      const page1 = paginateResults(largeItems, undefined, 10);
+      expect(page1.items).toHaveLength(10);
+      expect(page1.items[0]).toBe('item-0');
+      expect(page1.nextCursor).toBeDefined();
+      
+      // Second page: size 15 (from cursor)
+      const cursor15 = encodeCursor(10, 15);
+      const page2 = paginateResults(largeItems, cursor15, 20);
+      expect(page2.items).toHaveLength(15);
+      expect(page2.items[0]).toBe('item-10');
+      expect(page2.nextCursor).toBeDefined();
+      
+      // Third page: size 5 (from cursor)
+      const cursor5 = encodeCursor(25, 5);
+      const page3 = paginateResults(largeItems, cursor5, 20);
+      expect(page3.items).toHaveLength(5);
+      expect(page3.items[0]).toBe('item-25');
+      expect(page3.nextCursor).toBeDefined();
+    });
+
+    it('should handle edge case with offset beyond array length', () => {
+      const result = paginateResults(items, encodeCursor(100, 5), 10);
+      
+      expect(result.items).toEqual([]);
+      expect(result.nextCursor).toBeUndefined();
+    });
+
+    it('should handle edge case with offset at array boundary', () => {
+      const result = paginateResults(items, encodeCursor(10, 5), 10);
+      
+      expect(result.items).toEqual([]);
+      expect(result.nextCursor).toBeUndefined();
+    });
   });
 });
