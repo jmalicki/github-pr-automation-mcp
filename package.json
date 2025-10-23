@@ -15,7 +15,6 @@
     "test": "ROLLUP_FORCE_JS=1 vitest run",
     "test:watch": "vitest watch",
     "test:coverage": "ROLLUP_FORCE_JS=1 vitest run --coverage",
-    "test:coverage-check": "ROLLUP_FORCE_JS=1 vitest run --coverage && node scripts/check-coverage.js",
     "test:integration": "ROLLUP_FORCE_JS=1 vitest run --config vitest.integration.config.ts",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
