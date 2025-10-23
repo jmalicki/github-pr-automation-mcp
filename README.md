@@ -57,18 +57,18 @@ An MCP (Model Context Protocol) server and CLI that provides AI-assisted tools f
 
 ## Requirements
 
-- **Node.js v22 or higher** - This project requires Node.js v22 LTS or newer
+- **Node.js v18 or higher** - Minimum version required (v22 LTS recommended)
 - **GitHub Token** - Set `GITHUB_TOKEN` environment variable for API access
 - **Git** - Required for git operations in stacked PR management
 
 ### Node.js Version Management
 
-This project includes several ways to enforce the correct Node.js version:
+This project is configured to use Node.js v22 LTS by default:
 
-- **`.nvmrc`** - For `nvm` users: `nvm use`
-- **`.node-version`** - For `nodenv` and other version managers
-- **`engines` field** - NPM will warn about version mismatches
-- **Preinstall script** - Automatically checks version during `npm install`
+- **`.nvmrc`** - For `nvm` users: `nvm use` (defaults to v22)
+- **`.node-version`** - For `nodenv` and other version managers (defaults to v22)
+- **CI/CD** - All GitHub Actions workflows use Node.js v22
+- **`engines` field** - NPM will warn about version mismatches (minimum v18)
 
 ## Installation
 

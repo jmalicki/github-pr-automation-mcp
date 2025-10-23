@@ -83,7 +83,7 @@
     "vitest": "^4.0.1"
   },
   "engines": {
-    "node": ">=22.0.0"
+    "node": ">=18.0.0"
   },
   "overrides": {
     "rollup": {
