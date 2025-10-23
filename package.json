@@ -84,6 +84,18 @@
   "engines": {
     "node": ">=18.0.0"
   },
+  "overrides": {
+    "rollup": {
+      "@rollup/rollup-linux-x64-gnu": "$@rollup/rollup-linux-x64-gnu",
+      "@rollup/rollup-linux-x64-musl": "$@rollup/rollup-linux-x64-musl",
+      "@rollup/rollup-linux-arm64-gnu": "$@rollup/rollup-linux-arm64-gnu",
+      "@rollup/rollup-linux-arm64-musl": "$@rollup/rollup-linux-arm64-musl",
+      "@rollup/rollup-darwin-x64": "$@rollup/rollup-darwin-x64",
+      "@rollup/rollup-darwin-arm64": "$@rollup/rollup-darwin-arm64",
+      "@rollup/rollup-win32-x64-msvc": "$@rollup/rollup-win32-x64-msvc",
+      "@rollup/rollup-win32-ia32-msvc": "$@rollup/rollup-win32-ia32-msvc"
+    }
+  },
   "mcp": {
     "version": "2025-10-22",
     "protocol": "stdio",
