@@ -50,6 +50,9 @@ describe('handleCheckMergeReadiness', () => {
     expect(result.checks.ci_passing).toBe(true);
     expect(result.checks.no_conflicts).toBe(true);
     expect(result.blocking_issues).toHaveLength(0);
+    
+    // Verify API calls
+    expect(mockOctokit.pulls.get).toHaveBeenCalledTimes(2);
   });
 
   it('should detect CI failures', async () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleFindUnresolvedComments } from '../../src/tools/find-unresolved-comments/handler.js';
-import { GitHubClient } from '../../src/github/client.js';
+import type { GitHubClient } from '../../src/github/client.js';
 import * as fixtures from '@octokit/fixtures';
 
 describe('handleFindUnresolvedComments', () => {
@@ -356,11 +356,8 @@ describe('handleFindUnresolvedComments', () => {
       .mockResolvedValueOnce(secondPageResponse)
       .mockResolvedValueOnce(thirdPageResponse);
 
-    // Mock issue comments (empty for all pages)
-    mockOctokit.issues.listComments
-      .mockResolvedValue({ data: [], headers: { link: '' } })
-      .mockResolvedValue({ data: [], headers: { link: '' } })
-      .mockResolvedValue({ data: [], headers: { link: '' } });
+        // Mock issue comments (empty for all pages)
+        mockOctokit.issues.listComments.mockResolvedValue({ data: [], headers: { link: '' } });
 
     // Mock GraphQL response for node IDs
     mockOctokit.graphql.mockResolvedValue({
