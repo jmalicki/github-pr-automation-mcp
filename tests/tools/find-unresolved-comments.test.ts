@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { handleFindUnresolvedComments } from '../../src/tools/find-unresolved-comments/handler.js';
-import { GitHubClient } from '../../src/github/client.js';
+import type { GitHubClient } from '../../src/github/client.js';
+import * as fixtures from '@octokit/fixtures';
 
 describe('handleFindUnresolvedComments', () => {
   let mockClient: GitHubClient;
@@ -312,41 +313,51 @@ describe('handleFindUnresolvedComments', () => {
     expect(result.comments[1].author).toBe('zoe');
   });
 
-  it('should paginate comments correctly with cursors', async () => {
-    const manyComments = Array.from({ length: 50 }, (_, i) => ({
-      id: i + 1,
-      user: { login: `user${i}`, type: 'User' },
-      author_association: 'MEMBER',
-      created_at: `2024-01-01T${String(10 + Math.floor(i / 60)).padStart(2, '0')}:${String(i % 60).padStart(2, '0')}:00Z`,
-      updated_at: `2024-01-01T${String(10 + Math.floor(i / 60)).padStart(2, '0')}:${String(i % 60).padStart(2, '0')}:00Z`,
+  it('should paginate comments correctly with real GitHub API fixture data', async () => {
+    // Use real GitHub API fixture for pagination testing
+    const paginationFixture = fixtures.default.get('api.github.com/paginate-issues');
+    
+    // Transform fixture data to comment format with proper body content
+    const transformToComment = (item: any) => ({
+      ...item,
+      body: item.body || `Comment body for ${item.title || 'item'}`,
       path: 'src/file.ts',
-      line: i + 1,
-      body: `Comment ${i}`,
-      html_url: `https://github.com/owner/repo/pull/123#discussion_r${i}`,
+      line: 10,
+      diff_hunk: '@@ -8,5 +8,5 @@',
+      html_url: `https://github.com/owner/repo/pull/123#discussion_r${item.id}`,
       reactions: { total_count: 0, '+1': 0, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 }
-    }));
+    });
+    
+    // Create mock responses based on real GitHub API structure from fixtures
+    const firstPageResponse = {
+      data: paginationFixture[0].response.slice(0, 1).map(transformToComment), // First item from real fixture
+      headers: { 
+        link: '<https://api.github.com/repos/owner/repo/pulls/123/comments?page=2>; rel="next", <https://api.github.com/repos/owner/repo/pulls/123/comments?page=3>; rel="last"' 
+      }
+    };
+    
+    const secondPageResponse = {
+      data: paginationFixture[0].response.slice(1, 2).map(transformToComment), // Second item from real fixture
+      headers: { 
+        link: '<https://api.github.com/repos/owner/repo/pulls/123/comments?page=1>; rel="prev", <https://api.github.com/repos/owner/repo/pulls/123/comments?page=3>; rel="next", <https://api.github.com/repos/owner/repo/pulls/123/comments?page=3>; rel="last"' 
+      }
+    };
+    
+    const thirdPageResponse = {
+      data: paginationFixture[0].response.slice(2).map(transformToComment), // Remaining items from real fixture
+      headers: { 
+        link: '<https://api.github.com/repos/owner/repo/pulls/123/comments?page=2>; rel="prev"' 
+      }
+    };
 
-    // Mock review comments with pagination
+    // Mock review comments with real GitHub API fixture data
     mockOctokit.pulls.listReviewComments
-      .mockResolvedValueOnce({
-        data: manyComments.slice(0, 20), // First page
-        headers: { link: '<https://api.github.com/repos/owner/repo/pulls/123/comments?page=2>; rel="next"' }
-      })
-      .mockResolvedValueOnce({
-        data: manyComments.slice(20, 40), // Second page
-        headers: { link: '<https://api.github.com/repos/owner/repo/pulls/123/comments?page=3>; rel="next"' }
-      })
-      .mockResolvedValueOnce({
-        data: manyComments.slice(40, 50), // Third page
-        headers: { link: '' } // No next page
-      });
+      .mockResolvedValueOnce(firstPageResponse)
+      .mockResolvedValueOnce(secondPageResponse)
+      .mockResolvedValueOnce(thirdPageResponse);
 
-    // Mock issue comments (empty for all pages)
-    mockOctokit.issues.listComments
-      .mockResolvedValue({
-        data: [],
-        headers: { link: '' } // No next page
-      });
+        // Mock issue comments (empty for all pages)
+        mockOctokit.issues.listComments.mockResolvedValue({ data: [], headers: { link: '' } });
 
     // Mock GraphQL response for node IDs
     mockOctokit.graphql.mockResolvedValue({
@@ -359,17 +370,17 @@ describe('handleFindUnresolvedComments', () => {
       }
     });
 
-    // First page (no cursor)
+    // First page (no cursor) - test with real GitHub API fixture data
     const page1 = await handleFindUnresolvedComments(mockClient, {
       pr: 'owner/repo#123',
       include_bots: true,
       sort: 'chronological'
     });
 
-    expect(page1.comments).toHaveLength(20); // Server page size
-    expect(page1.nextCursor).toBeDefined(); // More results
+    expect(page1.comments).toHaveLength(1); // Real GitHub API fixture data
+    expect(page1.nextCursor).toBeDefined(); // More results available
     
-    // Second page using cursor
+    // Second page using cursor - test cursor-based pagination with real fixture data
     const page2 = await handleFindUnresolvedComments(mockClient, {
       pr: 'owner/repo#123',
       include_bots: true,
@@ -377,10 +388,10 @@ describe('handleFindUnresolvedComments', () => {
       cursor: page1.nextCursor
     });
     
-    expect(page2.comments).toHaveLength(20);
+    expect(page2.comments).toHaveLength(1);
     expect(page2.nextCursor).toBeDefined();
     
-    // Third page (last)
+    // Third page (last) - test final page with real GitHub API fixture data
     const page3 = await handleFindUnresolvedComments(mockClient, {
       pr: 'owner/repo#123',
       include_bots: true,
@@ -388,8 +399,11 @@ describe('handleFindUnresolvedComments', () => {
       cursor: page2.nextCursor
     });
     
-    expect(page3.comments).toHaveLength(10); // Remaining
-    expect(page3.nextCursor).toBeUndefined(); // No more
+    expect(page3.comments).toHaveLength(paginationFixture[0].response.length - 2); // Remaining items from fixture
+    expect(page3.nextCursor).toBeUndefined(); // No more pages
+    
+    // Verify that our pagination logic correctly handles real GitHub API fixture data
+    expect(mockOctokit.pulls.listReviewComments).toHaveBeenCalledTimes(3);
   });
 
   it('should generate summary statistics', async () => {
