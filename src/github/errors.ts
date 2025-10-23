@@ -1,7 +1,10 @@
 import type { ToolError, ErrorCategory } from '../types/index.js';
 
 /**
- * Convert GitHub API error to ToolError
+ * Convert GitHub API error to standardized ToolError format
+ * @param error - Unknown error from GitHub API
+ * @param context - Context string describing the API operation that failed
+ * @returns ToolError with standardized error information
  */
 export function handleGitHubError(error: unknown, context: string): ToolError {
   const apiError = error as {
@@ -105,7 +108,11 @@ export function handleGitHubError(error: unknown, context: string): ToolError {
 }
 
 /**
- * Create a standardized error response
+ * Create a standardized ToolError response
+ * @param message - Error message describing what went wrong
+ * @param category - Error category for classification
+ * @param suggestion - Optional suggestion for resolving the error
+ * @returns ToolError with standardized format
  */
 export function createToolError(
   message: string,

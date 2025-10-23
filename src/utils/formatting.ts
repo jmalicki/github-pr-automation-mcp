@@ -1,5 +1,7 @@
 /**
  * Format duration in seconds to human-readable string
+ * @param seconds - Duration in seconds
+ * @returns Formatted duration string (e.g., "2m 30s", "1h 15m")
  */
 export function formatDuration(seconds: number): string {
   if (seconds < 60) {
@@ -24,14 +26,20 @@ export function formatDuration(seconds: number): string {
 }
 
 /**
- * Format timestamp to ISO 8601
+ * Format date to ISO timestamp string
+ * @param date - Date object to format
+ * @returns ISO timestamp string
  */
 export function formatTimestamp(date: Date): string {
   return date.toISOString();
 }
 
 /**
- * Truncate text to max length with ellipsis
+ * Truncate text to specified length with ellipsis
+ * @param text - Text to truncate
+ * @param maxLength - Maximum length before truncation
+ * @returns Truncated text with ellipsis if needed
+ * @throws Error if maxLength is less than 1
  */
 export function truncateText(text: string, maxLength: number): string {
   if (maxLength < 1) {
@@ -51,7 +59,9 @@ export function truncateText(text: string, maxLength: number): string {
 }
 
 /**
- * Format bytes to human-readable size
+ * Format bytes to human-readable string with appropriate units
+ * @param bytes - Number of bytes to format
+ * @returns Formatted string with units (B, KB, MB, GB)
  */
 export function formatBytes(bytes: number): string {
   const units = ['B', 'KB', 'MB', 'GB'];

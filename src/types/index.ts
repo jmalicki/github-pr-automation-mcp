@@ -1,5 +1,8 @@
 // Core type definitions
 
+/**
+ * GitHub pull request identifier structure
+ */
 export interface PRIdentifier {
   owner: string;
   repo: string;
@@ -26,6 +29,9 @@ export type ErrorCategory =
   | "timeout"
   | "unknown";
 
+/**
+ * Standardized error format for tool responses
+ */
 export interface ToolError {
   error: string;
   category: ErrorCategory;

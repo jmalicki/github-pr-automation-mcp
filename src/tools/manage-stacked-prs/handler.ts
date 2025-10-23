@@ -3,6 +3,12 @@ import { parsePRIdentifier, formatPRIdentifier } from '../../utils/parser.js';
 import { paginateResults } from '../../utils/pagination.js';
 import type { ManageStackedPRsInput, ManageStackedPRsOutput, Command } from './schema.js';
 
+/**
+ * Manage stacked pull requests and their dependencies
+ * @param client - GitHub API client instance
+ * @param input - Input parameters including base and dependent PR identifiers
+ * @returns Promise resolving to management commands and analysis
+ */
 export async function handleManageStackedPRs(
   client: GitHubClient,
   input: ManageStackedPRsInput

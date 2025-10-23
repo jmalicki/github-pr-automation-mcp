@@ -3,27 +3,27 @@ import { GitHubClient } from '../src/github/client.js';
 
 // Mock the GitHubClient
 vi.mock('../src/github/client.js', () => ({
-  GitHubClient: vi.fn().mockImplementation(() => ({
-    getOctokit: vi.fn().mockReturnValue({
-      rest: {
-        pulls: {
-          get: vi.fn(),
-          list: vi.fn()
+  GitHubClient: class MockGitHubClient {
+    constructor() {
+      this.getOctokit = vi.fn().mockReturnValue({
+        rest: {
+          pulls: {
+            get: vi.fn(),
+            list: vi.fn(),
+            listReviewComments: vi.fn()
+          },
+          checks: {
+            listForRef: vi.fn()
+          },
+          issues: {
+            listComments: vi.fn()
+          }
         },
-        checks: {
-          listForRef: vi.fn()
-        },
-        issues: {
-          listComments: vi.fn()
-        },
-        pulls: {
-          listReviewComments: vi.fn()
-        }
-      },
-      graphql: vi.fn()
-    }),
-    validateToken: vi.fn().mockResolvedValue(true)
-  }))
+        graphql: vi.fn()
+      });
+      this.validateToken = vi.fn().mockResolvedValue(true);
+    }
+  }
 }));
 
 describe('MCP Server', () => {

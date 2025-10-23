@@ -1,9 +1,16 @@
 import { Octokit } from '@octokit/rest';
 import type { PRIdentifier } from '../types/index.js';
 
+/**
+ * GitHub API client wrapper with authentication and error handling
+ */
 export class GitHubClient {
   private octokit: Octokit;
   
+  /**
+   * Initialize GitHub client with authentication token
+   * @param token - GitHub token (optional, falls back to GITHUB_TOKEN env var)
+   */
   constructor(token?: string) {
     const githubToken = token || process.env.GITHUB_TOKEN;
     
@@ -59,8 +66,10 @@ export class GitHubClient {
   }
   
   /**
-   * Get pull request
-   * Throws normalized errors via handleGitHubError
+   * Get pull request details by identifier
+   * @param pr - PR identifier containing owner, repo, and number
+   * @returns Promise resolving to PR data
+   * @throws Error with normalized GitHub API errors
    */
   async getPullRequest(pr: PRIdentifier) {
     try {
@@ -79,8 +88,9 @@ export class GitHubClient {
   }
   
   /**
-   * Get rate limit status
-   * Throws normalized errors via handleGitHubError
+   * Get current GitHub API rate limit status
+   * @returns Promise resolving to rate limit information
+   * @throws Error with normalized GitHub API errors
    */
   async getRateLimit() {
     try {
@@ -94,7 +104,8 @@ export class GitHubClient {
   }
   
   /**
-   * Get the underlying Octokit instance for advanced usage
+   * Get the underlying Octokit instance for direct API access
+   * @returns Octokit instance for advanced GitHub API operations
    */
   getOctokit(): Octokit {
     return this.octokit;
