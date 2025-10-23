@@ -118,7 +118,6 @@
       "manage_stacked_prs",
       "detect_merge_conflicts",
       "check_merge_readiness",
-      "analyze_pr_impact",
       "get_review_suggestions",
       "rebase_after_squash_merge",
       "resolve_review_thread"

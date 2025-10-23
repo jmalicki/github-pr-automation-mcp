@@ -21,10 +21,10 @@ export default defineConfig({
         'scripts/**'     // Build scripts only
       ],
       thresholds: {
-        lines: 30,
-        functions: 60,
-        branches: 70,
-        statements: 30
+        lines: 69,
+        functions: 69,
+        branches: 69,
+        statements: 69
       }
     },
     setupFiles: ['./tests/setup.ts'],

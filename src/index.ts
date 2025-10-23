@@ -15,7 +15,6 @@ import { handleFindUnresolvedComments } from './tools/find-unresolved-comments/h
 import { handleManageStackedPRs } from './tools/manage-stacked-prs/handler.js';
 import { handleDetectMergeConflicts } from './tools/detect-merge-conflicts/handler.js';
 import { handleCheckMergeReadiness } from './tools/check-merge-readiness/handler.js';
-import { handleAnalyzePRImpact } from './tools/analyze-pr-impact/handler.js';
 import { handleGetReviewSuggestions } from './tools/get-review-suggestions/handler.js';
 import { handleRebaseAfterSquashMerge } from './tools/rebase-after-squash-merge/handler.js';
 import { handleGitHubError } from './github/errors.js';
@@ -191,26 +190,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         }
       },
       {
-        name: 'analyze_pr_impact',
-        description: 'Analyze the impact and scope of PR changes',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            pr: {
-              type: 'string',
-              description: 'PR identifier (owner/repo#123)'
-            },
-            depth: {
-              type: 'string',
-              description: 'Analysis depth: summary or detailed',
-              enum: ['summary', 'detailed'],
-              default: 'summary'
-            }
-          },
-          required: ['pr']
-        }
-      },
-      {
         name: 'get_review_suggestions',
         description: 'Get AI-optimized review context and suggestions',
         inputSchema: {
@@ -332,20 +311,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           pr: PRIdentifierStringSchema
         }).parse(args);
         const result = await handleCheckMergeReadiness(githubClient, input);
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }]
-        };
-      }
-      
-      case 'analyze_pr_impact': {
-        const input = z.object({ 
-          pr: PRIdentifierStringSchema,
-          depth: z.enum(['summary', 'detailed']).default('summary')
-        }).parse(args);
-        const result = await handleAnalyzePRImpact(githubClient, input);
         return {
           content: [{
             type: 'text',

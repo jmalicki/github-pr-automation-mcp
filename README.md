@@ -39,23 +39,18 @@ An MCP (Model Context Protocol) server and CLI that provides AI-assisted tools f
    - Checks CI status, approvals, branch protection rules
    - Reports missing requirements with actionable steps
 
-6. **`analyze_pr_impact`** - Code change impact analysis
-   - Analyzes files changed, additions/deletions
-   - Identifies modified components and potential impact areas
-   - Suggests relevant reviewers based on file ownership
-
-7. **`get_review_suggestions`** - AI-ready review context
+6. **`get_review_suggestions`** - AI-ready review context
    - Generates structured review context for AI agents
    - Includes diff excerpts, file summaries, and review checklist
    - Optimized for efficient token usage
 
-8. **`rebase_after_squash_merge`** - Clean rebase after upstream squash-merge
+7. **`rebase_after_squash_merge`** - Clean rebase after upstream squash-merge
    - Handles scenario where upstream PR was squash-merged
    - Uses `git rebase --onto` to skip upstream commits
    - Only rebases YOUR commits, avoiding conflicts
    - Auto-detects which commits to skip vs. rebase
 
-9. **`resolve_review_thread`** - Resolve specific review threads
+8. **`resolve_review_thread`** - Resolve specific review threads
    - Resolves individual review threads or comments
    - Supports both thread ID and comment ID targeting
    - Immediate resolution without manual intervention
