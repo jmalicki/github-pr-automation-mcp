@@ -11,6 +11,8 @@ on:
 jobs:
   integration:
     runs-on: ubuntu-latest
+    env:
+      ROLLUP_FORCE_JS: 1
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

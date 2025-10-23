@@ -9,6 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ROLLUP_FORCE_JS: 1
     
     steps:
       - name: Checkout code
