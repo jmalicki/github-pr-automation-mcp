@@ -55,9 +55,14 @@ An MCP (Model Context Protocol) server and CLI that provides AI-assisted tools f
    - Only rebases YOUR commits, avoiding conflicts
    - Auto-detects which commits to skip vs. rebase
 
+9. **`resolve_review_thread`** - Resolve specific review threads
+   - Resolves individual review threads or comments
+   - Supports both thread ID and comment ID targeting
+   - Immediate resolution without manual intervention
+
 ## Requirements
 
-- **Node.js v18 or higher** - Minimum version required (v22 LTS recommended)
+- **Node.js v20 or higher** - Minimum version required (v22 LTS recommended)
 - **GitHub Token** - Set `GITHUB_TOKEN` environment variable for API access
 - **Git** - Required for git operations in stacked PR management
 
@@ -65,10 +70,8 @@ An MCP (Model Context Protocol) server and CLI that provides AI-assisted tools f
 
 This project is configured to use Node.js v22 LTS by default:
 
-- **`.nvmrc`** - For `nvm` users: `nvm use` (defaults to v22)
-- **`.node-version`** - For `nodenv` and other version managers (defaults to v22)
 - **CI/CD** - All GitHub Actions workflows use Node.js v22
-- **`engines` field** - NPM will warn about version mismatches (minimum v18)
+- **`engines` field** - NPM will warn about version mismatches (minimum v20)
 
 ## Installation
 
@@ -129,16 +132,13 @@ You can also use the tools directly from the command line:
 github-pr-automation get-failing-tests --pr "owner/repo#123" --wait --bail-on-first
 
 # Find unresolved comments
-github-pr-automation find-unresolved-comments --pr "owner/repo#456" --page 1
+github-pr-automation find-unresolved-comments --pr "owner/repo#456" --include-bots
 
 # Manage stacked PRs
 github-pr-automation manage-stacked-prs --base-pr "owner/repo#100" --dependent-pr "owner/repo#101"
 
-# Rebase after upstream squash-merge (uses --onto to skip upstream commits)
-github-pr-automation rebase-after-squash-merge --pr "owner/repo#101" --upstream-pr "owner/repo#100"
-
-# Check merge readiness
-github-pr-automation check-merge-readiness --pr "owner/repo#789"
+# Resolve review thread
+github-pr-automation resolve-review-thread --pr "owner/repo#123" --thread-id "thread_id"
 
 # Output as JSON
 github-pr-automation get-failing-tests --pr "owner/repo#123" --json
@@ -185,8 +185,19 @@ CLI mode is perfect for:
   base_pr: "owner/repo#123",      // Earlier PR in stack
   dependent_pr: "owner/repo#124", // Later PR in stack
   auto_fix: true,                  // Auto-fix test failures (default: true)
-  page: 1,                         // Page number (default: 1)
-  page_size: 5                     // Commands per page (default: 5)
+  use_onto: true,                  // Use --onto rebase strategy (optional)
+  max_iterations: 3                // Max fix iterations (default: 3)
+}
+```
+
+### resolve_review_thread
+
+```typescript
+{
+  pr: "owner/repo#123",           // PR identifier
+  thread_id: "thread_id",         // Review thread GraphQL node ID (optional)
+  comment_id: "comment_id",       // Comment GraphQL node ID (optional)
+  prefer: "thread"                // Prefer "thread" or "comment" when both provided
 }
 ```
 
@@ -204,6 +215,18 @@ npm run dev
 
 # Test CLI mode
 npm run cli -- get-failing-tests --pr "owner/repo#123"
+
+# Run tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Lint code
+npm run lint
+
+# Fix linting issues
+npm run lint:fix
 ```
 
 ## Architecture
@@ -211,7 +234,11 @@ npm run cli -- get-failing-tests --pr "owner/repo#123"
 The server is built using:
 - **@modelcontextprotocol/sdk** - MCP protocol implementation
 - **@octokit/rest** - GitHub API client
+- **@octokit/auth-app** - GitHub App authentication
 - **Zod** - Runtime type validation for tool inputs
+- **Commander** - CLI framework
+- **Vitest** - Testing framework
+- **TypeScript** - Type safety and development experience
 
 ## Documentation
 
@@ -237,4 +264,10 @@ Comprehensive documentation is available in the [`docs/`](./docs) directory:
 ## License
 
 MIT
+
+## Repository
+
+- **GitHub**: https://github.com/jmalicki/github-pr-automation-mcp
+- **NPM**: https://www.npmjs.com/package/github-pr-automation
+- **Issues**: https://github.com/jmalicki/github-pr-automation-mcp/issues
 
