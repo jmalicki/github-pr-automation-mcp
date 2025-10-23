@@ -94,6 +94,7 @@ describe('handleRebaseAfterSquashMerge', () => {
     expect(result.summary.action_required).toBe(true);
   });
 
+  // This test specifically validates command descriptions - different from the basic command structure test above
   it('should provide detailed command descriptions', async () => {
     mockOctokit.pulls.get.mockResolvedValue({
       data: {

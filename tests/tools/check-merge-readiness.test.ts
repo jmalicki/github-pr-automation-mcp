@@ -51,7 +51,9 @@ describe('handleCheckMergeReadiness', () => {
     expect(result.checks.no_conflicts).toBe(true);
     expect(result.blocking_issues).toHaveLength(0);
     
-    // Verify API calls
+    // Verify API calls - handler intentionally calls pulls.get twice:
+    // 1. Initial PR fetch to get basic details
+    // 2. Re-check after potential state changes to ensure accuracy
     expect(mockOctokit.pulls.get).toHaveBeenCalledTimes(2);
   });
 
