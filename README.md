@@ -55,6 +55,21 @@ An MCP (Model Context Protocol) server and CLI that provides AI-assisted tools f
    - Only rebases YOUR commits, avoiding conflicts
    - Auto-detects which commits to skip vs. rebase
 
+## Requirements
+
+- **Node.js v22 or higher** - This project requires Node.js v22 LTS or newer
+- **GitHub Token** - Set `GITHUB_TOKEN` environment variable for API access
+- **Git** - Required for git operations in stacked PR management
+
+### Node.js Version Management
+
+This project includes several ways to enforce the correct Node.js version:
+
+- **`.nvmrc`** - For `nvm` users: `nvm use`
+- **`.node-version`** - For `nodenv` and other version managers
+- **`engines` field** - NPM will warn about version mismatches
+- **Preinstall script** - Automatically checks version during `npm install`
+
 ## Installation
 
 ```bash
