@@ -65,14 +65,14 @@ async function installToLocalBin() {
 // GitHub PR Automation CLI - Standalone Installation
 // This script runs the CLI from the standalone installation directory
 
-import { spawn } from 'child_process';
-import { join } from 'path';
-import { homedir } from 'os';
+const { spawn } = require('child_process');
+const { join } = require('path');
+const { homedir } = require('os');
 
 const standaloneDir = join(homedir(), '.local', 'lib', 'github-pr-automation');
 const cliPath = join(standaloneDir, 'dist', 'cli.js');
 
-const result = spawn('node', [cliPath, ...process.argv.slice(2)], {
+const result = spawn(process.execPath, [cliPath, ...process.argv.slice(2)], {
   stdio: 'inherit',
   cwd: standaloneDir
 });
