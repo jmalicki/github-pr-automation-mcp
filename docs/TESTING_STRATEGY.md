@@ -64,139 +64,122 @@ describe('parsePRIdentifier', () => {
 ```
 
 ### 2. Integration Tests
-**Purpose**: Test interactions between components with mocked external services
+**Purpose**: Test interactions between components with real GitHub API behavior using @octokit/fixtures
 
 **Scope**:
-- Tool handlers with mocked GitHub client
-- GitHub integration layer with fixture data
+- Tool handlers with real GitHub API responses (recorded/playback)
+- Complete workflows from input to output
 - Multi-step workflows
 - Pagination logic
 - Error propagation
+- Real API behavior without network dependency
 
 **Requirements**:
-- Mock GitHub API responses using fixtures
-- Test error scenarios
+- Use @octokit/fixtures for recording/playback
+- Test error scenarios with real API responses
 - Validate data flow through layers
-- Execution time <10s for suite
+- Execution time <10s for suite (playback mode)
+- Record fixtures once, play back many times
 
 **Example**:
 ```typescript
-// tests/tools/get-failing-tests.integration.test.ts
+// tests/integration/tools/get-failing-tests.integration.test.ts
 
-import { handleGetFailingTests } from '../../src/tools/get-failing-tests/handler';
-import { MockGitHubClient } from '../mocks/github-client';
-import { loadFixture } from '../fixtures/loader';
+import { describe, it, expect, beforeAll } from 'vitest';
+import { handleGetFailingTests } from '../../../src/tools/get-failing-tests/handler.js';
+import { integrationManager } from '../setup.js';
 
 describe('get_failing_tests integration', () => {
-  let mockClient: MockGitHubClient;
-  
-  beforeEach(() => {
-    mockClient = new MockGitHubClient();
+  const TEST_PR = process.env.TEST_PR || 'jmalicki/resolve-pr-mcp#2';
+
+  beforeAll(async () => {
+    // Load fixture for this test scenario
+    const fixture = await integrationManager.loadFixture('get-failing-tests/basic-pr');
+    
+    if (fixture) {
+      console.log('✓ Using recorded fixture for get-failing-tests');
+    } else {
+      console.log('✓ Recording new fixture for get-failing-tests');
+    }
   });
   
-  // Test: Validates that get_failing_tests returns failing tests when CI has failures
-  // Requirement: get_failing_tests tool - Immediate mode with failures
-  it('should return failing tests when CI has completed with failures', async () => {
-    // Setup mock responses
-    mockClient.mockPullRequest(loadFixture('pr-with-failures.json'));
-    mockClient.mockCheckRuns(loadFixture('check-runs-failed.json'));
-    mockClient.mockWorkflowLogs(loadFixture('pytest-failures.log'));
-    
-    const result = await handleGetFailingTests({
-      pr: 'octocat/hello-world#123',
+  // Test: Validates that get_failing_tests returns real PR data
+  // Requirement: get_failing_tests tool - Real API behavior
+  it('should fetch real PR data from GitHub', async () => {
+    const client = integrationManager.getClient();
+    const result = await handleGetFailingTests(client, {
+      pr: TEST_PR,
       wait: false,
+      bail_on_first: false,
       page: 1,
       page_size: 10
     });
-    
-    expect(result.status).toBe('failed');
-    expect(result.failures).toHaveLength(3);
-    expect(result.failures[0].test_name).toBe('test_authentication.py::test_login');
-    expect(result.instructions.summary).toContain('3 tests failed');
+
+    // Verify we got real data back
+    expect(result.pr).toContain('#');
+    expect(result.status).toMatch(/passed|failed|running|unknown/);
+    expect(result.nextCursor !== undefined).toBe(true);
+    expect(result.instructions).toBeDefined();
+
+    // Save fixture if in record mode
+    await integrationManager.saveFixture('get-failing-tests/basic-pr', result);
   });
   
-  // Test: Validates wait mode with bail_on_first option
-  // Requirement: get_failing_tests - Wait mode with bail_on_first
-  it('should bail on first failure when wait=true and bail_on_first=true', async () => {
-    mockClient.mockPullRequest(loadFixture('pr-ci-running.json'));
-    
-    // Simulate CI progression
-    mockClient.mockCheckRunsSequence([
-      loadFixture('check-runs-running.json'),
-      loadFixture('check-runs-first-failure.json')
-    ]);
-    
-    const result = await handleGetFailingTests({
-      pr: 'octocat/hello-world#123',
-      wait: true,
-      bail_on_first: true
-    });
-    
-    expect(result.status).toBe('failed');
-    expect(result.failures).toHaveLength(1);
-    // Should not wait for other tests to complete
-  });
-  
-  // Test: Validates pagination of test failures
+  // Test: Validates pagination with real data
   // Requirement: get_failing_tests - Pagination support
-  it('should paginate test failures correctly', async () => {
-    mockClient.mockPullRequest(loadFixture('pr-with-many-failures.json'));
-    mockClient.mockCheckRuns(loadFixture('check-runs-50-failures.json'));
-    
-    const page1 = await handleGetFailingTests({
-      pr: 'octocat/hello-world#123',
+  it('should handle pagination with real data', async () => {
+    const client = integrationManager.getClient();
+    const page1 = await handleGetFailingTests(client, {
+      pr: TEST_PR,
+      wait: false,
+      bail_on_first: false,
       page: 1,
-      page_size: 10
+      page_size: 5
     });
-    
-    expect(page1.failures).toHaveLength(10);
-    expect(page1.pagination.total_items).toBe(50);
-    expect(page1.pagination.total_pages).toBe(5);
-    expect(page1.pagination.has_next).toBe(true);
-    
-    const page2 = await handleGetFailingTests({
-      pr: 'octocat/hello-world#123',
-      page: 2,
-      page_size: 10
-    });
-    
-    expect(page2.failures).toHaveLength(10);
-    expect(page2.pagination.has_previous).toBe(true);
+
+    expect(page1.pagination.page).toBe(1);
+    expect(page1.pagination.page_size).toBe(5);
+
+    // Save fixture if in record mode
+    await integrationManager.saveFixture('get-failing-tests/pagination', page1);
   });
 });
 ```
 
-### 3. E2E Tests (Optional)
-**Purpose**: Test against real GitHub API with test repository
+### 3. E2E Tests (Integrated with Integration Tests)
+**Purpose**: Complete end-to-end testing with real GitHub API behavior using @octokit/fixtures
 
 **Scope**:
 - Complete workflows from input to output
-- Real GitHub API interactions
-- Rate limiting behavior
+- Real GitHub API interactions (recorded/playback)
+- Rate limiting behavior (simulated)
 - Error handling with real API errors
+- All tool functionality with real API responses
 
 **Requirements**:
-- Separate test repository
-- Run only on demand (not in CI)
-- Clean up resources after tests
-- Document setup requirements
+- Use integration test infrastructure with @octokit/fixtures
+- Record fixtures once, play back many times
+- Fast execution in playback mode
+- Deterministic results
 
-**Setup**:
+**Modes**:
 ```typescript
-// tests/e2e/setup.ts
+// Record Mode: First time setup
+export RECORD_INTEGRATION_FIXTURES=true
+export RUN_INTEGRATION_TESTS=true
+npm run test:integration:record
 
-// Requires:
-// - GITHUB_TOKEN_TEST environment variable
-// - Test repository: github.com/resolve-pr-mcp/test-repo
-// - Permissions to create PRs, trigger workflows
-
-export const E2E_CONFIG = {
-  owner: 'resolve-pr-mcp',
-  repo: 'test-repo',
-  token: process.env.GITHUB_TOKEN_TEST,
-  enabled: process.env.RUN_E2E_TESTS === 'true'
-};
+// Playback Mode: Default (fast, offline)
+export RUN_INTEGRATION_TESTS=true
+npm run test:integration:playback
 ```
+
+**Benefits**:
+- ✅ Real API behavior without network dependency
+- ✅ Fast execution (no API calls in playback mode)
+- ✅ Deterministic results (recorded responses)
+- ✅ Rate limit friendly (no API consumption)
+- ✅ Offline capability
 
 ### 4. CLI Tests
 **Purpose**: Test CLI mode functionality
@@ -537,8 +520,8 @@ export default defineConfig({
 
 ### Additional Tools
 
+- **@octokit/fixtures**: GitHub API recording/playback for integration tests
 - **Zod**: Schema validation (also used in production)
-- **Nock**: HTTP mocking (for E2E tests if needed)
 - **Faker**: Generate realistic test data
 
 ---
@@ -651,6 +634,9 @@ jobs:
     "test": "vitest",
     "test:unit": "vitest run --coverage",
     "test:watch": "vitest watch",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:integration:record": "RECORD_INTEGRATION_FIXTURES=true RUN_INTEGRATION_TESTS=true vitest run --config vitest.integration.config.ts",
+    "test:integration:playback": "RUN_INTEGRATION_TESTS=true vitest run --config vitest.integration.config.ts",
     "lint": "eslint src tests",
     "type-check": "tsc --noEmit"
   },

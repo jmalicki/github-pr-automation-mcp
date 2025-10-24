@@ -65,7 +65,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ['pr']
-        }
+        },
+        readOnlyHint: true
       },
       {
         name: 'find_unresolved_comments',
@@ -99,7 +100,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ['pr']
-        }
+        },
+        readOnlyHint: true
       },
       {
         name: 'manage_stacked_prs',
@@ -139,7 +141,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ['base_pr', 'dependent_pr']
-        }
+        },
+        readOnlyHint: true
       },
       {
         name: 'detect_merge_conflicts',
@@ -157,7 +160,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ['pr']
-        }
+        },
+        readOnlyHint: true
       },
       {
         name: 'check_merge_readiness',
@@ -171,7 +175,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ['pr']
-        }
+        },
+        readOnlyHint: true
       },
       {
         name: 'get_review_suggestions',
@@ -200,7 +205,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ['pr']
-        }
+        },
+        readOnlyHint: true
       },
       {
         name: 'rebase_after_squash_merge',
@@ -222,7 +228,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ['pr']
-        }
+        },
+        readOnlyHint: true
       },
       {
         name: 'resolve_review_thread',
@@ -249,7 +256,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ['pr']
-        }
+        },
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true
       }
     ]
   };

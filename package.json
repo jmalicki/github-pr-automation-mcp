@@ -16,6 +16,8 @@
     "test:watch": "vitest watch",
     "test:coverage": "ROLLUP_FORCE_JS=1 vitest run --coverage",
     "test:integration": "ROLLUP_FORCE_JS=1 vitest run --config vitest.integration.config.ts",
+    "test:integration:record": "RECORD_INTEGRATION_FIXTURES=true RUN_INTEGRATION_TESTS=true ROLLUP_FORCE_JS=1 vitest run --config vitest.integration.config.ts",
+    "test:integration:playback": "RUN_INTEGRATION_TESTS=true ROLLUP_FORCE_JS=1 vitest run --config vitest.integration.config.ts",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "type-check": "tsc --noEmit",
