@@ -621,59 +621,6 @@ interface RebaseAfterSquashMergeOutput {
 ```
 
 
----
-
-### 8. get_review_suggestions
-
-**Purpose**: Generate structured context optimized for AI code review.
-
-**Input Schema**:
-```typescript
-interface GetReviewSuggestionsInput {
-  pr: string;
-  focus_areas?: string[];  // e.g., ["security", "performance"]
-  include_diff?: boolean;  // Include code diffs (default: true)
-  max_diff_lines?: number; // Limit diff size (default: 500)
-}
-```
-
-**Output Schema**:
-```typescript
-interface GetReviewSuggestionsOutput {
-  pr: string;
-  metadata: {
-    title: string;
-    description: string;
-    author: string;
-    labels: string[];
-  };
-  
-  files: Array<{
-    path: string;
-    status: "added" | "modified" | "deleted" | "renamed";
-    additions: number;
-    deletions: number;
-    diff_excerpt?: string;  // Truncated if needed
-    focus_points: string[]; // AI-identified areas to review
-  }>;
-  
-  review_checklist: Array<{
-    category: string;
-    items: Array<{
-      question: string;
-      guidance: string;
-    }>;
-  }>;
-  
-  context: {
-    related_issues: number[];
-    mentioned_prs: number[];
-    breaking_changes_detected: boolean;
-  };
-}
-```
-
-
 ## Common Patterns
 
 ### PR Identifier Parsing

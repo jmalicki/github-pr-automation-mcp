@@ -58,18 +58,14 @@ github-pr-automation get-failing-tests --pr "owner/repo#123"
    - Checks CI status, approvals, branch protection rules
    - Reports missing requirements with actionable steps
 
-6. **`get_review_suggestions`** - AI-ready review context
-   - Generates structured review context for AI agents
-   - Includes diff excerpts, file summaries, and review checklist
-   - Optimized for efficient token usage
 
-7. **`rebase_after_squash_merge`** - Clean rebase after upstream squash-merge
+6. **`rebase_after_squash_merge`** - Clean rebase after upstream squash-merge
    - Handles scenario where upstream PR was squash-merged
    - Uses `git rebase --onto` to skip upstream commits
    - Only rebases YOUR commits, avoiding conflicts
    - Auto-detects which commits to skip vs. rebase
 
-8. **`resolve_review_thread`** - Resolve specific review threads
+7. **`resolve_review_thread`** - Resolve specific review threads
    - Resolves individual review threads or comments
    - Supports both thread ID and comment ID targeting
    - Immediate resolution without manual intervention
