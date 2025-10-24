@@ -50,6 +50,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1  # Shallow clone sufficient for license checks
         
       - name: Setup Node.js
         uses: actions/setup-node@v4
