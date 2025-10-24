@@ -10,6 +10,7 @@ import { GitHubClient } from './github/client.js';
 import { GetFailingTestsSchema } from './tools/get-failing-tests/schema.js';
 import { FindUnresolvedCommentsSchema } from './tools/find-unresolved-comments/schema.js';
 import { ManageStackedPRsSchema } from './tools/manage-stacked-prs/schema.js';
+import { ResolveReviewThreadInputSchema } from './tools/resolve-review-thread/schema.js';
 import { handleGetFailingTests } from './tools/get-failing-tests/handler.js';
 import { handleFindUnresolvedComments } from './tools/find-unresolved-comments/handler.js';
 import { handleManageStackedPRs } from './tools/manage-stacked-prs/handler.js';
@@ -17,6 +18,7 @@ import { handleDetectMergeConflicts } from './tools/detect-merge-conflicts/handl
 import { handleCheckMergeReadiness } from './tools/check-merge-readiness/handler.js';
 import { handleGetReviewSuggestions } from './tools/get-review-suggestions/handler.js';
 import { handleRebaseAfterSquashMerge } from './tools/rebase-after-squash-merge/handler.js';
+import { handleResolveReviewThread } from './tools/resolve-review-thread/handler.js';
 import { handleGitHubError } from './github/errors.js';
 import { PRIdentifierStringSchema } from './utils/validation.js';
 import { z } from 'zod';
@@ -239,6 +241,33 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           },
           required: ['pr']
         }
+      },
+      {
+        name: 'resolve_review_thread',
+        description: 'Resolve a specific review thread (or via comment id) immediately',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            pr: {
+              type: 'string',
+              description: 'PR identifier (owner/repo#123)'
+            },
+            thread_id: {
+              type: 'string',
+              description: 'Review thread GraphQL node ID'
+            },
+            comment_id: {
+              type: 'string',
+              description: 'Comment GraphQL node ID (will map to thread)'
+            },
+            prefer: {
+              type: 'string',
+              description: 'Prefer "thread" or "comment" when both are provided',
+              enum: ['thread', 'comment']
+            }
+          },
+          required: ['pr']
+        }
       }
     ]
   };
@@ -342,6 +371,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           target_branch: z.string().optional()
         }).parse(args);
         const result = await handleRebaseAfterSquashMerge(githubClient, input);
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(result, null, 2)
+          }]
+        };
+      }
+      
+      case 'resolve_review_thread': {
+        const input = ResolveReviewThreadInputSchema.parse(args);
+        const result = await handleResolveReviewThread(githubClient, input);
         return {
           content: [{
             type: 'text',
