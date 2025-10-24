@@ -10,6 +10,7 @@ import { GitHubClient } from './github/client.js';
 import { GetFailingTestsSchema } from './tools/get-failing-tests/schema.js';
 import { FindUnresolvedCommentsSchema } from './tools/find-unresolved-comments/schema.js';
 import { ManageStackedPRsSchema } from './tools/manage-stacked-prs/schema.js';
+import { ResolveReviewThreadInputSchema } from './tools/resolve-review-thread/schema.js';
 import { handleGetFailingTests } from './tools/get-failing-tests/handler.js';
 import { handleFindUnresolvedComments } from './tools/find-unresolved-comments/handler.js';
 import { handleManageStackedPRs } from './tools/manage-stacked-prs/handler.js';
@@ -17,6 +18,7 @@ import { handleDetectMergeConflicts } from './tools/detect-merge-conflicts/handl
 import { handleCheckMergeReadiness } from './tools/check-merge-readiness/handler.js';
 import { handleGetReviewSuggestions } from './tools/get-review-suggestions/handler.js';
 import { handleRebaseAfterSquashMerge } from './tools/rebase-after-squash-merge/handler.js';
+import { handleResolveReviewThread } from './tools/resolve-review-thread/handler.js';
 import { handleGitHubError } from './github/errors.js';
 import { PRIdentifierStringSchema } from './utils/validation.js';
 import { z } from 'zod';
@@ -39,7 +41,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: 'get_failing_tests',
-        description: 'Analyze PR CI failures and provide targeted fix instructions. 💾 Preference hints: bail_on_first, page_size',
+        description: 'Analyze PR CI failures and provide targeted fix instructions. 💾 Preference hints: bail_on_first',
         inputSchema: {
           type: 'object',
           properties: {
@@ -57,15 +59,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: '💾 Stop at first failure when waiting (default: true). User preference: fast feedback vs complete results',
               default: true
             },
-            page: {
-              type: 'number',
-              description: 'Page number (default: 1)',
-              default: 1
-            },
-            page_size: {
-              type: 'number',
-              description: '💾 Results per page (default: 10, max: 50). User preference: power users often prefer 20-50',
-              default: 10
+            cursor: {
+              type: 'string',
+              description: 'MCP cursor for pagination (optional)'
             }
           },
           required: ['pr']
@@ -73,7 +69,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'find_unresolved_comments',
-        description: 'Find unresolved PR comments. Returns raw data for LLM analysis. 💾 Preference hints: include_bots, sort, page_size',
+        description: 'Find unresolved PR comments. Returns raw data for LLM analysis. 💾 Preference hints: include_bots, sort',
         inputSchema: {
           type: 'object',
           properties: {
@@ -91,15 +87,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: 'Specific authors to exclude (optional)',
               items: { type: 'string' }
             },
-            page: {
-              type: 'number',
-              description: 'Page number (default: 1)',
-              default: 1
-            },
-            page_size: {
-              type: 'number',
-              description: '💾 Results per page (default: 20, max: 100). User preference',
-              default: 20
+            cursor: {
+              type: 'string',
+              description: 'MCP cursor for pagination (optional)'
             },
             sort: {
               type: 'string',
@@ -143,15 +133,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: 'Max fix iterations (default: 3)',
               default: 3
             },
-            page: {
-              type: 'number',
-              description: 'Command page (default: 1)',
-              default: 1
-            },
-            page_size: {
-              type: 'number',
-              description: 'Commands per page (default: 5, max: 20)',
-              default: 5
+            cursor: {
+              type: 'string',
+              description: 'MCP cursor for pagination (optional)'
             }
           },
           required: ['base_pr', 'dependent_pr']
@@ -235,6 +219,33 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             target_branch: {
               type: 'string',
               description: 'Target branch (default: PR base branch)'
+            }
+          },
+          required: ['pr']
+        }
+      },
+      {
+        name: 'resolve_review_thread',
+        description: 'Resolve a specific review thread (or via comment id) immediately',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            pr: {
+              type: 'string',
+              description: 'PR identifier (owner/repo#123)'
+            },
+            thread_id: {
+              type: 'string',
+              description: 'Review thread GraphQL node ID'
+            },
+            comment_id: {
+              type: 'string',
+              description: 'Comment GraphQL node ID (will map to thread)'
+            },
+            prefer: {
+              type: 'string',
+              description: 'Prefer "thread" or "comment" when both are provided',
+              enum: ['thread', 'comment']
             }
           },
           required: ['pr']
@@ -342,6 +353,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           target_branch: z.string().optional()
         }).parse(args);
         const result = await handleRebaseAfterSquashMerge(githubClient, input);
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(result, null, 2)
+          }]
+        };
+      }
+      
+      case 'resolve_review_thread': {
+        const input = ResolveReviewThreadInputSchema.parse(args);
+        const result = await handleResolveReviewThread(githubClient, input);
         return {
           content: [{
             type: 'text',

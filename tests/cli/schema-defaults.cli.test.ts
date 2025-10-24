@@ -255,9 +255,10 @@ describe('CLI: Schema Default Behavior', () => {
         // Verify .default() is used for optional fields
         expect(content).toContain('.default(');
         
-        // Verify cursor-based pagination (no page/page_size defaults)
+        // Verify cursor-based pagination is used consistently
         expect(content).toMatch(/cursor.*optional/);
         expect(content).not.toContain('page_size');
+        expect(content).not.toContain('page.*default');
       }
     });
   });
