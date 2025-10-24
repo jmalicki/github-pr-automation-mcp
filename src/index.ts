@@ -35,7 +35,10 @@ const server = new Server(
   }
 );
 
-// List available tools
+/**
+ * List available tools for the MCP server
+ * @returns List of available tools with their schemas and descriptions
+ */
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
@@ -274,7 +277,11 @@ try {
   process.exit(1);
 }
 
-// Handle tool calls
+/**
+ * Handle tool execution requests
+ * @param request - Tool execution request with name and arguments
+ * @returns Tool execution result
+ */
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
   
