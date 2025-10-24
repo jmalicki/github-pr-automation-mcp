@@ -1,18 +1,29 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { handleFindUnresolvedComments } from '../../src/tools/find-unresolved-comments/handler.js';
 import { E2ETestSetup } from './setup.js';
 
 describe('find-unresolved-comments E2E', () => {
   const setup = new E2ETestSetup();
   
+  beforeAll(async () => {
+    // Load fixture for this test scenario
+    const fixture = await setup.loadFixture('find-unresolved-comments/basic-pr');
+    
+    if (fixture) {
+      console.log('✓ Using recorded fixture for find-unresolved-comments');
+    } else {
+      console.log('✓ Using @octokit/fixtures for find-unresolved-comments');
+    }
+  });
+  
   // Test: Complete workflow with realistic pagination data
   // Requirement: find_unresolved_comments - End-to-end pagination
   it('[slow] should handle complete pagination workflow with real GitHub data', async () => {
-    const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
+    const { client } = await setup.setupPRScenario('api.github.com/paginate-issues');
     
     // First page - test with real GitHub API structure
     const page1 = await handleFindUnresolvedComments(client, {
-      pr: 'owner/repo#123',
+      pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123',
       include_bots: true,
       sort: 'chronological'
     });
@@ -22,7 +33,7 @@ describe('find-unresolved-comments E2E', () => {
     
     // Second page - test cursor-based pagination
     const page2 = await handleFindUnresolvedComments(client, {
-      pr: 'owner/repo#123',
+      pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123',
       include_bots: true,
       sort: 'chronological',
       cursor: page1.nextCursor
@@ -33,7 +44,7 @@ describe('find-unresolved-comments E2E', () => {
     
     // Final page - test completion
     const page3 = await handleFindUnresolvedComments(client, {
-      pr: 'owner/repo#123',
+      pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123',
       include_bots: true,
       sort: 'chronological',
       cursor: page2.nextCursor
@@ -41,15 +52,23 @@ describe('find-unresolved-comments E2E', () => {
     
     expect(Array.isArray(page3.comments)).toBe(true);
     expect(page3.nextCursor).toBeUndefined(); // or null depending on createNextCursor impl
+    
+    // Save fixture if in record mode
+    await setup.saveFixture('find-unresolved-comments/pagination-workflow', {
+      page1, page2, page3
+    });
   });
   
   // Test: Complete comment analysis with real GitHub data structure
   // Requirement: find_unresolved_comments - Real data validation
   it('[fast] should analyze comments with realistic GitHub API structure', async () => {
-    const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
+    const { client } = await setup.setupPRScenario('api.github.com/paginate-issues');
+    
+    // Use real PR for recording, fallback to fake for playback
+    const testPR = setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123';
     
     const result = await handleFindUnresolvedComments(client, {
-      pr: 'owner/repo#123',
+      pr: testPR,
       include_bots: true,
       sort: 'chronological'
     });
@@ -65,16 +84,16 @@ describe('find-unresolved-comments E2E', () => {
   // Test: Bot filtering with real GitHub user types
   // Requirement: find_unresolved_comments - Bot detection
   it('[fast] should filter bots using real GitHub user type data', async () => {
-    const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
+    const { client } = await setup.setupPRScenario('api.github.com/paginate-issues');
     
     const resultWithBots = await handleFindUnresolvedComments(client, {
-      pr: 'owner/repo#123',
+      pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123',
       include_bots: true,
       sort: 'chronological'
     });
     
     const resultWithoutBots = await handleFindUnresolvedComments(client, {
-      pr: 'owner/repo#123',
+      pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123',
       include_bots: false,
       sort: 'chronological'
     });
@@ -87,11 +106,11 @@ describe('find-unresolved-comments E2E', () => {
   // Test: Multi-step workflow with realistic data flow
   // Requirement: find_unresolved_comments - Complete workflow
   it('[slow] should handle complete multi-step comment analysis workflow', async () => {
-    const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
+    const { client } = await setup.setupPRScenario('api.github.com/paginate-issues');
     
     // Step 1: Get initial comments
     const initial = await handleFindUnresolvedComments(client, {
-      pr: 'owner/repo#123',
+      pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123',
       include_bots: true,
       sort: 'chronological'
     });
@@ -101,13 +120,13 @@ describe('find-unresolved-comments E2E', () => {
     
     // Step 2: Test different sorting options
     const byFile = await handleFindUnresolvedComments(client, {
-      pr: 'owner/repo#123',
+      pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123',
       include_bots: true,
       sort: 'by_file'
     });
     
     const byAuthor = await handleFindUnresolvedComments(client, {
-      pr: 'owner/repo#123',
+      pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123',
       include_bots: true,
       sort: 'by_author'
     });
@@ -118,7 +137,7 @@ describe('find-unresolved-comments E2E', () => {
     
     // Step 3: Test author exclusion
     const excluded = await handleFindUnresolvedComments(client, {
-      pr: 'owner/repo#123',
+      pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123',
       include_bots: true,
       exclude_authors: ['test-user'],
       sort: 'chronological'

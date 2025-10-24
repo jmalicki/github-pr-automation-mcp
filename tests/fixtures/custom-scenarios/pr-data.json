@@ -33,7 +33,10 @@
       "mergeable": true,
       "mergeable_state": "clean",
       "merged": false,
+      "mergeable": true,
       "rebaseable": true,
+      "mergeable_state": "clean",
+      "merged": false,
       "user": {
         "login": "testuser",
         "id": 12345,
