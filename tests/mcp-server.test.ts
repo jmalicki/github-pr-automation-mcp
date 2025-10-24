@@ -236,7 +236,6 @@ describe('MCP Server', () => {
     expect(cliContent).toContain('handleManageStackedPRs');
     expect(cliContent).toContain('handleResolveReviewThread');
   });
-<<<<<<< HEAD
 
   it('should have API_DESIGN.md in sync with MCP server implementation', async () => {
     // Read the API design documentation
@@ -403,6 +402,4 @@ describe('MCP Server', () => {
     expect(apiDesignContent).toContain('ok: boolean');
     expect(apiDesignContent).toContain('thread_id: string');
   });
-=======
->>>>>>> bd11afe (test: add comprehensive MCP tool tests)
 });
