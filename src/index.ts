@@ -35,7 +35,10 @@ const server = new Server(
   }
 );
 
-// List available tools
+/**
+ * List available tools for the MCP server
+ * @returns List of available tools with their schemas and descriptions
+ */
 server.setRequestHandler(ListToolsRequestSchema, async () => {
   return {
     tools: [
@@ -65,7 +68,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ['pr']
-        }
+        },
+        readOnlyHint: true
       },
       {
         name: 'find_unresolved_comments',
@@ -99,7 +103,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ['pr']
-        }
+        },
+        readOnlyHint: true
       },
       {
         name: 'manage_stacked_prs',
@@ -139,7 +144,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ['base_pr', 'dependent_pr']
-        }
+        },
+        readOnlyHint: true
       },
       {
         name: 'detect_merge_conflicts',
@@ -157,7 +163,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ['pr']
-        }
+        },
+        readOnlyHint: true
       },
       {
         name: 'check_merge_readiness',
@@ -171,7 +178,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ['pr']
-        }
+        },
+        readOnlyHint: true
       },
       {
         name: 'get_review_suggestions',
@@ -200,7 +208,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ['pr']
-        }
+        },
+        readOnlyHint: true
       },
       {
         name: 'rebase_after_squash_merge',
@@ -222,7 +231,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ['pr']
-        }
+        },
+        readOnlyHint: true
       },
       {
         name: 'resolve_review_thread',
@@ -236,11 +246,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             thread_id: {
               type: 'string',
-              description: 'Review thread GraphQL node ID'
+              description: 'Review thread GraphQL node ID (required if comment_id not provided)'
             },
             comment_id: {
               type: 'string',
-              description: 'Comment GraphQL node ID (will map to thread)'
+              description: 'Comment GraphQL node ID (will map to thread, required if thread_id not provided)'
             },
             prefer: {
               type: 'string',
@@ -249,7 +259,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           },
           required: ['pr']
-        }
+        },
+        readOnlyHint: false,
+        destructiveHint: false,
+        idempotentHint: true
       }
     ]
   };
@@ -264,7 +277,11 @@ try {
   process.exit(1);
 }
 
-// Handle tool calls
+/**
+ * Handle tool execution requests
+ * @param request - Tool execution request with name and arguments
+ * @returns Tool execution result
+ */
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
   

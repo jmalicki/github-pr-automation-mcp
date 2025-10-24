@@ -1,23 +1,29 @@
-import { describe, it, expect } from 'vitest';
-import { GitHubClient } from '../../../src/github/client.js';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { handleGetFailingTests } from '../../../src/tools/get-failing-tests/handler.js';
+import { integrationManager } from '../setup.js';
 
-// These tests make REAL GitHub API calls
-// They are disabled by default and only run when:
-// 1. GITHUB_TOKEN is set
-// 2. RUN_INTEGRATION_TESTS=true is set
+// These tests use @octokit/fixtures for recording/playback
+// They support two modes:
+// 1. RECORD mode: Records real GitHub API calls to fixtures
+// 2. PLAYBACK mode: Uses recorded fixtures (default)
 
 describe('get_failing_tests integration', () => {
-  let client: GitHubClient;
-
   // Use a real test PR in a test repository
   const TEST_PR = process.env.TEST_PR || 'jmalicki/resolve-pr-mcp#2';
 
-  beforeAll(() => {
-    client = new GitHubClient();
+  beforeAll(async () => {
+    // Load fixture for this test scenario
+    const fixture = await integrationManager.loadFixture('get-failing-tests/basic-pr');
+    
+    if (fixture) {
+      console.log('✓ Using recorded fixture for get-failing-tests');
+    } else {
+      console.log('✓ Recording new fixture for get-failing-tests');
+    }
   });
 
   it('should fetch real PR data from GitHub', async () => {
+    const client = integrationManager.getClient();
     const result = await handleGetFailingTests(client, {
       pr: TEST_PR,
       wait: false,
@@ -31,22 +37,29 @@ describe('get_failing_tests integration', () => {
     expect(result.status).toMatch(/passed|failed|running|unknown/);
     expect(result.nextCursor !== undefined).toBe(true);
     expect(result.instructions).toBeDefined();
+
+    // Save fixture if in record mode
+    await integrationManager.saveFixture('get-failing-tests/basic-pr', result);
   }, 10000); // 10 second timeout for API calls
 
   it('should handle pagination with real data', async () => {
+    const client = integrationManager.getClient();
     const page1 = await handleGetFailingTests(client, {
       pr: TEST_PR,
       wait: false,
       bail_on_first: false,
-      page: 1,
-      page_size: 5
+      cursor: undefined
     });
 
-    expect(page1.pagination.page).toBe(1);
-    expect(page1.pagination.page_size).toBe(5);
+    expect(page1.nextCursor).toBeDefined();
+    expect(typeof page1.nextCursor === 'string' || page1.nextCursor === null).toBe(true);
+
+    // Save fixture if in record mode
+    await integrationManager.saveFixture('get-failing-tests/pagination', page1);
   }, 10000);
 
   it('should correctly identify PR status', async () => {
+    const client = integrationManager.getClient();
     const result = await handleGetFailingTests(client, {
       pr: TEST_PR,
       wait: false,
@@ -67,6 +80,9 @@ describe('get_failing_tests integration', () => {
     if (result.status === 'passed') {
       expect(result.failures).toHaveLength(0);
     }
+
+    // Save fixture if in record mode
+    await integrationManager.saveFixture('get-failing-tests/status-check', result);
   }, 15000);
 });
 

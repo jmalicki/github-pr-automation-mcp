@@ -11,6 +11,7 @@ export interface DetectMergeConflictsOutput {
   has_conflicts: boolean;
   mergeable_state: string;
   message: string;
+  target_branch?: string;
 }
 
 export async function handleDetectMergeConflicts(
@@ -42,7 +43,8 @@ export async function handleDetectMergeConflicts(
     pr: formatPRIdentifier(pr),
     has_conflicts: hasConflicts,
     mergeable_state: mergeableState,
-    message
+    message,
+    target_branch: input.target_branch
   };
 }
 

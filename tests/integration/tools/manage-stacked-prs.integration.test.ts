@@ -1,26 +1,33 @@
 import { describe, it, expect, beforeAll } from 'vitest';
-import { GitHubClient } from '../../../src/github/client.js';
 import { handleManageStackedPRs } from '../../../src/tools/manage-stacked-prs/handler.js';
+import { integrationManager } from '../setup.js';
 
-// These tests make REAL GitHub API calls
+// These tests use real GitHub API calls to test stacked PR management
+// They require GITHUB_TOKEN and RUN_INTEGRATION_TESTS=true
+
 describe('manage_stacked_prs integration', () => {
-  let client: GitHubClient;
-  
   // Use real stacked PRs for testing
   const BASE_PR = process.env.BASE_PR || 'jmalicki/resolve-pr-mcp#2';
   const DEPENDENT_PR = process.env.DEPENDENT_PR || 'jmalicki/resolve-pr-mcp#3';
 
-  beforeAll(() => {
-    client = new GitHubClient();
+  beforeAll(async () => {
+    // Load fixture for this test scenario
+    const fixture = await integrationManager.loadFixture('manage-stacked-prs/basic-stack');
+    
+    if (fixture) {
+      console.log('✓ Using recorded fixture for manage-stacked-prs');
+    } else {
+      console.log('✓ Recording new fixture for manage-stacked-prs');
+    }
   });
 
   it('should analyze real stacked PRs', async () => {
+    const client = integrationManager.getClient();
     const result = await handleManageStackedPRs(client, {
       base_pr: BASE_PR,
       dependent_pr: DEPENDENT_PR,
       auto_fix: false,
-      page: 1,
-      page_size: 10
+      max_iterations: 3
     });
 
     expect(result.base_pr).toContain('#');
@@ -28,20 +35,26 @@ describe('manage_stacked_prs integration', () => {
     expect(typeof result.is_stacked).toBe('boolean');
     expect(typeof result.changes_detected).toBe('boolean');
     expect(result.stack_info).toBeDefined();
+
+    // Save fixture if in record mode
+    await integrationManager.saveFixture('manage-stacked-prs/basic-stack', result);
   }, 15000);
 
   it('should detect if PRs are stacked', async () => {
+    const client = integrationManager.getClient();
     const result = await handleManageStackedPRs(client, {
       base_pr: BASE_PR,
       dependent_pr: DEPENDENT_PR,
       auto_fix: false,
-      page: 1,
-      page_size: 10
+      max_iterations: 3
     });
 
     // These specific PRs are designed to be stacked
     expect(result.is_stacked).toBe(true);
     expect(result.stack_info.matches).toBe(true);
+
+    // Save fixture if in record mode
+    await integrationManager.saveFixture('manage-stacked-prs/stack-detection', result);
   }, 15000);
 });
 
