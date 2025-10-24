@@ -71,8 +71,20 @@ export class E2ETestSetup {
             number: 123,
             title: 'Test PR',
             state: 'open',
-            head: { sha: 'abc123' },
-            base: { sha: 'def456' }
+            head: { sha: 'abc123', ref: 'feature/test-pr' },
+            base: { sha: 'def456', ref: 'main' }
+          }
+        })
+      },
+      repos: {
+        compareCommits: vi.fn().mockResolvedValue({
+          data: {
+            ahead_by: 2,
+            commits: [
+              { sha: 'abcdef1', commit: { message: 'feat: update', author: { name: 'dev1' } } },
+              { sha: 'abcdef2', commit: { message: 'fix: bug', author: { name: 'dev2' } } }
+            ],
+            files: [{ filename: 'src/index.ts' }]
           }
         })
       },
@@ -80,12 +92,30 @@ export class E2ETestSetup {
         listForRef: vi.fn().mockImplementation((params: any) => {
           const page = params?.page || 1;
           const per_page = params?.per_page || 10;
-          const fixtureData = fixture[0]?.response || [];
+          // Ensure check runs have required fields
+          const checkRuns = [
+            { 
+              id: 1, 
+              name: 'unit-tests', 
+              status: 'completed', 
+              conclusion: 'success', 
+              html_url: 'https://github.com/test', 
+              output: { title: 'unit-tests', summary: 'All passed' } 
+            },
+            { 
+              id: 2, 
+              name: 'e2e-tests', 
+              status: 'completed', 
+              conclusion: 'failure',
+              html_url: 'https://github.com/test', 
+              output: { title: 'e2e-tests', summary: '2 failures' } 
+            }
+          ];
           return Promise.resolve({
             data: {
-              check_runs: createPaginatedResponse(fixtureData, page, per_page).data
+              check_runs: createPaginatedResponse(checkRuns, page, per_page).data
             },
-            headers: createPaginatedResponse(fixtureData, page, per_page).headers
+            headers: createPaginatedResponse(checkRuns, page, per_page).headers
           });
         })
       },

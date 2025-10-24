@@ -30,9 +30,6 @@ async function installToLocalBin() {
   console.log('📦 Creating standalone installation...');
   
   // Copy essential files to standalone directory
-  const fs = await import('fs');
-  const { execSync } = await import('child_process');
-  
   try {
     // Copy dist directory
     cpSync('dist', join(standaloneDir, 'dist'), { recursive: true });
@@ -51,7 +48,7 @@ async function installToLocalBin() {
       }
     };
     
-    fs.writeFileSync(
+    writeFileSync(
       join(standaloneDir, 'package.json'), 
       JSON.stringify(minimalPackageJson, null, 2)
     );
@@ -89,7 +86,7 @@ result.on('error', (error) => {
 
     // Write wrapper script
     console.log(`Installing CLI to: ${targetPath}`);
-    fs.writeFileSync(targetPath, wrapperScript);
+    writeFileSync(targetPath, wrapperScript);
     chmodSync(targetPath, 0o755);
     
     console.log('✅ CLI installed successfully!');
