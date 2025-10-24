@@ -6,7 +6,8 @@ export const FindUnresolvedCommentsSchema = z.object({
   include_bots: z.boolean().default(true),
   exclude_authors: z.array(z.string()).optional(),
   cursor: z.string().optional(), // MCP cursor-based pagination
-  sort: z.enum(['chronological', 'by_file', 'by_author']).default('chronological')
+  sort: z.enum(['chronological', 'by_file', 'by_author']).default('chronological'),
+  parse_review_bodies: z.boolean().default(true) // Parse review bodies for actionable comments
 });
 
 export type FindUnresolvedCommentsInput = z.infer<typeof FindUnresolvedCommentsSchema>;

@@ -33,6 +33,7 @@ github-pr-automation get-failing-tests --pr "owner/repo#123"
 
 2. **`find_unresolved_comments`** - Find and manage unresolved PR comments
    - Identifies unresolved review comments and conversations
+   - **NEW**: Parses review bodies to extract actionable suggestions from AI tools (CodeRabbit, etc.)
    - Optional filtering for bot comments (e.g., @coderabbitai)
    - Generates response commands for efficient resolution
    - Summarizes comments requiring human judgment

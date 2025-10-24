@@ -40,9 +40,29 @@ export async function handleFindUnresolvedComments(
     page: githubPagination.page,
     per_page: githubPagination.per_page
   });
+
+  // Fetch reviews to parse for actionable comments in review bodies
+  let reviewBodiesComments: Comment[] = [];
+  let hasMoreReviews = false;
+  if (input.parse_review_bodies) {
+    const reviewsResponse = await octokit.pulls.listReviews({
+      owner: pr.owner,
+      repo: pr.repo,
+      pull_number: pr.number,
+      page: githubPagination.page,
+      per_page: githubPagination.per_page
+    });
+    
+    reviewBodiesComments = parseReviewBodiesForActionableComments(
+      reviewsResponse.data,
+      pr
+    );
+    hasMoreReviews = reviewsResponse.headers.link?.includes('rel="next"') ?? false;
+  }
   
   // Convert to our Comment type with action commands and hints
   const allComments: Comment[] = [
+    ...reviewBodiesComments, // Add parsed actionable comments from review bodies
     ...reviewCommentsResponse.data.map(c => {
       const author = c.user?.login || 'unknown';
       const authorAssociation = c.author_association || 'NONE';
@@ -151,7 +171,7 @@ export async function handleFindUnresolvedComments(
   // GitHub API includes Link header with pagination info
   const hasMoreReviewComments = reviewCommentsResponse.headers.link?.includes('rel="next"') ?? false;
   const hasMoreIssueComments = issueCommentsResponse.headers.link?.includes('rel="next"') ?? false;
-  const hasMore = hasMoreReviewComments || hasMoreIssueComments;
+  const hasMore = hasMoreReviewComments || hasMoreIssueComments || hasMoreReviews;
   
   // Create next cursor if there are more results
   const nextCursor = createNextCursor(input.cursor, githubPagination.per_page, hasMore);
@@ -254,5 +274,161 @@ async function fetchReviewCommentNodeIds(
   }
   
   return nodeIdMap;
+}
+
+/**
+ * Parse review bodies for actionable comments from AI review tools
+ * Extracts structured actionable feedback from review bodies (e.g., CodeRabbit AI)
+ */
+function parseReviewBodiesForActionableComments(
+  reviews: any[], // eslint-disable-line @typescript-eslint/no-explicit-any
+  pr: { owner: string; repo: string; number: number }
+): Comment[] {
+  const actionableComments: Comment[] = [];
+  
+  for (const review of reviews) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    if (!review.body || review.state === 'PENDING') {
+      continue;
+    }
+    
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const body = review.body;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const author = review.user?.login || 'unknown';
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+    const authorAssociation = review.author_association || 'NONE';
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const isBot = review.user?.type === 'Bot';
+    
+    // Parse CodeRabbit AI review body for actionable comments
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+    const codeRabbitComments = parseCodeRabbitReviewBody(body, review, pr, author, authorAssociation, isBot);
+    actionableComments.push(...codeRabbitComments);
+    
+    // Add support for other AI review tools here in the future
+    // e.g., GitHub Copilot, SonarQube, etc.
+  }
+  return actionableComments;
+}
+
+/**
+ * Parse CodeRabbit AI review body for actionable comments
+ * Extracts nitpick comments, actionable suggestions, and other structured feedback
+ */
+function parseCodeRabbitReviewBody(
+  body: string,
+  review: any, // eslint-disable-line @typescript-eslint/no-explicit-any
+  pr: { owner: string; repo: string; number: number },
+  author: string,
+  authorAssociation: string,
+  isBot: boolean
+): Comment[] {
+  const comments: Comment[] = [];
+  
+  // Extract actionable suggestions from the review body
+  const lines = body.split('\n');
+  let currentFile = '';
+  let currentLineRange = '';
+  let currentSuggestion = '';
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Detect file context:
+    // - <summary>scripts/install-cli.js (1)</summary>
+    // - `scripts/install-cli.js (1)` or plain "scripts/install-cli.js (1)"
+    const fileMatch =
+      line.match(/^<summary>\s*`?([^<`]+?)`?\s*\((\d+)\)\s*<\/summary>/i) ||
+      line.match(/^\s*`?([^<`]+?)`?\s*\((\d+)\)\s*$/);
+    if (fileMatch) {
+      currentFile = fileMatch[1];
+      continue;
+    }
+    
+    // Detect line or line-range header:
+    // - `36-41`: **...** or 36-41: **...**
+    // - `36`: **...** or 36: **...**
+    const lineRangeMatch = line.match(/^(?:`)?(\d+(?:-\d+)?)`?:\s*\*\*(.*?)\*\*/);
+    if (lineRangeMatch) {
+      currentLineRange = lineRangeMatch[1];
+      currentSuggestion = lineRangeMatch[2];
+      
+      // Look for code suggestion in next few lines
+      let suggestionBody = currentSuggestion;
+      let inCodeBlock = false;
+      for (let j = i + 1; j < Math.min(i + 15, lines.length); j++) {
+        const nextLine = lines[j];
+        if (nextLine.startsWith('```diff') || nextLine.startsWith('```')) {
+          inCodeBlock = true;
+          suggestionBody += '\n\n' + nextLine;
+        } else if (inCodeBlock) {
+          suggestionBody += '\n' + nextLine;
+          if (nextLine.startsWith('```')) {
+            inCodeBlock = false;
+            break;
+          }
+        } else if (nextLine.trim() && !nextLine.startsWith('---') && !nextLine.startsWith('</blockquote>') && !nextLine.startsWith('<summary>')) {
+          suggestionBody += '\n' + nextLine;
+        } else if (nextLine.startsWith('---') || nextLine.startsWith('</blockquote>')) {
+          break;
+        }
+      }
+      
+      // Create actionable comment - use currentFile if available, otherwise try to extract from context
+      if (currentSuggestion) {
+        // If we don't have a file yet, try to find it in the recent context
+        let fileToUse = currentFile;
+        if (!fileToUse) {
+          // Look backwards for file context
+          for (let k = Math.max(0, i - 10); k < i; k++) {
+            const prevLine = lines[k];
+            const prevFileMatch =
+              prevLine.match(/^<summary>\s*`?([^<`]+?)`?\s*\((\d+)\)\s*<\/summary>/i) ||
+              prevLine.match(/^\s*`?([^<`]+?)`?\s*\((\d+)\)\s*$/);
+            if (prevFileMatch) {
+              fileToUse = prevFileMatch[1];
+              break;
+            }
+          }
+        }
+        
+        // If still no file, use a default
+        if (!fileToUse) {
+          fileToUse = 'unknown-file';
+        }
+        
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+        const commentId = `review-${review.id}-${currentLineRange}`;
+        comments.push({
+          id: parseInt(commentId.replace(/\D/g, '')) || Date.now(),
+          type: 'review',
+          author,
+          author_association: authorAssociation,
+          is_bot: isBot,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          created_at: review.submitted_at || review.created_at,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          updated_at: review.submitted_at || review.created_at,
+          file_path: fileToUse,
+          line_number: parseInt(currentLineRange.split('-')[0]),
+          body: suggestionBody,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          html_url: review.html_url,
+          action_commands: generateActionCommands(
+            pr,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
+            review.id,
+            'review',
+            suggestionBody,
+            fileToUse
+          )
+        });
+      }
+    }
+  }
+  
+  
+  return comments;
 }
 
