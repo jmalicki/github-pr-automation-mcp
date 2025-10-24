@@ -8,21 +8,26 @@ export class GitHubClient {
   private octokit: Octokit;
   
   /**
-   * Initialize GitHub client with authentication token
+   * Initialize GitHub client with authentication token or inject Octokit instance
    * @param token - GitHub token (optional, falls back to GITHUB_TOKEN env var)
+   * @param octokitInstance - Pre-configured Octokit instance for testing (optional)
    */
-  constructor(token?: string) {
-    const githubToken = token || process.env.GITHUB_TOKEN;
-    
-    if (!githubToken) {
-      throw new Error(
-        'GitHub token not found. Set GITHUB_TOKEN environment variable.'
-      );
+  constructor(token?: string, octokitInstance?: Octokit) {
+    if (octokitInstance) {
+      this.octokit = octokitInstance;
+    } else {
+      const githubToken = token || process.env.GITHUB_TOKEN;
+      
+      if (!githubToken) {
+        throw new Error(
+          'GitHub token not found. Set GITHUB_TOKEN environment variable.'
+        );
+      }
+      
+      this.octokit = new Octokit({
+        auth: githubToken
+      });
     }
-    
-    this.octokit = new Octokit({
-      auth: githubToken
-    });
   }
   
   /**
