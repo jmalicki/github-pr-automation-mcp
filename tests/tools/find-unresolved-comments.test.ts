@@ -315,7 +315,7 @@ describe('handleFindUnresolvedComments', () => {
 
   it('should paginate comments correctly with real GitHub API fixture data', async () => {
     // Use real GitHub API fixture for pagination testing
-    const paginationFixture = fixtures.default.get('api.github.com/paginate-issues');
+    const paginationFixture = fixtures.get('api.github.com/paginate-issues');
     
     // Transform fixture data to comment format with proper body content
     const transformToComment = (item: any) => ({

@@ -6,11 +6,11 @@ import { GitHubClient } from '../../src/github/client.js';
  * Provides realistic GitHub API interactions without network calls
  */
 export class E2ETestSetup {
-  private fixtureClient: any;
+  private fixtureClient: typeof fixtures;
   
   constructor() {
     // Use recorded fixtures for realistic API responses
-    this.fixtureClient = fixtures.default;
+    this.fixtureClient = fixtures;
   }
   
   /**
@@ -33,6 +33,12 @@ export class E2ETestSetup {
    * @returns Array of available scenario names
    */
   getAvailableScenarios(): string[] {
-    return this.fixtureClient.scenarios || [];
+    // @octokit/fixtures doesn't expose scenarios directly
+    // Return common fixture names for testing
+    return [
+      'api.github.com/check-runs-list',
+      'api.github.com/paginate-issues',
+      'api.github.com/pulls-list'
+    ];
   }
 }
