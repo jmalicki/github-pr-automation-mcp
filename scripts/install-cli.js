@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import { execSync } from 'child_process';
-import { existsSync, mkdirSync, copyFileSync, chmodSync, cpSync, writeFileSync } from 'fs';
-import { join } from 'path';
-import { homedir } from 'os';
+const { execSync } = require('child_process');
+const { existsSync, mkdirSync, copyFileSync, chmodSync, cpSync, writeFileSync } = require('fs');
+const { join } = require('path');
+const { homedir } = require('os');
 
 const INSTALL_METHODS = {
   'npm-link': 'npm run build && npm link',
@@ -11,25 +11,16 @@ const INSTALL_METHODS = {
   'global': 'npm run build && npm install -g .'
 };
 
-async function installToLocalBin() {
+function installToLocalBin() {
+  console.log('🔧 Installing to ~/.local/bin (standalone installation)');
+  
   const localBinDir = join(homedir(), '.local', 'bin');
-  const targetPath = join(localBinDir, 'github-pr-automation');
   const standaloneDir = join(homedir(), '.local', 'lib', 'github-pr-automation');
   
-  // Create directories if they don't exist
-  if (!existsSync(localBinDir)) {
-    console.log(`Creating directory: ${localBinDir}`);
-    mkdirSync(localBinDir, { recursive: true });
-  }
+  // Ensure directories exist
+  mkdirSync(localBinDir, { recursive: true });
+  mkdirSync(standaloneDir, { recursive: true });
   
-  if (!existsSync(standaloneDir)) {
-    console.log(`Creating standalone directory: ${standaloneDir}`);
-    mkdirSync(standaloneDir, { recursive: true });
-  }
-  
-  console.log('📦 Creating standalone installation...');
-  
-  // Copy essential files to standalone directory
   try {
     // Ensure build exists
     const projectRoot = process.cwd();
@@ -38,37 +29,20 @@ async function installToLocalBin() {
       console.log('🔨 Building project (dist missing)...');
       execSync('npm run build', { stdio: 'inherit', cwd: projectRoot });
     }
+    
     // Copy dist directory
     cpSync(distPath, join(standaloneDir, 'dist'), { recursive: true });
     
-    // Create a minimal package.json for standalone installation
-    const minimalPackageJson = {
-      "name": "github-pr-automation-standalone",
-      "version": "0.1.1",
-      "type": "module",
-      "dependencies": {
-        "@modelcontextprotocol/sdk": "^1.20.1",
-        "@octokit/auth-app": "^8.1.1",
-        "@octokit/rest": "^22.0.0",
-        "commander": "^14.0.1",
-        "zod": "^4.1.12"
-      }
-    };
+    // Copy package.json for dependencies
+    copyFileSync('package.json', join(standaloneDir, 'package.json'));
     
-    writeFileSync(
-      join(standaloneDir, 'package.json'), 
-      JSON.stringify(minimalPackageJson, null, 2)
-    );
-    
-    // Install dependencies in standalone directory
-    console.log('📦 Installing dependencies...');
+    // Install production dependencies
+    console.log('📦 Installing production dependencies...');
     execSync('npm install --production --no-optional', { stdio: 'inherit', cwd: standaloneDir });
     
-    // Create wrapper script that runs from standalone directory
+    // Create Unix wrapper script (CommonJS)
+    const targetPath = join(localBinDir, 'github-pr-automation');
     const wrapperScript = `#!/usr/bin/env node
-// GitHub PR Automation CLI - Standalone Installation
-// This script runs the CLI from the standalone installation directory
-
 const { spawn } = require('child_process');
 const { join } = require('path');
 const { homedir } = require('os');
@@ -76,23 +50,16 @@ const { homedir } = require('os');
 const standaloneDir = join(homedir(), '.local', 'lib', 'github-pr-automation');
 const cliPath = join(standaloneDir, 'dist', 'cli.js');
 
-const result = spawn(process.execPath, [cliPath, ...process.argv.slice(2)], {
+const child = spawn(process.execPath, [cliPath, ...process.argv.slice(2)], {
   stdio: 'inherit',
   cwd: standaloneDir
 });
 
-result.on('exit', (code) => {
+child.on('exit', (code) => {
   process.exit(code || 0);
 });
-
-result.on('error', (error) => {
-  console.error('❌ Failed to run CLI:', error.message);
-  process.exit(1);
-});
 `;
-
-    // Write wrapper script
-    console.log(`Installing CLI to: ${targetPath}`);
+    
     writeFileSync(targetPath, wrapperScript);
     chmodSync(targetPath, 0o755);
     
@@ -124,7 +91,7 @@ node "%CLI_PATH%" %*
     
   } catch (error) {
     console.error('❌ Installation failed:', error.message);
-    throw error;
+    process.exit(1);
   }
 }
 
@@ -144,7 +111,7 @@ function showUsage() {
   console.log('  npm run install:cli global');
 }
 
-async function main() {
+function main() {
   const method = process.argv[2] || 'local-bin';
   
   if (!INSTALL_METHODS[method]) {
@@ -156,9 +123,9 @@ async function main() {
   console.log(`🚀 Installing GitHub PR Automation CLI using method: ${method}`);
   
   try {
-  if (method === 'local-bin') {
-    await installToLocalBin();
-  } else {
+    if (method === 'local-bin') {
+      installToLocalBin();
+    } else {
       console.log(`Running: ${INSTALL_METHODS[method]}`);
       execSync(INSTALL_METHODS[method], { stdio: 'inherit' });
       console.log('✅ CLI installed successfully!');
@@ -174,4 +141,4 @@ async function main() {
   }
 }
 
-main().catch(console.error);
+main();
