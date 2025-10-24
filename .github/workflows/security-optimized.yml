@@ -35,7 +35,7 @@ jobs:
           # Run audit-ci and license-checker in parallel for 50%+ speed improvement
           (
             echo "🔍 Running npm security audit..."
-            npx audit-ci --config .audit-ci-optimized.json
+            npm run audit:ci:optimized
             echo "✅ Security audit completed"
           ) &
           
