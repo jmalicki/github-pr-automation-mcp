@@ -17,7 +17,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch full history for better security analysis
+          fetch-depth: 1  # Shallow clone sufficient for security checks
           
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -36,9 +36,6 @@ jobs:
           echo "Summary of high vulnerabilities (blocking):"
           npm audit --audit-level=high --json | jq -r '.metadata.vulnerabilities.high // 0' | xargs -I {} echo "High vulnerabilities: {}"
           
-      - name: License compliance check
-        run: npm run license-check
-          
       - name: Security scan with CodeQL
         uses: github/codeql-action/init@v3
         with:
@@ -53,6 +50,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1  # Shallow clone sufficient for license checks
         
       - name: Setup Node.js
         uses: actions/setup-node@v4
