@@ -5,6 +5,9 @@
 
 ## Tool Catalog
 
+<!-- MCP_TOOLS_START -->
+<!-- This section is used by tests to verify MCP server sync -->
+
 ### 1. get_failing_tests
 
 **Purpose**: Extract failing test information from PR CI checks and provide targeted fix instructions.
@@ -94,6 +97,7 @@ interface GetFailingTestsOutput {
 - PR not found: `{"error": "PR owner/repo#123 not found", "category": "user"}`
 - No CI configured: `{"status": "unknown", "message": "No CI checks configured"}`
 - Rate limit: `{"error": "Rate limited", "retry_after": 300}`
+
 
 ---
 
@@ -227,9 +231,10 @@ Agent makes fix → Agent verifies fix → Agent calls resolve_review_thread MCP
 
 **Never**: Auto-resolve without verification!
 
+
 ---
 
-### 3.7. resolve_review_thread 🆕
+### 3. resolve_review_thread 🆕
 
 **Purpose**: Immediately resolve a specific GitHub review thread using GraphQL API.
 
@@ -287,9 +292,10 @@ resolve-review-thread --pr owner/repo#123 --thread-id "thread-abc123"
 resolve-review-thread --pr owner/repo#123 --comment-id "comment-xyz789"
 ```
 
+
 ---
 
-### 3. manage_stacked_prs
+### 4. manage_stacked_prs
 
 **Purpose**: Manage dependency chains between stacked PRs, detecting when rebases are needed and orchestrating automated fixes.
 
@@ -475,9 +481,10 @@ When base PR has new commits:
 ]
 ```
 
+
 ---
 
-### 4. detect_merge_conflicts
+### 5. detect_merge_conflicts
 
 **Purpose**: Proactively detect merge conflicts before attempting merge.
 
@@ -512,9 +519,10 @@ interface DetectMergeConflictsOutput {
 }
 ```
 
+
 ---
 
-### 5. check_merge_readiness
+### 6. check_merge_readiness
 
 **Purpose**: Comprehensive check of all merge requirements.
 
@@ -555,56 +563,55 @@ interface CheckMergeReadinessOutput {
 }
 ```
 
+
 ---
 
-### 6. analyze_pr_impact
+### 7. rebase_after_squash_merge
 
-**Purpose**: Analyze the scope and impact of PR changes.
+**Purpose**: Generate rebase commands after upstream PR was squash-merged, using --onto strategy.
 
 **Input Schema**:
 ```typescript
-interface AnalyzePRImpactInput {
-  pr: string;
-  depth?: "summary" | "detailed"; // Default: summary
+interface RebaseAfterSquashMergeInput {
+  pr: string;                    // Your PR identifier (owner/repo#123)
+  upstream_pr?: string;          // Upstream PR that was squash-merged (optional, can auto-detect)
+  target_branch?: string;        // Target branch (default: PR base branch)
 }
 ```
 
 **Output Schema**:
 ```typescript
-interface AnalyzePRImpactOutput {
+interface RebaseAfterSquashMergeOutput {
   pr: string;
+  upstream_pr?: string;
+  target_branch: string;
   
-  changes: {
-    files_changed: number;
-    additions: number;
-    deletions: number;
-    commits: number;
+  // Rebase strategy analysis
+  strategy: {
+    recommended: "onto" | "regular";
+    reason: string;
+    squash_merge_detected: boolean;
+    last_upstream_commit?: string;
   };
   
-  impact_areas: Array<{
-    category: "frontend" | "backend" | "database" | "infrastructure" | "tests" | "docs";
-    files: string[];
-    risk_level: "low" | "medium" | "high";
+  // Generated commands
+  commands: Array<{
+    step: number;
+    command: string;
+    description: string;
+    estimated_duration?: string;
   }>;
   
-  suggested_reviewers?: Array<{
-    username: string;
-    reason: string;  // "Previously modified 5 of these files"
-    confidence: number;
-  }>;
-  
-  similar_prs?: Array<{
-    number: number;
-    title: string;
-    similarity_score: number;
-    outcome: "merged" | "closed";
-  }>;
+  // Safety checks
+  warnings?: string[];
+  prerequisites: string[];
 }
 ```
 
+
 ---
 
-### 7. get_review_suggestions
+### 8. get_review_suggestions
 
 **Purpose**: Generate structured context optimized for AI code review.
 
@@ -654,6 +661,7 @@ interface GetReviewSuggestionsOutput {
 }
 ```
 
+
 ## Common Patterns
 
 ### PR Identifier Parsing
@@ -687,4 +695,6 @@ interface ErrorResponse {
 - Track GitHub API usage
 - Return `retry_after` when rate limited
 - Implement exponential backoff internally
+
+<!-- MCP_TOOLS_END -->
 

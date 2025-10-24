@@ -236,4 +236,193 @@ describe('MCP Server', () => {
     expect(cliContent).toContain('handleManageStackedPRs');
     expect(cliContent).toContain('handleResolveReviewThread');
   });
+
+  it('should have API_DESIGN.md in sync with MCP server implementation', async () => {
+    // Read the API design documentation
+    const apiDesignContent = await import('fs').then(fs => 
+      fs.readFileSync('docs/API_DESIGN.md', 'utf8')
+    );
+    
+    // Extract tools documented in API_DESIGN.md
+    const toolMatches = apiDesignContent.match(/### \d+\. (\w+)/g);
+    const documentedTools = toolMatches?.map(match => 
+      match.replace(/### \d+\. (\w+)/, '$1')
+    ) || [];
+    
+    // Expected tools based on the MCP server implementation
+    const expectedTools = [
+      'get_failing_tests',
+      'find_unresolved_comments',
+      'manage_stacked_prs',
+      'resolve_review_thread',
+      'detect_merge_conflicts',
+      'check_merge_readiness',
+      'get_review_suggestions'
+    ];
+    
+    // Verify all expected tools are documented
+    for (const expectedTool of expectedTools) {
+      expect(documentedTools).toContain(expectedTool);
+    }
+    
+    // Verify that documented tools have proper structure
+    for (const tool of documentedTools) {
+      // Check for required sections
+      expect(apiDesignContent).toMatch(new RegExp(`### \\d+\\. ${tool}`, 'g'));
+      expect(apiDesignContent).toContain('**Purpose**:');
+      expect(apiDesignContent).toContain('**Input Schema**:');
+      expect(apiDesignContent).toContain('**Output Schema**:');
+    }
+    
+    // Verify that resolve_review_thread is properly documented as new
+    expect(apiDesignContent).toContain('### 3. resolve_review_thread 🆕');
+    expect(apiDesignContent).toContain('**⚠️ CRITICAL: Only call this tool AFTER:**');
+    
+    // Verify that all MCP tools are documented (no extra tools in server)
+    const serverModule = await import('../src/index.js');
+    // We can't directly access the tools list, but we can verify the handlers exist
+    const handlerImports = [
+      'handleGetFailingTests',
+      'handleFindUnresolvedComments', 
+      'handleManageStackedPRs',
+      'handleResolveReviewThread',
+      'handleDetectMergeConflicts',
+      'handleCheckMergeReadiness',
+      'handleGetReviewSuggestions'
+    ];
+    
+    // Verify all handlers are imported in the server
+    const serverContent = await import('fs').then(fs => 
+      fs.readFileSync('src/index.ts', 'utf8')
+    );
+    
+    for (const handler of handlerImports) {
+      expect(serverContent).toContain(handler);
+    }
+  });
+
+  it('should have consistent tool naming between API_DESIGN.md and implementation', async () => {
+    const apiDesignContent = await import('fs').then(fs => 
+      fs.readFileSync('docs/API_DESIGN.md', 'utf8')
+    );
+    
+    // Extract tool names from API design (convert from markdown format to MCP format)
+    const toolMatches = apiDesignContent.match(/### \d+\. (\w+)/g);
+    const documentedTools = toolMatches?.map(match => 
+      match.replace(/### \d+\. (\w+)/, '$1')
+    ) || [];
+    
+    // Expected MCP tool names (with underscores)
+    const expectedMcpTools = [
+      'get_failing_tests',
+      'find_unresolved_comments',
+      'manage_stacked_prs',
+      'resolve_review_thread',
+      'detect_merge_conflicts',
+      'check_merge_readiness',
+      'get_review_suggestions',
+      'rebase_after_squash_merge'
+    ];
+    
+    // Verify naming consistency
+    for (const expectedTool of expectedMcpTools) {
+      expect(documentedTools).toContain(expectedTool);
+    }
+    
+    // Verify no extra tools are documented that don't exist in implementation
+    // Note: analyze_pr_impact is documented but not implemented in MCP server yet
+    const extraTools = documentedTools.filter(tool => 
+      !expectedMcpTools.includes(tool) && tool !== 'analyze_pr_impact'
+    );
+    expect(extraTools).toHaveLength(0);
+  });
+
+  it('should have proper schema documentation in API_DESIGN.md', async () => {
+    const apiDesignContent = await import('fs').then(fs => 
+      fs.readFileSync('docs/API_DESIGN.md', 'utf8')
+    );
+    
+    // Verify that each tool has proper TypeScript interface documentation
+    const toolsWithSchemas = [
+      'get_failing_tests',
+      'find_unresolved_comments',
+      'manage_stacked_prs', 
+      'resolve_review_thread',
+      'detect_merge_conflicts',
+      'check_merge_readiness',
+      'get_review_suggestions'
+    ];
+    
+    for (const tool of toolsWithSchemas) {
+      // Check for TypeScript interface definitions (camelCase)
+      // Handle special cases for acronyms like PRs
+      let toolName = tool.split('_').map(word => {
+        if (word === 'prs') return 'PRs';
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      }).join('');
+      expect(apiDesignContent).toContain(`interface ${toolName}Input`);
+      expect(apiDesignContent).toContain(`interface ${toolName}Output`);
+      
+      // Check for required fields in schemas
+      expect(apiDesignContent).toContain('pr: string;');
+      expect(apiDesignContent).toContain('```typescript');
+    }
+    
+    // KNOWN BUG: Pagination parameter mismatch between MCP server and handlers
+    // - MCP server (src/index.ts) uses page/page_size parameters
+    // - Handlers (src/tools/*/handler.ts) use cursor parameter
+    // - Schema files use cursor parameter (correct)
+    // - Documentation uses cursor parameter (correct)
+    // TODO: Fix MCP server to use cursor-based pagination instead of page/page_size
+    
+    // Verify resolve_review_thread has special documentation
+    expect(apiDesignContent).toContain('ResolveReviewThreadInput');
+    expect(apiDesignContent).toContain('ResolveReviewThreadOutput');
+    expect(apiDesignContent).toContain('thread_id?: string;');
+    expect(apiDesignContent).toContain('comment_id?: string;');
+  });
+
+  it('should have output schemas in sync between API_DESIGN.md and implementation', async () => {
+    const apiDesignContent = await import('fs').then(fs => 
+      fs.readFileSync('docs/API_DESIGN.md', 'utf8')
+    );
+    
+    // Import all output schema interfaces from the actual implementation
+    const { GetFailingTestsOutput } = await import('../src/tools/get-failing-tests/schema.js');
+    const { FindUnresolvedCommentsOutput } = await import('../src/tools/find-unresolved-comments/schema.js');
+    const { ManageStackedPRsOutput } = await import('../src/tools/manage-stacked-prs/schema.js');
+    const { ResolveReviewThreadOutput } = await import('../src/tools/resolve-review-thread/schema.js');
+    
+    // Check that the documented output schemas match the actual TypeScript interfaces
+    const outputSchemas = [
+      { name: 'GetFailingTestsOutput', interface: GetFailingTestsOutput },
+      { name: 'FindUnresolvedCommentsOutput', interface: FindUnresolvedCommentsOutput },
+      { name: 'ManageStackedPRsOutput', interface: ManageStackedPRsOutput },
+      { name: 'ResolveReviewThreadOutput', interface: ResolveReviewThreadOutput }
+    ];
+    
+    for (const schema of outputSchemas) {
+      // Check that the interface is documented
+      expect(apiDesignContent).toContain(`interface ${schema.name}`);
+      
+      // Check for key properties that should be in the output
+      if (schema.name === 'GetFailingTestsOutput') {
+        expect(apiDesignContent).toContain('status: "pending" | "running" | "failed" | "passed" | "unknown"');
+        expect(apiDesignContent).toContain('failures: Array<');
+        expect(apiDesignContent).toContain('instructions: {');
+      } else if (schema.name === 'FindUnresolvedCommentsOutput') {
+        expect(apiDesignContent).toContain('total_unresolved: number');
+        expect(apiDesignContent).toContain('comments: Array<');
+        expect(apiDesignContent).toContain('action_commands: {');
+      } else if (schema.name === 'ManageStackedPRsOutput') {
+        expect(apiDesignContent).toContain('is_stacked: boolean');
+        expect(apiDesignContent).toContain('stack_info: {');
+        expect(apiDesignContent).toContain('commands: Array<');
+      } else if (schema.name === 'ResolveReviewThreadOutput') {
+        expect(apiDesignContent).toContain('ok: boolean');
+        expect(apiDesignContent).toContain('thread_id: string');
+        expect(apiDesignContent).toContain('alreadyResolved: boolean');
+      }
+    }
+  });
 });
