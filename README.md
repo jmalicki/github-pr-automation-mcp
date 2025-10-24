@@ -2,6 +2,24 @@
 
 An MCP (Model Context Protocol) server and CLI that provides AI-assisted tools for automated GitHub Pull Request management, including test failure analysis, comment resolution, stacked PR management, and workflow optimization.
 
+## 🚀 Quick Start
+
+```bash
+# Install and use the CLI
+git clone https://github.com/jmalicki/github-pr-automation-mcp.git
+cd github-pr-automation-mcp
+npm install && npm run build
+npm run install:cli:npm-link
+
+# Set your GitHub token
+export GITHUB_TOKEN="your_token_here"
+
+# Use the CLI
+github-pr-automation get-failing-tests --pr "owner/repo#123"
+```
+
+**Or use as an MCP server** with Claude Desktop for AI-assisted PR management.
+
 ## Features
 
 ### Core Tools
@@ -70,10 +88,54 @@ This project is configured to use Node.js v22 LTS by default:
 
 ## Installation
 
+### Quick Start
+
 ```bash
+# Clone the repository
+git clone https://github.com/jmalicki/github-pr-automation-mcp.git
+cd github-pr-automation-mcp
+
+# Install dependencies
 npm install
+
+# Build the project
 npm run build
 ```
+
+### CLI Installation
+
+Install the CLI for system-wide usage:
+
+```bash
+# Method 1: NPM Link (Recommended)
+npm run install:cli:npm-link
+
+# Method 2: Global Installation
+npm run install:cli:global
+
+# Method 3: Interactive Installer
+npm run install:cli
+```
+
+**Verify Installation:**
+```bash
+# Test the CLI
+github-pr-automation --help
+
+# Test a specific command
+github-pr-automation get-failing-tests --help
+```
+
+**Uninstall:**
+```bash
+# NPM Link
+npm unlink github-pr-automation
+
+# Global
+npm uninstall -g github-pr-automation
+```
+
+For detailed installation options, see [CLI Installation Guide](./docs/CLI_INSTALLATION.md).
 
 ## How It Works
 
@@ -118,12 +180,12 @@ Add to your Claude Desktop MCP configuration:
 }
 ```
 
-### CLI Mode (Testing & Direct Usage)
+### CLI Mode (Direct Usage)
 
-You can also use the tools directly from the command line:
+Use the tools directly from the command line:
 
 ```bash
-# Get failing tests
+# Get failing tests for a PR
 github-pr-automation get-failing-tests --pr "owner/repo#123" --wait --bail-on-first
 
 # Find unresolved comments
@@ -135,15 +197,24 @@ github-pr-automation manage-stacked-prs --base-pr "owner/repo#100" --dependent-p
 # Resolve review thread
 github-pr-automation resolve-review-thread --pr "owner/repo#123" --thread-id "thread_id"
 
-# Output as JSON
+# Output as JSON for scripting
 github-pr-automation get-failing-tests --pr "owner/repo#123" --json
 ```
 
-CLI mode is perfect for:
-- Testing during development
-- Shell scripts and automation
-- CI/CD integration
-- Quick checks without an MCP client
+**CLI Use Cases:**
+- 🚀 **Quick PR checks** - Get immediate feedback on PR status
+- 🤖 **Automation scripts** - Integrate into CI/CD pipelines
+- 🔧 **Development workflow** - Test tools during development
+- 📊 **Data extraction** - Get structured JSON output for analysis
+
+**Environment Setup:**
+```bash
+# Set your GitHub token
+export GITHUB_TOKEN="your_github_personal_access_token"
+
+# Or use a .env file
+echo "GITHUB_TOKEN=your_token_here" > .env
+```
 
 ## Tool Reference
 
