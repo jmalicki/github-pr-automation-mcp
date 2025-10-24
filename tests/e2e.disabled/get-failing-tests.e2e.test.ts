@@ -12,9 +12,7 @@ describe('get-failing-tests E2E', () => {
     
     const result = await handleGetFailingTests(client, {
       pr: 'owner/repo#123',
-      wait: false,
-      page: 1,
-      page_size: 10
+      wait: false
     });
     
     expect(result.status).toBeDefined();
@@ -31,9 +29,7 @@ describe('get-failing-tests E2E', () => {
     // Test immediate mode first
     const immediate = await handleGetFailingTests(client, {
       pr: 'owner/repo#123',
-      wait: false,
-      page: 1,
-      page_size: 10
+      wait: false
     });
     
     expect(immediate.status).toBeDefined();
@@ -42,9 +38,7 @@ describe('get-failing-tests E2E', () => {
     // Test wait mode (would normally poll, but with fixtures it's immediate)
     const waitMode = await handleGetFailingTests(client, {
       pr: 'owner/repo#123',
-      wait: true,
-      page: 1,
-      page_size: 10
+      wait: true
     });
     
     expect(waitMode.status).toBeDefined();
@@ -58,25 +52,21 @@ describe('get-failing-tests E2E', () => {
     
     const page1 = await handleGetFailingTests(client, {
       pr: 'owner/repo#123',
-      wait: false,
-      page: 1,
-      page_size: 5
+      wait: false
     });
     
     expect(page1.failures).toBeDefined();
-    expect(page1.pagination).toBeDefined();
-    expect(page1.pagination.page).toBe(1);
-    expect(page1.pagination.page_size).toBe(5);
+    expect(page1.nextCursor).toBeDefined();
     
+    // Use cursor for subsequent pages
     const page2 = await handleGetFailingTests(client, {
       pr: 'owner/repo#123',
       wait: false,
-      page: 2,
-      page_size: 5
+      cursor: page1.nextCursor
     });
     
     expect(page2.failures).toBeDefined();
-    expect(page2.pagination.page).toBe(2);
+    expect(page2.nextCursor).toBeDefined();
   });
   
   // Test: Complete CI workflow with real GitHub API structure
@@ -86,9 +76,9 @@ describe('get-failing-tests E2E', () => {
     
     // Test different scenarios
     const scenarios = [
-      { wait: false, page: 1, page_size: 10 },
-      { wait: true, page: 1, page_size: 5 },
-      { wait: false, page: 2, page_size: 3 }
+      { wait: false },
+      { wait: true },
+      { wait: false, cursor: 'test-cursor' }
     ];
     
     for (const scenario of scenarios) {
@@ -100,7 +90,7 @@ describe('get-failing-tests E2E', () => {
       expect(result.status).toBeDefined();
       expect(result.failures).toBeDefined();
       expect(result.instructions).toBeDefined();
-      expect(result.pagination).toBeDefined();
+      expect(result.nextCursor).toBeDefined();
     }
   });
   
@@ -112,9 +102,7 @@ describe('get-failing-tests E2E', () => {
     // Test with invalid PR (should still return structured response)
     const result = await handleGetFailingTests(client, {
       pr: 'invalid/repo#999',
-      wait: false,
-      page: 1,
-      page_size: 10
+      wait: false
     });
     
     expect(result.status).toBeDefined();

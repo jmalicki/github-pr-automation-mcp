@@ -11,15 +11,15 @@ describe('manage-stacked-prs E2E', () => {
     const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
     
     const result = await handleManageStackedPRs(client, {
-      pr: 'owner/repo#123',
-      page: 1,
-      page_size: 10
+      base_pr: 'owner/repo#122',
+      dependent_pr: 'owner/repo#123'
     });
     
-    expect(result.stack).toBeDefined();
+    expect(result.is_stacked).toBeDefined();
+    expect(result.stack_info).toBeDefined();
     expect(result.commands).toBeDefined();
-    expect(result.visualization).toBeDefined();
-    expect(result.risk_assessment).toBeDefined();
+    expect(result.stack_info.visualization).toBeDefined();
+    expect(result.summary).toBeDefined();
   });
   
   // Test: Stack validation with real GitHub PR relationships
@@ -28,15 +28,14 @@ describe('manage-stacked-prs E2E', () => {
     const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
     
     const result = await handleManageStackedPRs(client, {
-      pr: 'owner/repo#123',
-      page: 1,
-      page_size: 10
+      base_pr: 'owner/repo#122',
+      dependent_pr: 'owner/repo#123'
     });
     
-    expect(result.stack.is_valid).toBeDefined();
-    expect(result.stack.prs).toBeDefined();
-    expect(result.stack.base_pr).toBeDefined();
-    expect(result.stack.dependent_prs).toBeDefined();
+    expect(result.is_stacked).toBeDefined();
+    expect(result.stack_info).toBeDefined();
+    expect(result.base_pr).toBeDefined();
+    expect(result.dependent_pr).toBeDefined();
   });
   
   // Test: Command generation with realistic scenarios
@@ -45,9 +44,8 @@ describe('manage-stacked-prs E2E', () => {
     const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
     
     const result = await handleManageStackedPRs(client, {
-      pr: 'owner/repo#123',
-      page: 1,
-      page_size: 10
+      base_pr: 'owner/repo#122',
+      dependent_pr: 'owner/repo#123'
     });
     
     expect(result.commands).toBeDefined();
@@ -68,18 +66,19 @@ describe('manage-stacked-prs E2E', () => {
     
     // Test different PR scenarios
     const scenarios = [
-      { pr: 'owner/repo#123', page: 1, page_size: 10 },
-      { pr: 'owner/repo#124', page: 1, page_size: 5 },
-      { pr: 'owner/repo#125', page: 2, page_size: 3 }
+      { base_pr: 'owner/repo#122', dependent_pr: 'owner/repo#123' },
+      { base_pr: 'owner/repo#123', dependent_pr: 'owner/repo#124' },
+      { base_pr: 'owner/repo#124', dependent_pr: 'owner/repo#125' }
     ];
     
     for (const scenario of scenarios) {
       const result = await handleManageStackedPRs(client, scenario);
       
-      expect(result.stack).toBeDefined();
+      expect(result.is_stacked).toBeDefined();
+      expect(result.stack_info).toBeDefined();
       expect(result.commands).toBeDefined();
-      expect(result.visualization).toBeDefined();
-      expect(result.risk_assessment).toBeDefined();
+      expect(result.stack_info.visualization).toBeDefined();
+      expect(result.summary).toBeDefined();
     }
   });
   
@@ -89,15 +88,14 @@ describe('manage-stacked-prs E2E', () => {
     const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
     
     const result = await handleManageStackedPRs(client, {
-      pr: 'owner/repo#123',
-      page: 1,
-      page_size: 10
+      base_pr: 'owner/repo#122',
+      dependent_pr: 'owner/repo#123'
     });
     
-    expect(result.risk_assessment).toBeDefined();
-    expect(result.risk_assessment.overall_risk).toBeDefined();
-    expect(result.risk_assessment.conflicts).toBeDefined();
-    expect(result.risk_assessment.dependencies).toBeDefined();
+    expect(result.summary).toBeDefined();
+    expect(result.summary.risk_level).toBeDefined();
+    expect(result.summary.action_required).toBeDefined();
+    expect(result.summary.reason).toBeDefined();
   });
 });
 
