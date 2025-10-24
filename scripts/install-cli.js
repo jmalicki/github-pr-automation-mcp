@@ -31,8 +31,15 @@ async function installToLocalBin() {
   
   // Copy essential files to standalone directory
   try {
+    // Ensure build exists
+    const projectRoot = process.cwd();
+    const distPath = join(projectRoot, 'dist');
+    if (!existsSync(distPath)) {
+      console.log('🔨 Building project (dist missing)...');
+      execSync('npm run build', { stdio: 'inherit', cwd: projectRoot });
+    }
     // Copy dist directory
-    cpSync('dist', join(standaloneDir, 'dist'), { recursive: true });
+    cpSync(distPath, join(standaloneDir, 'dist'), { recursive: true });
     
     // Create a minimal package.json for standalone installation
     const minimalPackageJson = {
