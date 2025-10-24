@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-const { execSync } = require('child_process');
-const { existsSync, mkdirSync, copyFileSync, chmodSync, cpSync, writeFileSync } = require('fs');
-const { join } = require('path');
-const { homedir } = require('os');
+import { execSync } from 'child_process';
+import { existsSync, mkdirSync, copyFileSync, chmodSync, cpSync, writeFileSync, readFileSync } from 'fs';
+import { join } from 'path';
+import { homedir } from 'os';
 
 const INSTALL_METHODS = {
   'npm-link': 'npm run build && npm link',
@@ -33,8 +33,19 @@ function installToLocalBin() {
     // Copy dist directory
     cpSync(distPath, join(standaloneDir, 'dist'), { recursive: true });
     
-    // Copy package.json for dependencies
-    copyFileSync('package.json', join(standaloneDir, 'package.json'));
+    // Create a clean package.json for standalone installation (no dev dependencies)
+    const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
+    const cleanPackageJson = {
+      name: packageJson.name,
+      version: packageJson.version,
+      description: packageJson.description,
+      main: packageJson.main,
+      bin: packageJson.bin,
+      dependencies: packageJson.dependencies,
+      engines: packageJson.engines
+    };
+    
+    writeFileSync(join(standaloneDir, 'package.json'), JSON.stringify(cleanPackageJson, null, 2));
     
     // Install production dependencies
     console.log('📦 Installing production dependencies...');
