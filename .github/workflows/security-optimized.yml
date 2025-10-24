@@ -46,7 +46,7 @@ jobs:
           ) &
           
           # Wait for both processes to complete
-          wait
+          wait || exit 1
           
           echo "🎉 All security checks completed successfully!"
           
