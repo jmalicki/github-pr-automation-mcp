@@ -1,6 +1,8 @@
 import { beforeAll, afterAll } from 'vitest';
 import { Octokit } from '@octokit/rest';
 import { GitHubClient } from '../../src/github/client.js';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 /**
  * Integration Test Setup
@@ -44,19 +46,51 @@ export class IntegrationTestManager {
   }
 
   /**
-   * Load fixture data for a specific test scenario (placeholder for future enhancement)
+   * Load fixture data for a specific test scenario
    */
   async loadFixture(scenario: string): Promise<any> {
     console.log(`✓ Loading fixture: ${scenario}`);
-    return null; // Placeholder for future fixture support
+    
+    // Check if we're in playback mode
+    if (process.env.RUN_INTEGRATION_TESTS !== 'true') {
+      return null;
+    }
+    
+    try {
+      const fixturesDir = path.join(__dirname, 'fixtures');
+      const fixturePath = path.join(fixturesDir, `${scenario.replace(/\//g, '-')}.json`);
+      
+      const data = await fs.readFile(fixturePath, 'utf8');
+      const fixture = JSON.parse(data);
+      console.log(`✓ Loaded fixture: ${scenario}`);
+      return fixture;
+    } catch (error) {
+      console.log(`⚠️ No fixture found for ${scenario}, will use live API calls`);
+      return null;
+    }
   }
 
   /**
-   * Save recorded API calls as fixtures (placeholder for future enhancement)
+   * Save recorded API calls as fixtures
    */
   async saveFixture(scenario: string, data: any): Promise<void> {
     console.log(`✓ Saving fixture: ${scenario}`);
-    // Placeholder for future fixture recording
+    
+    // Only save fixtures in record mode
+    if (process.env.RECORD_INTEGRATION_FIXTURES !== 'true') {
+      return;
+    }
+    
+    try {
+      const fixturesDir = path.join(__dirname, 'fixtures');
+      await fs.mkdir(fixturesDir, { recursive: true });
+      
+      const fixturePath = path.join(fixturesDir, `${scenario.replace(/\//g, '-')}.json`);
+      await fs.writeFile(fixturePath, JSON.stringify(data, null, 2));
+      console.log(`✓ Saved fixture: ${scenario}`);
+    } catch (error) {
+      console.error(`❌ Failed to save fixture ${scenario}:`, error);
+    }
   }
 }
 

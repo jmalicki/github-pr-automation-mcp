@@ -48,12 +48,11 @@ describe('get_failing_tests integration', () => {
       pr: TEST_PR,
       wait: false,
       bail_on_first: false,
-      page: 1,
-      page_size: 5
+      cursor: undefined
     });
 
-    expect(page1.pagination.page).toBe(1);
-    expect(page1.pagination.page_size).toBe(5);
+    expect(page1.nextCursor).toBeDefined();
+    expect(typeof page1.nextCursor === 'string' || page1.nextCursor === null).toBe(true);
 
     // Save fixture if in record mode
     await integrationManager.saveFixture('get-failing-tests/pagination', page1);

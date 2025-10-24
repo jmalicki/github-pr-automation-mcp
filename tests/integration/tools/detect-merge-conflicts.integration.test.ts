@@ -30,15 +30,10 @@ describe('detect_merge_conflicts integration', () => {
     expect(result.pr).toContain('#');
     expect(result.has_conflicts).toBeDefined();
     expect(typeof result.has_conflicts).toBe('boolean');
-    expect(result.conflicts).toBeDefined();
-    expect(Array.isArray(result.conflicts)).toBe(true);
-
-    // If conflicts exist, should have conflict details
-    if (result.has_conflicts) {
-      expect(result.conflicts.length).toBeGreaterThan(0);
-      expect(result.conflicts[0]).toHaveProperty('file');
-      expect(result.conflicts[0]).toHaveProperty('reason');
-    }
+    expect(result.mergeable_state).toBeDefined();
+    expect(typeof result.mergeable_state).toBe('string');
+    expect(result.message).toBeDefined();
+    expect(typeof result.message).toBe('string');
 
     // Save fixture if in record mode
     await integrationManager.saveFixture('detect-merge-conflicts/basic-pr', result);
@@ -67,14 +62,14 @@ describe('detect_merge_conflicts integration', () => {
       pr: TEST_PR
     });
 
-    // Should have guidance regardless of conflict status
-    expect(result.guidance).toBeDefined();
-    expect(typeof result.guidance).toBe('string');
-    expect(result.guidance.length).toBeGreaterThan(0);
+    // Should have message regardless of conflict status
+    expect(result.message).toBeDefined();
+    expect(typeof result.message).toBe('string');
+    expect(result.message.length).toBeGreaterThan(0);
 
-    // If conflicts exist, guidance should be more specific
+    // If conflicts exist, message should be more specific
     if (result.has_conflicts) {
-      expect(result.guidance).toMatch(/conflict|merge|resolve/i);
+      expect(result.message).toMatch(/conflict|merge|resolve/i);
     }
 
     // Save fixture if in record mode

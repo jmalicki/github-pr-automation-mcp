@@ -31,18 +31,13 @@ describe('check_merge_readiness integration', () => {
     expect(result.ready_to_merge).toBeDefined();
     expect(typeof result.ready_to_merge).toBe('boolean');
     expect(result.checks).toBeDefined();
-    expect(Array.isArray(result.checks)).toBe(true);
+    expect(typeof result.checks).toBe('object');
 
-    // Should have at least some basic checks
-    expect(result.checks.length).toBeGreaterThan(0);
-    
-    // Each check should have required properties
-    result.checks.forEach(check => {
-      expect(check).toHaveProperty('name');
-      expect(check).toHaveProperty('status');
-      expect(check).toHaveProperty('description');
-      expect(['pass', 'fail', 'pending', 'unknown']).toContain(check.status);
-    });
+    // Should have check object with boolean properties
+    expect(typeof result.checks.ci_passing).toBe('boolean');
+    expect(typeof result.checks.approvals_met).toBe('boolean');
+    expect(typeof result.checks.no_conflicts).toBe('boolean');
+    expect(typeof result.checks.up_to_date).toBe('boolean');
 
     // Save fixture if in record mode
     await integrationManager.saveFixture('check-merge-readiness/basic-pr', result);
@@ -56,15 +51,15 @@ describe('check_merge_readiness integration', () => {
 
     // Should have detailed check results
     expect(result.checks).toBeDefined();
-    expect(Array.isArray(result.checks)).toBe(true);
+    expect(typeof result.checks).toBe('object');
 
     // If not ready, should have specific blockers
     if (!result.ready_to_merge) {
-      const blockers = result.checks.filter(check => check.status === 'fail');
-      expect(blockers.length).toBeGreaterThan(0);
+      expect(result.blocking_issues).toBeDefined();
+      expect(Array.isArray(result.blocking_issues)).toBe(true);
       
       // Each blocker should have actionable information
-      blockers.forEach(blocker => {
+      result.blocking_issues.forEach(blocker => {
         expect(blocker.description).toBeDefined();
         expect(blocker.description.length).toBeGreaterThan(0);
       });

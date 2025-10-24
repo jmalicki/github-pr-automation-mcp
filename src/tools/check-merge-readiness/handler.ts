@@ -19,6 +19,10 @@ export interface CheckMergeReadinessOutput {
     description: string;
     action_required: string;
   }>;
+  next_steps: Array<{
+    action: string;
+    description: string;
+  }>;
 }
 
 export async function handleCheckMergeReadiness(
@@ -58,12 +62,17 @@ export async function handleCheckMergeReadiness(
   };
   
   const blockingIssues: CheckMergeReadinessOutput['blocking_issues'] = [];
+  const nextSteps: CheckMergeReadinessOutput['next_steps'] = [];
   
   if (!ciPassing) {
     blockingIssues.push({
       category: 'ci',
       description: 'CI checks are failing',
       action_required: 'Fix failing tests'
+    });
+    nextSteps.push({
+      action: 'fix_ci',
+      description: 'Review and fix failing CI checks'
     });
   }
   
@@ -73,13 +82,26 @@ export async function handleCheckMergeReadiness(
       description: 'PR has merge conflicts',
       action_required: 'Resolve conflicts with base branch'
     });
+    nextSteps.push({
+      action: 'resolve_conflicts',
+      description: 'Merge or rebase with base branch to resolve conflicts'
+    });
+  }
+  
+  // If ready to merge, provide merge action
+  if (Object.values(checks).every(v => v)) {
+    nextSteps.push({
+      action: 'merge',
+      description: 'PR is ready to merge'
+    });
   }
   
   return {
     pr: formatPRIdentifier(pr),
     ready_to_merge: Object.values(checks).every(v => v),
     checks,
-    blocking_issues: blockingIssues
+    blocking_issues: blockingIssues,
+    next_steps: nextSteps
   };
 }
 

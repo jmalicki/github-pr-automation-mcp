@@ -246,11 +246,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             thread_id: {
               type: 'string',
-              description: 'Review thread GraphQL node ID'
+              description: 'Review thread GraphQL node ID (required if comment_id not provided)'
             },
             comment_id: {
               type: 'string',
-              description: 'Comment GraphQL node ID (will map to thread)'
+              description: 'Comment GraphQL node ID (will map to thread, required if thread_id not provided)'
             },
             prefer: {
               type: 'string',
