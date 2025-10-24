@@ -257,7 +257,6 @@ describe('MCP Server', () => {
       'resolve_review_thread',
       'detect_merge_conflicts',
       'check_merge_readiness',
-      'get_review_suggestions'
     ];
     
     // Verify all expected tools are documented
@@ -288,8 +287,7 @@ describe('MCP Server', () => {
       'handleManageStackedPRs',
       'handleResolveReviewThread',
       'handleDetectMergeConflicts',
-      'handleCheckMergeReadiness',
-      'handleGetReviewSuggestions'
+      'handleCheckMergeReadiness'
     ];
     
     // Verify all handlers are imported in the server
@@ -321,7 +319,6 @@ describe('MCP Server', () => {
       'resolve_review_thread',
       'detect_merge_conflicts',
       'check_merge_readiness',
-      'get_review_suggestions',
       'rebase_after_squash_merge'
     ];
     
@@ -351,7 +348,6 @@ describe('MCP Server', () => {
       'resolve_review_thread',
       'detect_merge_conflicts',
       'check_merge_readiness',
-      'get_review_suggestions'
     ];
     
     for (const tool of toolsWithSchemas) {

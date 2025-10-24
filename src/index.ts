@@ -16,7 +16,6 @@ import { handleFindUnresolvedComments } from './tools/find-unresolved-comments/h
 import { handleManageStackedPRs } from './tools/manage-stacked-prs/handler.js';
 import { handleDetectMergeConflicts } from './tools/detect-merge-conflicts/handler.js';
 import { handleCheckMergeReadiness } from './tools/check-merge-readiness/handler.js';
-import { handleGetReviewSuggestions } from './tools/get-review-suggestions/handler.js';
 import { handleRebaseAfterSquashMerge } from './tools/rebase-after-squash-merge/handler.js';
 import { handleResolveReviewThread } from './tools/resolve-review-thread/handler.js';
 import { handleGitHubError } from './github/errors.js';
@@ -182,36 +181,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         readOnlyHint: true
       },
       {
-        name: 'get_review_suggestions',
-        description: 'Get AI-optimized review context and suggestions',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            pr: {
-              type: 'string',
-              description: 'PR identifier (owner/repo#123)'
-            },
-            focus_areas: {
-              type: 'array',
-              description: 'Specific areas to focus on (e.g., security, performance)',
-              items: { type: 'string' }
-            },
-            include_diff: {
-              type: 'boolean',
-              description: 'Include code diffs (default: true)',
-              default: true
-            },
-            max_diff_lines: {
-              type: 'number',
-              description: 'Maximum diff lines to include (default: 500)',
-              default: 500
-            }
-          },
-          required: ['pr']
-        },
-        readOnlyHint: true
-      },
-      {
         name: 'rebase_after_squash_merge',
         description: 'Generate rebase commands after upstream PR was squash-merged, using --onto strategy',
         inputSchema: {
@@ -344,22 +313,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           pr: PRIdentifierStringSchema
         }).parse(args);
         const result = await handleCheckMergeReadiness(githubClient, input);
-        return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(result, null, 2)
-          }]
-        };
-      }
-      
-      case 'get_review_suggestions': {
-        const input = z.object({ 
-          pr: PRIdentifierStringSchema,
-          focus_areas: z.array(z.string()).optional(),
-          include_diff: z.boolean().default(true),
-          max_diff_lines: z.number().default(500)
-        }).parse(args);
-        const result = await handleGetReviewSuggestions(githubClient, input);
         return {
           content: [{
             type: 'text',
