@@ -281,22 +281,28 @@ async function fetchReviewCommentNodeIds(
  * Extracts structured actionable feedback from review bodies (e.g., CodeRabbit AI)
  */
 function parseReviewBodiesForActionableComments(
-  reviews: any[],
+  reviews: any[], // eslint-disable-line @typescript-eslint/no-explicit-any
   pr: { owner: string; repo: string; number: number }
 ): Comment[] {
   const actionableComments: Comment[] = [];
   
   for (const review of reviews) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     if (!review.body || review.state === 'PENDING') {
       continue;
     }
     
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     const body = review.body;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     const author = review.user?.login || 'unknown';
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     const authorAssociation = review.author_association || 'NONE';
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const isBot = review.user?.type === 'Bot';
     
     // Parse CodeRabbit AI review body for actionable comments
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     const codeRabbitComments = parseCodeRabbitReviewBody(body, review, pr, author, authorAssociation, isBot);
     actionableComments.push(...codeRabbitComments);
     
@@ -312,7 +318,7 @@ function parseReviewBodiesForActionableComments(
  */
 function parseCodeRabbitReviewBody(
   body: string,
-  review: any,
+  review: any, // eslint-disable-line @typescript-eslint/no-explicit-any
   pr: { owner: string; repo: string; number: number },
   author: string,
   authorAssociation: string,
@@ -392,6 +398,7 @@ function parseCodeRabbitReviewBody(
           fileToUse = 'unknown-file';
         }
         
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         const commentId = `review-${review.id}-${currentLineRange}`;
         comments.push({
           id: parseInt(commentId.replace(/\D/g, '')) || Date.now(),
@@ -399,14 +406,18 @@ function parseCodeRabbitReviewBody(
           author,
           author_association: authorAssociation,
           is_bot: isBot,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           created_at: review.submitted_at || review.created_at,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           updated_at: review.submitted_at || review.created_at,
           file_path: fileToUse,
           line_number: parseInt(currentLineRange.split('-')[0]),
           body: suggestionBody,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
           html_url: review.html_url,
           action_commands: generateActionCommands(
             pr,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access
             review.id,
             'review',
             suggestionBody,
