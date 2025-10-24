@@ -6,11 +6,11 @@ import { GitHubClient } from '../../src/github/client.js';
  * Provides realistic GitHub API interactions without network calls
  */
 export class E2ETestSetup {
-  private fixtureClient: typeof fixtures;
+  private fixtureClient: typeof fixtures.default;
   
   constructor() {
     // Use recorded fixtures for realistic API responses
-    this.fixtureClient = fixtures;
+    this.fixtureClient = fixtures.default;
   }
   
   /**
@@ -20,7 +20,7 @@ export class E2ETestSetup {
    */
   setupPRScenario(scenario: string) {
     const fixture = this.fixtureClient.get(scenario);
-    const mockOctokit = fixture.mock();
+    const mockOctokit = this.fixtureClient.mock(fixture);
     
     return {
       client: new GitHubClient(undefined, mockOctokit),
