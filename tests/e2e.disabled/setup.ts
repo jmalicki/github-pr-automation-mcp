@@ -26,22 +26,45 @@ export class E2ETestSetup {
     
     const fixture = this.fixtureClient.get(scenarioToUse);
     
-    // Create a mock Octokit that returns fixture data
+    // Helper function to create paginated response with proper Link headers
+    const createPaginatedResponse = (data: any[], page: number = 1, per_page: number = 10) => {
+      const startIndex = (page - 1) * per_page;
+      const endIndex = startIndex + per_page;
+      const paginatedData = data.slice(startIndex, endIndex);
+      const hasNextPage = endIndex < data.length;
+      
+      const linkHeader = hasNextPage 
+        ? `<https://api.github.com/repos/owner/repo/issues?page=${page + 1}&per_page=${per_page}>; rel="next"`
+        : '';
+      
+      return {
+        data: paginatedData,
+        headers: { link: linkHeader }
+      };
+    };
+    
+    // Create a mock Octokit that properly handles pagination
     const mockOctokit = {
       issues: {
-        listComments: vi.fn().mockResolvedValue({
-          data: fixture[0]?.response || [],
-          headers: { link: '' }
+        listComments: vi.fn().mockImplementation((params: any) => {
+          const page = params?.page || 1;
+          const per_page = params?.per_page || 10;
+          const fixtureData = fixture[0]?.response || [];
+          return Promise.resolve(createPaginatedResponse(fixtureData, page, per_page));
         }),
-        listForRepo: vi.fn().mockResolvedValue({
-          data: fixture[0]?.response || [],
-          headers: { link: '' }
+        listForRepo: vi.fn().mockImplementation((params: any) => {
+          const page = params?.page || 1;
+          const per_page = params?.per_page || 10;
+          const fixtureData = fixture[0]?.response || [];
+          return Promise.resolve(createPaginatedResponse(fixtureData, page, per_page));
         })
       },
       pulls: {
-        listReviewComments: vi.fn().mockResolvedValue({
-          data: fixture[0]?.response || [],
-          headers: { link: '' }
+        listReviewComments: vi.fn().mockImplementation((params: any) => {
+          const page = params?.page || 1;
+          const per_page = params?.per_page || 10;
+          const fixtureData = fixture[0]?.response || [];
+          return Promise.resolve(createPaginatedResponse(fixtureData, page, per_page));
         }),
         get: vi.fn().mockResolvedValue({
           data: {
@@ -54,10 +77,16 @@ export class E2ETestSetup {
         })
       },
       checks: {
-        listForRef: vi.fn().mockResolvedValue({
-          data: {
-            check_runs: fixture[0]?.response || []
-          }
+        listForRef: vi.fn().mockImplementation((params: any) => {
+          const page = params?.page || 1;
+          const per_page = params?.per_page || 10;
+          const fixtureData = fixture[0]?.response || [];
+          return Promise.resolve({
+            data: {
+              check_runs: createPaginatedResponse(fixtureData, page, per_page).data
+            },
+            headers: createPaginatedResponse(fixtureData, page, per_page).headers
+          });
         })
       },
       graphql: vi.fn().mockResolvedValue({
