@@ -368,12 +368,10 @@ describe('MCP Server', () => {
       expect(apiDesignContent).toContain('```typescript');
     }
     
-    // KNOWN BUG: Pagination parameter mismatch between MCP server and handlers
-    // - MCP server (src/index.ts) uses page/page_size parameters
-    // - Handlers (src/tools/*/handler.ts) use cursor parameter
-    // - Schema files use cursor parameter (correct)
-    // - Documentation uses cursor parameter (correct)
-    // TODO: Fix MCP server to use cursor-based pagination instead of page/page_size
+    // Verify cursor-based pagination is used consistently
+    expect(apiDesignContent).toContain('cursor?: string;');
+    expect(apiDesignContent).not.toContain('page?: number;');
+    expect(apiDesignContent).not.toContain('page_size?: number;');
     
     // Verify resolve_review_thread has special documentation
     expect(apiDesignContent).toContain('ResolveReviewThreadInput');

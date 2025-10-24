@@ -41,7 +41,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: 'get_failing_tests',
-        description: 'Analyze PR CI failures and provide targeted fix instructions. 💾 Preference hints: bail_on_first, page_size',
+        description: 'Analyze PR CI failures and provide targeted fix instructions. 💾 Preference hints: bail_on_first',
         inputSchema: {
           type: 'object',
           properties: {
@@ -59,15 +59,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: '💾 Stop at first failure when waiting (default: true). User preference: fast feedback vs complete results',
               default: true
             },
-            page: {
-              type: 'number',
-              description: 'Page number (default: 1)',
-              default: 1
-            },
-            page_size: {
-              type: 'number',
-              description: '💾 Results per page (default: 10, max: 50). User preference: power users often prefer 20-50',
-              default: 10
+            cursor: {
+              type: 'string',
+              description: 'MCP cursor for pagination (optional)'
             }
           },
           required: ['pr']
@@ -75,7 +69,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: 'find_unresolved_comments',
-        description: 'Find unresolved PR comments. Returns raw data for LLM analysis. 💾 Preference hints: include_bots, sort, page_size',
+        description: 'Find unresolved PR comments. Returns raw data for LLM analysis. 💾 Preference hints: include_bots, sort',
         inputSchema: {
           type: 'object',
           properties: {
@@ -93,15 +87,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: 'Specific authors to exclude (optional)',
               items: { type: 'string' }
             },
-            page: {
-              type: 'number',
-              description: 'Page number (default: 1)',
-              default: 1
-            },
-            page_size: {
-              type: 'number',
-              description: '💾 Results per page (default: 20, max: 100). User preference',
-              default: 20
+            cursor: {
+              type: 'string',
+              description: 'MCP cursor for pagination (optional)'
             },
             sort: {
               type: 'string',
@@ -145,15 +133,9 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
               description: 'Max fix iterations (default: 3)',
               default: 3
             },
-            page: {
-              type: 'number',
-              description: 'Command page (default: 1)',
-              default: 1
-            },
-            page_size: {
-              type: 'number',
-              description: 'Commands per page (default: 5, max: 20)',
-              default: 5
+            cursor: {
+              type: 'string',
+              description: 'MCP cursor for pagination (optional)'
             }
           },
           required: ['base_pr', 'dependent_pr']

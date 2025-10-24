@@ -17,11 +17,8 @@ export async function handleFindUnresolvedComments(
   const pr = parsePRIdentifier(input.pr);
   const octokit = client.getOctokit();
   
-  // Convert page-based pagination to GitHub pagination parameters
-  const githubPagination = {
-    page: input.page || 1,
-    per_page: input.page_size || 20
-  };
+  // Convert cursor to GitHub pagination parameters
+  const githubPagination = cursorToGitHubPagination(input.cursor, 20);
   
   // Fetch review comments with server-side pagination
   const reviewCommentsResponse = await octokit.pulls.listReviewComments({

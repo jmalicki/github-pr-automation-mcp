@@ -255,12 +255,10 @@ describe('CLI: Schema Default Behavior', () => {
         // Verify .default() is used for optional fields
         expect(content).toContain('.default(');
         
-        // KNOWN BUG: Pagination parameter mismatch
-        // - Schema files use cursor parameter (correct)
-        // - MCP server uses page/page_size parameters (incorrect)
-        // TODO: Fix MCP server to use cursor-based pagination
+        // Verify cursor-based pagination is used consistently
         expect(content).toMatch(/cursor.*optional/);
         expect(content).not.toContain('page_size');
+        expect(content).not.toContain('page.*default');
       }
     });
   });
