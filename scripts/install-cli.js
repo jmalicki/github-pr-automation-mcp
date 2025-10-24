@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execSync } from 'child_process';
-import { existsSync, mkdirSync, copyFileSync, chmodSync } from 'fs';
+import { existsSync, mkdirSync, copyFileSync, chmodSync, cpSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 
@@ -35,7 +35,7 @@ async function installToLocalBin() {
   
   try {
     // Copy dist directory
-    execSync(`cp -r dist ${standaloneDir}/`, { stdio: 'inherit' });
+    cpSync('dist', join(standaloneDir, 'dist'), { recursive: true });
     
     // Create a minimal package.json for standalone installation
     const minimalPackageJson = {
@@ -58,7 +58,7 @@ async function installToLocalBin() {
     
     // Install dependencies in standalone directory
     console.log('📦 Installing dependencies...');
-    execSync(`cd ${standaloneDir} && npm install --production --no-optional`, { stdio: 'inherit' });
+    execSync('npm install --production --no-optional', { stdio: 'inherit', cwd: standaloneDir });
     
     // Create wrapper script that runs from standalone directory
     const wrapperScript = `#!/usr/bin/env node
@@ -78,7 +78,7 @@ const result = spawn('node', [cliPath, ...process.argv.slice(2)], {
 });
 
 result.on('exit', (code) => {
-  process.exit(code);
+  process.exit(code || 0);
 });
 
 result.on('error', (error) => {
@@ -90,7 +90,7 @@ result.on('error', (error) => {
     // Write wrapper script
     console.log(`Installing CLI to: ${targetPath}`);
     fs.writeFileSync(targetPath, wrapperScript);
-    chmodSync(targetPath, '755');
+    chmodSync(targetPath, 0o755);
     
     console.log('✅ CLI installed successfully!');
     console.log(`📁 CLI Location: ${targetPath}`);

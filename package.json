@@ -28,7 +28,7 @@
     "install:cli:npm-link": "node scripts/install-cli.js npm-link",
     "install:cli:local": "node scripts/install-cli.js local-bin",
     "install:cli:global": "node scripts/install-cli.js global",
-    "uninstall:local": "rm -f ~/.local/bin/github-pr-automation",
+    "uninstall:local": "node -e \"const fs=require('fs');const path=require('path');const f=path.join(require('os').homedir(),'.local','bin','github-pr-automation');try{fs.unlinkSync(f);console.log('✅ Uninstalled')}catch(e){console.log('ℹ️ Not installed')}\"",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "type-check": "tsc --noEmit",
