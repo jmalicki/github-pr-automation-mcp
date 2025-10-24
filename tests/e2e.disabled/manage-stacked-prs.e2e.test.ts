@@ -8,7 +8,7 @@ describe('manage-stacked-prs E2E', () => {
   // Test: Complete stacked PR analysis with real GitHub data
   // Requirement: manage_stacked_prs - End-to-end stack analysis
   it('[fast] should analyze stacked PRs with realistic GitHub data', async () => {
-    const { client } = setup.setupPRScenario('api.github.com/pulls-get');
+    const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
     
     const result = await handleManageStackedPRs(client, {
       pr: 'owner/repo#123',
@@ -25,7 +25,7 @@ describe('manage-stacked-prs E2E', () => {
   // Test: Stack validation with real GitHub PR relationships
   // Requirement: manage_stacked_prs - Stack validation
   it('[fast] should validate PR relationships using real GitHub data', async () => {
-    const { client } = setup.setupPRScenario('api.github.com/pulls-get');
+    const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
     
     const result = await handleManageStackedPRs(client, {
       pr: 'owner/repo#123',
@@ -42,7 +42,7 @@ describe('manage-stacked-prs E2E', () => {
   // Test: Command generation with realistic scenarios
   // Requirement: manage_stacked_prs - Command generation
   it('[fast] should generate commands for realistic PR scenarios', async () => {
-    const { client } = setup.setupPRScenario('api.github.com/pulls-get');
+    const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
     
     const result = await handleManageStackedPRs(client, {
       pr: 'owner/repo#123',
@@ -64,7 +64,7 @@ describe('manage-stacked-prs E2E', () => {
   // Test: Complete workflow with multiple PR scenarios
   // Requirement: manage_stacked_prs - Complete workflow
   it('[slow] should handle complete stacked PR management workflow', async () => {
-    const { client } = setup.setupPRScenario('api.github.com/pulls-get');
+    const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
     
     // Test different PR scenarios
     const scenarios = [
@@ -86,7 +86,7 @@ describe('manage-stacked-prs E2E', () => {
   // Test: Risk assessment with real GitHub data
   // Requirement: manage_stacked_prs - Risk assessment
   it('[fast] should assess risks using realistic GitHub PR data', async () => {
-    const { client } = setup.setupPRScenario('api.github.com/pulls-get');
+    const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
     
     const result = await handleManageStackedPRs(client, {
       pr: 'owner/repo#123',

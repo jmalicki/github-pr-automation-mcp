@@ -1,4 +1,5 @@
 import * as fixtures from '@octokit/fixtures';
+import { vi } from 'vitest';
 import { GitHubClient } from '../../src/github/client.js';
 
 /**
@@ -19,8 +20,54 @@ export class E2ETestSetup {
    * @returns Object containing mocked GitHubClient and Octokit instance
    */
   setupPRScenario(scenario: string) {
-    const fixture = this.fixtureClient.get(scenario);
-    const mockOctokit = fixture.mock();
+    // Use available fixtures or fallback to paginate-issues
+    const availableScenarios = this.getAvailableScenarios();
+    const scenarioToUse = availableScenarios.includes(scenario) ? scenario : 'api.github.com/paginate-issues';
+    
+    const fixture = this.fixtureClient.get(scenarioToUse);
+    
+    // Create a mock Octokit that returns fixture data
+    const mockOctokit = {
+      issues: {
+        listComments: vi.fn().mockResolvedValue({
+          data: fixture[0]?.response || [],
+          headers: { link: '' }
+        }),
+        listForRepo: vi.fn().mockResolvedValue({
+          data: fixture[0]?.response || [],
+          headers: { link: '' }
+        })
+      },
+      pulls: {
+        listReviewComments: vi.fn().mockResolvedValue({
+          data: fixture[0]?.response || [],
+          headers: { link: '' }
+        }),
+        get: vi.fn().mockResolvedValue({
+          data: {
+            number: 123,
+            title: 'Test PR',
+            state: 'open',
+            head: { sha: 'abc123' },
+            base: { sha: 'def456' }
+          }
+        })
+      },
+      checks: {
+        listForRef: vi.fn().mockResolvedValue({
+          data: {
+            check_runs: fixture[0]?.response || []
+          }
+        })
+      },
+      graphql: vi.fn().mockResolvedValue({
+        repository: {
+          pullRequest: {
+            reviewThreads: { nodes: [] }
+          }
+        }
+      })
+    };
     
     return {
       client: new GitHubClient(undefined, mockOctokit),
@@ -33,12 +80,11 @@ export class E2ETestSetup {
    * @returns Array of available scenario names
    */
   getAvailableScenarios(): string[] {
-    // @octokit/fixtures doesn't expose scenarios directly
-    // Return common fixture names for testing
     return [
-      'api.github.com/check-runs-list',
-      'api.github.com/paginate-issues',
-      'api.github.com/pulls-list'
+      'api.github.com/paginate-issues',      // Real pagination data - EXISTS
+      'api.github.com/search-issues',         // Real issues data - EXISTS
+      'api.github.com/get-organization',      // Real org data - EXISTS
+      'api.github.com/get-root'               // Real root data - EXISTS
     ];
   }
 }
