@@ -21,47 +21,9 @@ The testing strategy is designed to ensure reliability, correctness, and maintai
 - Fast execution (<1s for entire suite)
 - High coverage target: >90%
 - Linked to requirements with comments (per user preference)
+- **Run in CI**: ✅ Yes
 
-**Example**:
-```typescript
-// tests/utils/parser.test.ts
-
-import { parsePRIdentifier } from '../../src/utils/parser';
-
-describe('parsePRIdentifier', () => {
-  // Test: Validates that PR identifier parsing handles standard format
-  // Requirement: API Design - PR Identifier Parsing
-  it('should parse standard format "owner/repo#123"', () => {
-    const result = parsePRIdentifier('octocat/hello-world#42');
-    
-    expect(result).toEqual({
-      owner: 'octocat',
-      repo: 'hello-world',
-      number: 42
-    });
-  });
-  
-  // Test: Validates that PR identifier parsing handles URL format
-  // Requirement: API Design - PR Identifier Parsing (multiple formats)
-  it('should parse GitHub URL format', () => {
-    const result = parsePRIdentifier(
-      'https://github.com/octocat/hello-world/pull/42'
-    );
-    
-    expect(result).toEqual({
-      owner: 'octocat',
-      repo: 'hello-world',
-      number: 42
-    });
-  });
-  
-  // Test: Validates error handling for invalid PR identifiers
-  // Requirement: Error Handling - User Input Errors
-  it('should throw error for invalid format', () => {
-    expect(() => parsePRIdentifier('invalid')).toThrow();
-  });
-});
-```
+**Example**: Test PR identifier parsing with standard format, URL format, and error handling scenarios.
 
 ### 2. Integration Tests
 **Purpose**: Test interactions between components with mocked external services
@@ -78,125 +40,30 @@ describe('parsePRIdentifier', () => {
 - Test error scenarios
 - Validate data flow through layers
 - Execution time <10s for suite
+- **Run in CI**: ✅ Yes
 
-**Example**:
-```typescript
-// tests/tools/get-failing-tests.integration.test.ts
+**Example**: Test CI failure detection, wait modes, pagination, and error scenarios with mocked GitHub responses.
 
-import { handleGetFailingTests } from '../../src/tools/get-failing-tests/handler';
-import { MockGitHubClient } from '../mocks/github-client';
-import { loadFixture } from '../fixtures/loader';
-
-describe('get_failing_tests integration', () => {
-  let mockClient: MockGitHubClient;
-  
-  beforeEach(() => {
-    mockClient = new MockGitHubClient();
-  });
-  
-  // Test: Validates that get_failing_tests returns failing tests when CI has failures
-  // Requirement: get_failing_tests tool - Immediate mode with failures
-  it('should return failing tests when CI has completed with failures', async () => {
-    // Setup mock responses
-    mockClient.mockPullRequest(loadFixture('pr-with-failures.json'));
-    mockClient.mockCheckRuns(loadFixture('check-runs-failed.json'));
-    mockClient.mockWorkflowLogs(loadFixture('pytest-failures.log'));
-    
-    const result = await handleGetFailingTests({
-      pr: 'octocat/hello-world#123',
-      wait: false,
-      page: 1,
-      page_size: 10
-    });
-    
-    expect(result.status).toBe('failed');
-    expect(result.failures).toHaveLength(3);
-    expect(result.failures[0].test_name).toBe('test_authentication.py::test_login');
-    expect(result.instructions.summary).toContain('3 tests failed');
-  });
-  
-  // Test: Validates wait mode with bail_on_first option
-  // Requirement: get_failing_tests - Wait mode with bail_on_first
-  it('should bail on first failure when wait=true and bail_on_first=true', async () => {
-    mockClient.mockPullRequest(loadFixture('pr-ci-running.json'));
-    
-    // Simulate CI progression
-    mockClient.mockCheckRunsSequence([
-      loadFixture('check-runs-running.json'),
-      loadFixture('check-runs-first-failure.json')
-    ]);
-    
-    const result = await handleGetFailingTests({
-      pr: 'octocat/hello-world#123',
-      wait: true,
-      bail_on_first: true
-    });
-    
-    expect(result.status).toBe('failed');
-    expect(result.failures).toHaveLength(1);
-    // Should not wait for other tests to complete
-  });
-  
-  // Test: Validates pagination of test failures
-  // Requirement: get_failing_tests - Pagination support
-  it('should paginate test failures correctly', async () => {
-    mockClient.mockPullRequest(loadFixture('pr-with-many-failures.json'));
-    mockClient.mockCheckRuns(loadFixture('check-runs-50-failures.json'));
-    
-    const page1 = await handleGetFailingTests({
-      pr: 'octocat/hello-world#123',
-      page: 1,
-      page_size: 10
-    });
-    
-    expect(page1.failures).toHaveLength(10);
-    expect(page1.pagination.total_items).toBe(50);
-    expect(page1.pagination.total_pages).toBe(5);
-    expect(page1.pagination.has_next).toBe(true);
-    
-    const page2 = await handleGetFailingTests({
-      pr: 'octocat/hello-world#123',
-      page: 2,
-      page_size: 10
-    });
-    
-    expect(page2.failures).toHaveLength(10);
-    expect(page2.pagination.has_previous).toBe(true);
-  });
-});
-```
-
-### 3. E2E Tests (Optional)
-**Purpose**: Test against real GitHub API with test repository
+### 3. E2E Tests (Recorded Fixtures)
+**Purpose**: Test complete workflows with realistic GitHub API data using recorded fixtures
 
 **Scope**:
 - Complete workflows from input to output
-- Real GitHub API interactions
-- Rate limiting behavior
-- Error handling with real API errors
+- Realistic GitHub API interactions (recorded)
+- Rate limiting behavior simulation
+- Error handling with real API error structures
+- Multi-step tool interactions
+- Pagination across large datasets
 
 **Requirements**:
-- Separate test repository
-- Run only on demand (not in CI)
-- Clean up resources after tests
-- Document setup requirements
+- Use `@octokit/fixtures` for recorded API interactions
+- Run in CI (no real API calls)
+- High-fidelity test data from real GitHub scenarios
+- Comprehensive coverage of tool workflows
 
-**Setup**:
-```typescript
-// tests/e2e/setup.ts
+**Setup**: Use `@octokit/fixtures` to provide realistic GitHub API responses without network calls.
 
-// Requires:
-// - GITHUB_TOKEN_TEST environment variable
-// - Test repository: github.com/resolve-pr-mcp/test-repo
-// - Permissions to create PRs, trigger workflows
-
-export const E2E_CONFIG = {
-  owner: 'resolve-pr-mcp',
-  repo: 'test-repo',
-  token: process.env.GITHUB_TOKEN_TEST,
-  enabled: process.env.RUN_E2E_TESTS === 'true'
-};
-```
+**Example**: Test complete pagination workflows, CI failure analysis, and multi-step tool interactions with recorded real GitHub data.
 
 ### 4. CLI Tests
 **Purpose**: Test CLI mode functionality
@@ -207,53 +74,13 @@ export const E2E_CONFIG = {
 - Error messages and exit codes
 - Shell integration
 
-**Example**:
-```typescript
-// tests/cli/commands.test.ts
+**Requirements**:
+- Test CLI interface without external dependencies
+- Validate argument parsing and validation
+- Test output formatting for both JSON and human-readable modes
+- **Run in CI**: ✅ Yes
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
-
-const execAsync = promisify(exec);
-
-describe('CLI get-failing-tests command', () => {
-  // Test: CLI properly parses arguments
-  // Requirement: CLI Mode - Argument parsing
-  it('should parse command-line arguments correctly', async () => {
-    const { stdout } = await execAsync(
-      'node dist/cli.js get-failing-tests --pr "owner/repo#123" --json'
-    );
-    
-    const result = JSON.parse(stdout);
-    expect(result).toHaveProperty('status');
-    expect(result).toHaveProperty('failures');
-  });
-  
-  // Test: CLI returns proper exit codes
-  // Requirement: CLI Mode - Error handling
-  it('should exit with code 1 on error', async () => {
-    try {
-      await execAsync('node dist/cli.js get-failing-tests --pr "invalid"');
-      fail('Should have thrown');
-    } catch (error) {
-      expect(error.code).toBe(1);
-      expect(error.stderr).toContain('Invalid PR format');
-    }
-  });
-  
-  // Test: CLI formats human-readable output
-  // Requirement: CLI Mode - Output formatting
-  it('should format output for human consumption', async () => {
-    const { stdout } = await execAsync(
-      'node dist/cli.js get-failing-tests --pr "owner/repo#123"'
-    );
-    
-    expect(stdout).toMatch(/Status:/);
-    expect(stdout).toMatch(/Failures:/);
-    expect(stdout).not.toContain('{'); // Not JSON
-  });
-});
-```
+**Example**: Test argument parsing, output formatting (JSON vs human-readable), error handling, and exit codes.
 
 ### 5. Snapshot Tests
 **Purpose**: Ensure consistent output formats for AI consumption
@@ -264,54 +91,64 @@ describe('CLI get-failing-tests command', () => {
 - Command generation
 - Error messages
 
-**Example**:
-```typescript
-// tests/snapshots/instructions.test.ts
-
-import { generateInstructions } from '../../src/tools/get-failing-tests/instructions';
-
-describe('instruction generation snapshots', () => {
-  // Test: Ensures instruction format remains consistent for AI parsing
-  // Requirement: Architecture - Token Efficiency
-  it('should generate consistent instruction format', () => {
-    const failures = loadFixture('sample-failures.json');
-    const instructions = generateInstructions(failures);
-    
-    expect(instructions).toMatchSnapshot();
-  });
-});
-```
+**Example**: Test instruction generation, command output, and error message formats for consistency.
 
 ---
 
 ## Test Fixtures
+
+### Fixture Strategy
+
+**Hybrid Approach**:
+- **Unit/Integration Tests**: Hand-built mocks for focused, fast tests
+- **E2E Tests**: Recorded Octokit fixtures for realistic, comprehensive scenarios
+
+### Recording Custom Fixtures
+
+**Purpose**: Capture real GitHub API interactions for high-fidelity E2E testing
+
+**Process**:
+1. **Record Real Interactions**: Use `@octokit/fixtures` to capture actual API calls
+2. **Anonymize Data**: Remove sensitive information while preserving structure
+3. **Create Scenarios**: Build comprehensive test scenarios from recorded data
+4. **Version Control**: Store fixtures in repository for consistent testing
+
+**Process**: Use `@octokit/fixtures` to record real API interactions, anonymize data, and save as version-controlled fixtures.
 
 ### Fixture Organization
 
 ```
 tests/
 ├── fixtures/
-│   ├── pull-requests/
-│   │   ├── pr-simple.json
-│   │   ├── pr-with-failures.json
-│   │   ├── pr-stacked.json
-│   │   └── pr-draft.json
-│   ├── check-runs/
-│   │   ├── check-runs-passing.json
-│   │   ├── check-runs-failed.json
-│   │   └── check-runs-pending.json
-│   ├── logs/
-│   │   ├── pytest-failures.log
-│   │   ├── jest-failures.log
-│   │   ├── go-test-failures.log
-│   │   └── rspec-failures.log
-│   ├── comments/
-│   │   ├── unresolved-comments.json
-│   │   ├── bot-comments.json
-│   │   └── resolved-threads.json
-│   └── workflows/
-│       ├── workflow-run-success.json
-│       └── workflow-run-failed.json
+│   ├── recorded/                    # E2E fixtures (recorded from real API)
+│   │   ├── pr-19-workflow.json     # Complete PR workflow
+│   │   ├── large-pr-pagination.json # Multi-page comment pagination
+│   │   ├── ci-failure-scenario.json # Real CI failure data
+│   │   └── merge-conflict-data.json # Real merge conflict scenario
+│   ├── unit/                       # Unit test fixtures (hand-built)
+│   │   ├── pull-requests/
+│   │   │   ├── pr-simple.json
+│   │   │   ├── pr-with-failures.json
+│   │   │   ├── pr-stacked.json
+│   │   │   └── pr-draft.json
+│   │   ├── check-runs/
+│   │   │   ├── check-runs-passing.json
+│   │   │   ├── check-runs-failed.json
+│   │   │   └── check-runs-pending.json
+│   │   ├── logs/
+│   │   │   ├── pytest-failures.log
+│   │   │   ├── jest-failures.log
+│   │   │   ├── go-test-failures.log
+│   │   │   └── rspec-failures.log
+│   │   ├── comments/
+│   │   │   ├── unresolved-comments.json
+│   │   │   ├── bot-comments.json
+│   │   │   └── resolved-threads.json
+│   │   └── workflows/
+│   │       ├── workflow-run-success.json
+│   │       └── workflow-run-failed.json
+│   └── custom-scenarios/           # Custom Octokit fixtures
+│       └── pr-data.json           # Custom PR scenario
 ```
 
 ### Fixture Creation Guidelines
@@ -321,155 +158,15 @@ tests/
 3. **Comprehensive**: Cover edge cases and error scenarios
 4. **Documented**: Include comments explaining the scenario
 
-**Example Fixture**:
-```json
-// tests/fixtures/pull-requests/pr-with-failures.json
-{
-  "_comment": "PR with failing CI checks - represents common failure scenario",
-  "number": 123,
-  "title": "Add user authentication",
-  "state": "open",
-  "draft": false,
-  "head": {
-    "ref": "feature/auth",
-    "sha": "abc123def456"
-  },
-  "base": {
-    "ref": "main",
-    "sha": "def456abc123"
-  },
-  "user": {
-    "login": "contributor",
-    "type": "User"
-  },
-  "mergeable": true,
-  "mergeable_state": "unstable"
-}
-```
+**Guidelines**: Create fixtures from real GitHub API responses, anonymize sensitive data, document scenarios, and maintain comprehensive coverage of edge cases.
 
 ---
 
 ## Mock Implementations
 
-### GitHub Client Mock
+**GitHub Client Mock**: Simulate API responses without network calls, support sequential responses for polling, and include rate limiting simulation.
 
-```typescript
-// tests/mocks/github-client.ts
-
-/**
- * Mock GitHub client for testing
- * Simulates GitHub API responses without network calls
- */
-export class MockGitHubClient {
-  private responses = new Map<string, any>();
-  private callCount = new Map<string, number>();
-  
-  /**
-   * Configure mock response for a specific endpoint
-   */
-  mock(endpoint: string, response: any): void {
-    this.responses.set(endpoint, response);
-  }
-  
-  /**
-   * Get call count for an endpoint (for verification)
-   */
-  getCallCount(endpoint: string): number {
-    return this.callCount.get(endpoint) || 0;
-  }
-  
-  /**
-   * Convenience method for mocking pull request
-   */
-  mockPullRequest(data: any): void {
-    this.mock('GET /repos/:owner/:repo/pulls/:number', { data });
-  }
-  
-  /**
-   * Convenience method for mocking check runs
-   */
-  mockCheckRuns(data: any): void {
-    this.mock('GET /repos/:owner/:repo/commits/:ref/check-runs', { data });
-  }
-  
-  /**
-   * Simulate sequential responses (for polling scenarios)
-   */
-  mockSequence(endpoint: string, responses: any[]): void {
-    let callIndex = 0;
-    this.mock(endpoint, () => {
-      const response = responses[Math.min(callIndex, responses.length - 1)];
-      callIndex++;
-      return response;
-    });
-  }
-  
-  /**
-   * Simulate rate limiting
-   */
-  mockRateLimit(): void {
-    this.mock('*', {
-      status: 403,
-      headers: {
-        'x-ratelimit-remaining': '0',
-        'x-ratelimit-reset': String(Math.floor(Date.now() / 1000) + 3600)
-      }
-    });
-  }
-}
-```
-
-### Test Utilities
-
-```typescript
-// tests/utils/helpers.ts
-
-/**
- * Wait for a condition with timeout
- */
-export async function waitFor(
-  condition: () => boolean,
-  timeout: number = 5000
-): Promise<void> {
-  const startTime = Date.now();
-  
-  while (!condition()) {
-    if (Date.now() - startTime > timeout) {
-      throw new Error('Timeout waiting for condition');
-    }
-    await sleep(100);
-  }
-}
-
-/**
- * Create a test PR identifier
- */
-export function createTestPR(overrides?: Partial<PRIdentifier>): PRIdentifier {
-  return {
-    owner: 'test-owner',
-    repo: 'test-repo',
-    number: 123,
-    ...overrides
-  };
-}
-
-/**
- * Verify pagination metadata is correct
- */
-export function expectValidPagination(
-  pagination: PaginationMeta,
-  expected: Partial<PaginationMeta>
-): void {
-  expect(pagination.page).toBeGreaterThanOrEqual(1);
-  expect(pagination.page_size).toBeGreaterThanOrEqual(1);
-  expect(pagination.total_pages).toBeGreaterThanOrEqual(0);
-  expect(pagination.has_next).toBe(pagination.page < pagination.total_pages);
-  
-  if (expected) {
-    expect(pagination).toMatchObject(expected);
-  }
-}
-```
+**Test Utilities**: Helper functions for waiting, test data creation, and pagination validation.
 
 ---
 
@@ -505,35 +202,7 @@ export function expectValidPagination(
 - Jest-compatible API
 - Excellent watch mode
 
-**Configuration**:
-```typescript
-// vitest.config.ts
-import { defineConfig } from 'vitest/config';
-
-export default defineConfig({
-  test: {
-    globals: true,
-    environment: 'node',
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      exclude: [
-        'node_modules/',
-        'tests/',
-        '**/*.test.ts',
-        '**/*.d.ts'
-      ],
-      thresholds: {
-        lines: 85,
-        functions: 85,
-        branches: 80,
-        statements: 85
-      }
-    },
-    setupFiles: ['./tests/setup.ts']
-  }
-});
-```
+**Configuration**: Use Vitest with v8 coverage provider, exclude test files and node_modules, set coverage thresholds, and include setup files.
 
 ### Additional Tools
 
@@ -627,41 +296,42 @@ jobs:
       
       - run: npm run build
       
-      - run: npm test -- --coverage
+      # Run all test suites (unit, integration, E2E)
+      - name: Run tests with coverage
+        run: npm run test:coverage
       
       - name: Upload coverage
         uses: codecov/codecov-action@v3
         with:
           files: ./coverage/coverage-final.json
-      
-      - name: Check coverage thresholds
-        run: |
-          if [ $(jq '.total.lines.pct < 85' coverage/coverage-summary.json) = true ]; then
-            echo "Coverage below 85%"
-            exit 1
-          fi
 ```
+
+**Test Execution Strategy**:
+- **Unit Tests**: Fast, focused, high coverage
+- **Integration Tests**: Component interactions with mocks
+- **E2E Tests**: Complete workflows with recorded fixtures (no real API calls)
+- **All tests run in CI**: No external dependencies or API tokens required
+
+### Benefits of Recorded E2E Testing
+
+**Why This Approach Works**:
+
+1. **Realistic Data**: Recorded fixtures contain actual GitHub API response structures, ensuring tests match real-world scenarios
+2. **CI-Friendly**: No external API calls or tokens required - tests run reliably in CI
+3. **Comprehensive Coverage**: E2E tests prove complete workflows work end-to-end
+4. **Maintainable**: Fixtures are version-controlled and don't require live API access
+5. **Fast**: No network calls during test execution
+6. **Deterministic**: Consistent results across environments
+
+**Example Scenarios Covered**:
+- **Complete PR workflows** with real comment pagination
+- **CI failure analysis** with actual test output structures  
+- **Multi-step tool interactions** with realistic data flow
+- **Edge cases** captured from real GitHub scenarios
 
 ### Pre-commit Hooks
 
-```json
-// package.json
-{
-  "scripts": {
-    "test": "vitest",
-    "test:unit": "vitest run --coverage",
-    "test:watch": "vitest watch",
-    "lint": "eslint src tests",
-    "type-check": "tsc --noEmit"
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "npm run lint && npm run type-check",
-      "pre-push": "npm run test:unit"
-    }
-  }
-}
-```
+**Setup**: Configure husky hooks for pre-commit linting/type-checking and pre-push test execution.
 
 ---
 
@@ -671,93 +341,17 @@ jobs:
 
 Format: `should [expected behavior] when [condition]`
 
-```typescript
-it('should return failures when CI has completed with errors', ...);
-it('should throw error when PR identifier is invalid', ...);
-it('should paginate results when total exceeds page size', ...);
-```
-
 ### 2. Arrange-Act-Assert Pattern
 
-```typescript
-it('should categorize blocking comments correctly', () => {
-  // Arrange
-  const comment = createMockComment({
-    body: 'This must be fixed before merge'
-  });
-  
-  // Act
-  const category = categorizeComment(comment);
-  
-  // Assert
-  expect(category).toBe('blocking');
-});
-```
+Structure tests with clear setup, execution, and verification phases.
 
 ### 3. Test Data Builders
 
-```typescript
-// tests/builders/comment-builder.ts
-export class CommentBuilder {
-  private comment: Partial<Comment> = {};
-  
-  withBody(body: string): this {
-    this.comment.body = body;
-    return this;
-  }
-  
-  fromBot(botName: string = 'coderabbitai'): this {
-    this.comment.author = botName;
-    this.comment.is_bot = true;
-    return this;
-  }
-  
-  unresolved(): this {
-    this.comment.is_resolved = false;
-    return this;
-  }
-  
-  build(): Comment {
-    return {
-      id: 1,
-      type: 'review_comment',
-      author: 'user',
-      is_bot: false,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      body: 'Default comment',
-      is_resolved: false,
-      ...this.comment
-    } as Comment;
-  }
-}
-
-// Usage
-const comment = new CommentBuilder()
-  .fromBot('coderabbitai')
-  .withBody('Nit: add space here')
-  .unresolved()
-  .build();
-```
+Use builder pattern for creating complex test data with fluent interface.
 
 ### 4. Avoid Test Interdependence
 
 Each test should be independent and not rely on state from other tests.
-
-```typescript
-// ❌ Bad: Tests depend on shared state
-let sharedClient: GitHubClient;
-
-beforeAll(() => {
-  sharedClient = new GitHubClient();
-});
-
-// ✅ Good: Each test creates its own instance
-beforeEach(() => {
-  const client = new MockGitHubClient();
-  // Use client in test
-});
-```
 
 This comprehensive testing strategy ensures the MCP server is robust, reliable, and maintainable.
 
