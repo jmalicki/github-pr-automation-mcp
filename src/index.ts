@@ -250,15 +250,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             comment_id: {
               type: 'string',
-              description: 'Comment GraphQL node ID (will map to thread, required if thread_id not provided)'
+              description: 'Comment ID (GraphQL node ID or numeric REST ID; will be mapped to thread, required if thread_id not provided)'
             },
             prefer: {
               type: 'string',
               description: 'Prefer "thread" or "comment" when both are provided',
-              enum: ['thread', 'comment']
+              enum: ['thread', 'comment'],
+              default: 'thread'
             }
           },
-          required: ['pr']
+          required: ['pr'],
+          anyOf: [
+            { required: ['thread_id'] },
+            { required: ['comment_id'] }
+          ]
         },
         readOnlyHint: false,
         destructiveHint: false,
