@@ -12,7 +12,8 @@ describe('handleFindUnresolvedComments', () => {
       paginate: vi.fn(),
       graphql: vi.fn(),
       pulls: {
-        listReviewComments: vi.fn()
+        listReviewComments: vi.fn(),
+        listReviews: vi.fn()
       },
       issues: {
         listComments: vi.fn()
@@ -493,6 +494,175 @@ describe('handleFindUnresolvedComments', () => {
     expect(result.summary.bot_comments).toBe(1);
     expect(result.summary.human_comments).toBe(3);
     expect(result.summary.with_reactions).toBe(1);
+  });
+
+  it('should parse review bodies for actionable comments when parse_review_bodies is true', async () => {
+    // Mock review comments response
+    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+      data: [],
+      headers: { link: '' }
+    });
+
+    // Mock issue comments response
+    mockOctokit.issues.listComments.mockResolvedValue({
+      data: [],
+      headers: { link: '' }
+    });
+
+    // Mock reviews response with CodeRabbit AI review body
+    mockOctokit.pulls.listReviews.mockResolvedValue({
+      data: [
+        {
+          id: 123,
+          user: { login: 'coderabbitai[bot]', type: 'Bot' },
+          author_association: 'CONTRIBUTOR',
+          state: 'COMMENTED',
+          submitted_at: '2024-01-01T10:00:00Z',
+          created_at: '2024-01-01T10:00:00Z',
+          body: `**Actionable comments posted: 0**
+
+<details>
+<summary>🧹 Nitpick comments (1)</summary>
+<blockquote>
+
+<details>
+<summary>scripts/install-cli.js (1)</summary>
+<blockquote>
+
+\`36-41\`: **Consider copying the lockfile for reproducible builds.**
+
+While the current approach works, copying only \`package.json\` without the lockfile means the standalone installation might pull different dependency versions.
+
+If reproducibility is important, add lockfile copying after line 37:
+
+\`\`\`diff
+ // Copy package.json for dependencies
+ copyFileSync('package.json', join(standaloneDir, 'package.json'));
++
++// Copy lockfile for reproducible builds
++const lockFiles = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'];
++for (const lockFile of lockFiles) {
++  if (existsSync(lockFile)) {
++    copyFileSync(lockFile, join(standaloneDir, lockFile));
++    break;
++  }
++}
+\`\`\`
+
+</blockquote>
+</details>
+
+</blockquote>
+</details>`,
+          html_url: 'https://github.com/test/repo/pull/123#pullrequestreview-123'
+        }
+      ],
+      headers: { link: '' }
+    });
+
+    // Mock GraphQL response
+    mockOctokit.graphql.mockResolvedValue({
+      repository: {
+        pullRequest: {
+          reviewThreads: { nodes: [] }
+        }
+      }
+    });
+
+    const result = await handleFindUnresolvedComments(mockClient, {
+      pr: 'test/repo#123',
+      parse_review_bodies: true
+    });
+
+    expect(result.comments).toHaveLength(1);
+    expect(result.comments[0].type).toBe('review');
+    expect(result.comments[0].author).toBe('coderabbitai[bot]');
+    expect(result.comments[0].is_bot).toBe(true);
+    expect(result.comments[0].file_path).toBe('scripts/install-cli.js');
+    expect(result.comments[0].line_number).toBe(36);
+    expect(result.comments[0].body).toContain('Consider copying the lockfile for reproducible builds');
+    expect(result.comments[0].body).toContain('```diff');
+  });
+
+  it('should not parse review bodies when parse_review_bodies is false', async () => {
+    // Mock review comments response
+    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+      data: [],
+      headers: { link: '' }
+    });
+
+    // Mock issue comments response
+    mockOctokit.issues.listComments.mockResolvedValue({
+      data: [],
+      headers: { link: '' }
+    });
+
+    // Mock reviews response (should not be called)
+    mockOctokit.pulls.listReviews.mockResolvedValue({
+      data: [
+        {
+          id: 123,
+          user: { login: 'coderabbitai[bot]', type: 'Bot' },
+          author_association: 'CONTRIBUTOR',
+          state: 'COMMENTED',
+          body: 'Review body with actionable comments'
+        }
+      ],
+      headers: { link: '' }
+    });
+
+    // Mock GraphQL response
+    mockOctokit.graphql.mockResolvedValue({
+      repository: {
+        pullRequest: {
+          reviewThreads: { nodes: [] }
+        }
+      }
+    });
+
+    const result = await handleFindUnresolvedComments(mockClient, {
+      pr: 'test/repo#123',
+      parse_review_bodies: false
+    });
+
+    expect(result.comments).toHaveLength(0);
+    expect(mockOctokit.pulls.listReviews).not.toHaveBeenCalled();
+  });
+
+  it('should default parse_review_bodies to true', async () => {
+    // Mock review comments response
+    mockOctokit.pulls.listReviewComments.mockResolvedValue({
+      data: [],
+      headers: { link: '' }
+    });
+
+    // Mock issue comments response
+    mockOctokit.issues.listComments.mockResolvedValue({
+      data: [],
+      headers: { link: '' }
+    });
+
+    // Mock reviews response
+    mockOctokit.pulls.listReviews.mockResolvedValue({
+      data: [],
+      headers: { link: '' }
+    });
+
+    // Mock GraphQL response
+    mockOctokit.graphql.mockResolvedValue({
+      repository: {
+        pullRequest: {
+          reviewThreads: { nodes: [] }
+        }
+      }
+    });
+
+    const result = await handleFindUnresolvedComments(mockClient, {
+      pr: 'test/repo#123'
+      // parse_review_bodies not specified, should default to true
+    });
+
+    expect(mockOctokit.pulls.listReviews).toHaveBeenCalled();
   });
 });
 
