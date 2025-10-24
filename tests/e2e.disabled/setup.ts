@@ -125,6 +125,31 @@ export class E2ETestSetup {
             reviewThreads: { nodes: [] }
           }
         }
+      }),
+      // Add paginate stub for common client usage
+      paginate: vi.fn().mockImplementation(async (fn: any, params: any) => {
+        // Simulate pagination by calling the function with different page parameters
+        const allData: any[] = [];
+        let page = 1;
+        let hasMore = true;
+        
+        while (hasMore) {
+          const result = await fn({ ...params, page, per_page: 10 });
+          const data = result.data || result;
+          
+          if (Array.isArray(data)) {
+            allData.push(...data);
+            hasMore = data.length === 10; // Assume more pages if we got a full page
+          } else {
+            allData.push(data);
+            hasMore = false;
+          }
+          
+          page++;
+          if (page > 10) break; // Safety limit
+        }
+        
+        return allData;
       })
     };
     
