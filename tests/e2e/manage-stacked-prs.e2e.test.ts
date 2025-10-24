@@ -11,8 +11,8 @@ describe('manage-stacked-prs E2E', () => {
     const { client } = await setup.setupPRScenario('api.github.com/paginate-issues');
     
     const result = await handleManageStackedPRs(client, {
-      base_pr: 'owner/repo#122',
-      dependent_pr: 'owner/repo#123'
+      base_pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#1' : 'owner/repo#122',
+      dependent_pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123'
     });
     
     expect(result.is_stacked).toBeDefined();
@@ -28,8 +28,8 @@ describe('manage-stacked-prs E2E', () => {
     const { client } = await setup.setupPRScenario('api.github.com/paginate-issues');
     
     const result = await handleManageStackedPRs(client, {
-      base_pr: 'owner/repo#122',
-      dependent_pr: 'owner/repo#123'
+      base_pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#1' : 'owner/repo#122',
+      dependent_pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123'
     });
     
     expect(result.is_stacked).toBeDefined();
@@ -44,8 +44,8 @@ describe('manage-stacked-prs E2E', () => {
     const { client } = await setup.setupPRScenario('api.github.com/paginate-issues');
     
     const result = await handleManageStackedPRs(client, {
-      base_pr: 'owner/repo#122',
-      dependent_pr: 'owner/repo#123'
+      base_pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#1' : 'owner/repo#122',
+      dependent_pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123'
     });
     
     expect(result.commands).toBeDefined();
@@ -88,8 +88,8 @@ describe('manage-stacked-prs E2E', () => {
     const { client } = await setup.setupPRScenario('api.github.com/paginate-issues');
     
     const result = await handleManageStackedPRs(client, {
-      base_pr: 'owner/repo#122',
-      dependent_pr: 'owner/repo#123'
+      base_pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#1' : 'owner/repo#122',
+      dependent_pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123'
     });
     
     expect(result.summary).toBeDefined();

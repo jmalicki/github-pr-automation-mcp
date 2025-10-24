@@ -10,8 +10,11 @@ describe('get-failing-tests E2E', () => {
   it('[fast] should analyze real CI failures end-to-end', async () => {
     const { client } = await setup.setupPRScenario('api.github.com/paginate-issues');
     
+    // Use real PR for recording, fallback to fake for playback
+    const testPR = setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123';
+    
     const result = await handleGetFailingTests(client, {
-      pr: 'owner/repo#123',
+      pr: testPR,
       wait: false
     });
     
@@ -82,8 +85,8 @@ describe('get-failing-tests E2E', () => {
     ];
     
     for (const scenario of scenarios) {
-      const result = await handleGetFailingTests(client, {
-        pr: 'owner/repo#123',
+    const result = await handleGetFailingTests(client, {
+      pr: testPR,
         ...scenario
       });
       
