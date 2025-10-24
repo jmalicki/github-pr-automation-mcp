@@ -17,7 +17,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Fetch full history for better security analysis
+          fetch-depth: 1  # Shallow clone sufficient for security checks
           
       - name: Setup Node.js
         uses: actions/setup-node@v4
