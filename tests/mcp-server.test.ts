@@ -236,6 +236,7 @@ describe('MCP Server', () => {
     expect(cliContent).toContain('handleManageStackedPRs');
     expect(cliContent).toContain('handleResolveReviewThread');
   });
+<<<<<<< HEAD
 
   it('should have API_DESIGN.md in sync with MCP server implementation', async () => {
     // Read the API design documentation
@@ -268,7 +269,8 @@ describe('MCP Server', () => {
     // Verify that documented tools have proper structure
     for (const tool of documentedTools) {
       // Check for required sections
-      expect(apiDesignContent).toMatch(new RegExp(`### \\d+\\. ${tool}`, 'g'));
+      const escapedTool = tool.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      expect(apiDesignContent).toMatch(new RegExp(`### \\d+\\. ${escapedTool}`, 'g'));
       expect(apiDesignContent).toContain('**Purpose**:');
       expect(apiDesignContent).toContain('**Input Schema**:');
       expect(apiDesignContent).toContain('**Output Schema**:');
@@ -423,4 +425,6 @@ describe('MCP Server', () => {
       }
     }
   });
+=======
+>>>>>>> bd11afe (test: add comprehensive MCP tool tests)
 });
