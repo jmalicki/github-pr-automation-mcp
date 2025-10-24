@@ -86,7 +86,7 @@ describe('get-failing-tests E2E', () => {
     
     for (const scenario of scenarios) {
     const result = await handleGetFailingTests(client, {
-      pr: testPR,
+      pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123',
         ...scenario
       });
       

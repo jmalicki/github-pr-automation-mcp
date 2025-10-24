@@ -45,7 +45,19 @@ export class E2ETestSetup {
       };
     }
     
-    // Fall back to @octokit/fixtures scenarios
+    // For mock mode, create a simple mock that doesn't make real API calls
+    if (!this.isRecordMode && !this.isPlaybackMode) {
+      console.log(`✓ Using simple mock for: ${scenario}`);
+      const mockOctokit = this.createMockOctokit();
+      return {
+        client: new GitHubClient(undefined, mockOctokit),
+        octokit: mockOctokit,
+        mock: null,
+        isRecorded: false
+      };
+    }
+    
+    // Fall back to @octokit/fixtures scenarios (for record mode)
     console.log(`✓ Using @octokit/fixtures scenario: ${scenario}`);
     const octokitFixture = this.fixtureClient.get(scenario);
     
@@ -140,5 +152,91 @@ export class E2ETestSetup {
    */
   isPlayingBack(): boolean {
     return this.isPlaybackMode;
+  }
+
+  /**
+   * Create a simple mock Octokit instance for testing
+   */
+  private createMockOctokit(): any {
+    return {
+      pulls: {
+        get: async () => ({
+          data: {
+            id: 123,
+            number: 123,
+            title: 'Test PR',
+            head: { sha: 'abc123' },
+            base: { sha: 'def456' }
+          }
+        }),
+        listReviewComments: async () => ({
+          data: [
+            {
+              id: 1,
+              body: 'Test comment',
+              user: { login: 'testuser', type: 'User' },
+              created_at: '2023-01-01T00:00:00Z'
+            }
+          ],
+          headers: { link: null }
+        })
+      },
+      issues: {
+        listComments: async () => ({
+          data: [
+            {
+              id: 2,
+              body: 'Test issue comment',
+              user: { login: 'testuser', type: 'User' },
+              created_at: '2023-01-01T00:00:00Z'
+            }
+          ],
+          headers: { link: null }
+        })
+      },
+      checks: {
+        listForRef: async () => ({
+          data: {
+            check_runs: [
+              {
+                id: 1,
+                name: 'Test Check',
+                status: 'completed',
+                conclusion: 'success',
+                html_url: 'https://github.com/test/repo/actions/runs/1'
+              }
+            ]
+          },
+          headers: { 
+            link: '<https://api.github.com/repos/test/repo/commits/abc123/check-runs?page=2>; rel="next"'
+          }
+        })
+      },
+      repos: {
+        compareCommits: async () => ({
+          data: {
+            ahead_by: 1,
+            behind_by: 0,
+            status: 'ahead',
+            commits: [
+              {
+                sha: 'abc123',
+                commit: {
+                  message: 'Test commit message'
+                }
+              }
+            ]
+          }
+        })
+      },
+      graphql: async () => ({
+        data: {
+          node: {
+            id: 'test-id',
+            isResolved: false
+          }
+        }
+      })
+    };
   }
 }
