@@ -8,7 +8,7 @@ describe('get-failing-tests E2E', () => {
   // Test: Complete CI failure analysis with real GitHub data
   // Requirement: get_failing_tests - End-to-end CI analysis
   it('[fast] should analyze real CI failures end-to-end', async () => {
-    const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
+    const { client } = await setup.setupPRScenario('api.github.com/paginate-issues');
     
     const result = await handleGetFailingTests(client, {
       pr: 'owner/repo#123',
@@ -24,7 +24,7 @@ describe('get-failing-tests E2E', () => {
   // Test: Wait mode with realistic CI progression
   // Requirement: get_failing_tests - Wait mode simulation
   it('[fast] should handle wait mode with realistic CI state progression', async () => {
-    const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
+    const { client } = await setup.setupPRScenario('api.github.com/paginate-issues');
     
     // Test immediate mode first
     const immediate = await handleGetFailingTests(client, {
@@ -48,7 +48,7 @@ describe('get-failing-tests E2E', () => {
   // Test: Pagination with realistic CI data
   // Requirement: get_failing_tests - Pagination with real data
   it('[fast] should paginate test failures with realistic GitHub CI data', async () => {
-    const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
+    const { client } = await setup.setupPRScenario('api.github.com/paginate-issues');
     
     const page1 = await handleGetFailingTests(client, {
       pr: 'owner/repo#123',
@@ -72,7 +72,7 @@ describe('get-failing-tests E2E', () => {
   // Test: Complete CI workflow with real GitHub API structure
   // Requirement: get_failing_tests - Complete workflow validation
   it('[slow] should handle complete CI analysis workflow with real GitHub data', async () => {
-    const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
+    const { client } = await setup.setupPRScenario('api.github.com/paginate-issues');
     
     // Test different scenarios
     const scenarios = [
@@ -97,7 +97,7 @@ describe('get-failing-tests E2E', () => {
   // Test: Error handling with realistic GitHub API errors
   // Requirement: get_failing_tests - Error handling
   it('[fast] should handle GitHub API errors gracefully', async () => {
-    const { client } = setup.setupPRScenario('api.github.com/paginate-issues');
+    const { client } = await setup.setupPRScenario('api.github.com/paginate-issues');
     
     // Test with invalid PR (should still return structured response)
     const result = await handleGetFailingTests(client, {
