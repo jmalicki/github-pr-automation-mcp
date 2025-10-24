@@ -43,19 +43,60 @@ export class E2ETestSetup {
       };
     };
     
+    // Helper to create typed fallback data for different API endpoints
+    const createTypedFallback = (endpoint: string) => {
+      const baseData = {
+        id: 1,
+        user: { login: 'test-user', type: 'User' },
+        author_association: 'CONTRIBUTOR',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        body: 'Test comment from fixture fallback'
+      };
+      
+      switch (endpoint) {
+        case 'issues.listComments':
+          return [{
+            ...baseData,
+            type: 'issue_comment',
+            html_url: 'https://github.com/test/issues/1#issuecomment-1'
+          }];
+        case 'issues.listForRepo':
+          return [{
+            ...baseData,
+            number: 1,
+            title: 'Test Issue',
+            state: 'open',
+            html_url: 'https://github.com/test/issues/1'
+          }];
+        case 'pulls.listReviewComments':
+          return [{
+            ...baseData,
+            type: 'review_comment',
+            path: 'src/test.ts',
+            position: 1,
+            original_position: 1,
+            diff_hunk: '@@ -1,1 +1,1 @@\n-test\n+test',
+            html_url: 'https://github.com/test/pull/1#discussion-1'
+          }];
+        default:
+          return [baseData];
+      }
+    };
+
     // Create a mock Octokit that properly handles pagination
     const mockOctokit = {
       issues: {
         listComments: vi.fn().mockImplementation((params: any) => {
           const page = params?.page || 1;
           const per_page = params?.per_page || 10;
-          const fixtureData = fixture[0]?.response || [];
+          const fixtureData = Array.isArray(fixture[0]?.response) ? fixture[0].response : createTypedFallback('issues.listComments');
           return Promise.resolve(createPaginatedResponse(fixtureData, page, per_page));
         }),
         listForRepo: vi.fn().mockImplementation((params: any) => {
           const page = params?.page || 1;
           const per_page = params?.per_page || 10;
-          const fixtureData = fixture[0]?.response || [];
+          const fixtureData = Array.isArray(fixture[0]?.response) ? fixture[0].response : createTypedFallback('issues.listForRepo');
           return Promise.resolve(createPaginatedResponse(fixtureData, page, per_page));
         })
       },
@@ -63,7 +104,7 @@ export class E2ETestSetup {
         listReviewComments: vi.fn().mockImplementation((params: any) => {
           const page = params?.page || 1;
           const per_page = params?.per_page || 10;
-          const fixtureData = fixture[0]?.response || [];
+          const fixtureData = Array.isArray(fixture[0]?.response) ? fixture[0].response : createTypedFallback('pulls.listReviewComments');
           return Promise.resolve(createPaginatedResponse(fixtureData, page, per_page));
         }),
         get: vi.fn().mockResolvedValue({
