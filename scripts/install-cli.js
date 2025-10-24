@@ -11,12 +11,100 @@ const INSTALL_METHODS = {
   'global': 'npm run build && npm install -g .'
 };
 
-function installToLocalBin() {
-  console.log('⚠️  Local installation requires dependencies to be available.');
-  console.log('   For a standalone CLI, use npm-link or global installation instead.');
-  console.log('');
-  console.log('   Recommended: npm run install:cli:npm-link');
-  console.log('   This will create a symlink that works from anywhere.');
+async function installToLocalBin() {
+  const localBinDir = join(homedir(), '.local', 'bin');
+  const targetPath = join(localBinDir, 'github-pr-automation');
+  const standaloneDir = join(homedir(), '.local', 'lib', 'github-pr-automation');
+  
+  // Create directories if they don't exist
+  if (!existsSync(localBinDir)) {
+    console.log(`Creating directory: ${localBinDir}`);
+    mkdirSync(localBinDir, { recursive: true });
+  }
+  
+  if (!existsSync(standaloneDir)) {
+    console.log(`Creating standalone directory: ${standaloneDir}`);
+    mkdirSync(standaloneDir, { recursive: true });
+  }
+  
+  console.log('📦 Creating standalone installation...');
+  
+  // Copy essential files to standalone directory
+  const fs = await import('fs');
+  const { execSync } = await import('child_process');
+  
+  try {
+    // Copy dist directory
+    execSync(`cp -r dist ${standaloneDir}/`, { stdio: 'inherit' });
+    
+    // Create a minimal package.json for standalone installation
+    const minimalPackageJson = {
+      "name": "github-pr-automation-standalone",
+      "version": "0.1.1",
+      "type": "module",
+      "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.20.1",
+        "@octokit/auth-app": "^8.1.1",
+        "@octokit/rest": "^22.0.0",
+        "commander": "^14.0.1",
+        "zod": "^4.1.12"
+      }
+    };
+    
+    fs.writeFileSync(
+      join(standaloneDir, 'package.json'), 
+      JSON.stringify(minimalPackageJson, null, 2)
+    );
+    
+    // Install dependencies in standalone directory
+    console.log('📦 Installing dependencies...');
+    execSync(`cd ${standaloneDir} && npm install --production --no-optional`, { stdio: 'inherit' });
+    
+    // Create wrapper script that runs from standalone directory
+    const wrapperScript = `#!/usr/bin/env node
+// GitHub PR Automation CLI - Standalone Installation
+// This script runs the CLI from the standalone installation directory
+
+import { spawn } from 'child_process';
+import { join } from 'path';
+import { homedir } from 'os';
+
+const standaloneDir = join(homedir(), '.local', 'lib', 'github-pr-automation');
+const cliPath = join(standaloneDir, 'dist', 'cli.js');
+
+const result = spawn('node', [cliPath, ...process.argv.slice(2)], {
+  stdio: 'inherit',
+  cwd: standaloneDir
+});
+
+result.on('exit', (code) => {
+  process.exit(code);
+});
+
+result.on('error', (error) => {
+  console.error('❌ Failed to run CLI:', error.message);
+  process.exit(1);
+});
+`;
+
+    // Write wrapper script
+    console.log(`Installing CLI to: ${targetPath}`);
+    fs.writeFileSync(targetPath, wrapperScript);
+    chmodSync(targetPath, '755');
+    
+    console.log('✅ CLI installed successfully!');
+    console.log(`📁 CLI Location: ${targetPath}`);
+    console.log(`📁 Standalone Directory: ${standaloneDir}`);
+    console.log('🔧 Make sure ~/.local/bin is in your PATH');
+    console.log('   Add this to your ~/.bashrc or ~/.zshrc:');
+    console.log('   export PATH="$HOME/.local/bin:$PATH"');
+    console.log('');
+    console.log('🎉 This installation is completely standalone and portable!');
+    
+  } catch (error) {
+    console.error('❌ Installation failed:', error.message);
+    throw error;
+  }
 }
 
 function showUsage() {
@@ -35,7 +123,7 @@ function showUsage() {
   console.log('  npm run install:cli global');
 }
 
-function main() {
+async function main() {
   const method = process.argv[2] || 'local-bin';
   
   if (!INSTALL_METHODS[method]) {
@@ -47,9 +135,9 @@ function main() {
   console.log(`🚀 Installing GitHub PR Automation CLI using method: ${method}`);
   
   try {
-    if (method === 'local-bin') {
-      installToLocalBin();
-    } else {
+  if (method === 'local-bin') {
+    await installToLocalBin();
+  } else {
       console.log(`Running: ${INSTALL_METHODS[method]}`);
       execSync(INSTALL_METHODS[method], { stdio: 'inherit' });
       console.log('✅ CLI installed successfully!');
@@ -65,4 +153,4 @@ function main() {
   }
 }
 
-main();
+main().catch(console.error);
