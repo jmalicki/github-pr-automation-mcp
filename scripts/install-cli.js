@@ -96,14 +96,31 @@ result.on('error', (error) => {
     writeFileSync(targetPath, wrapperScript);
     chmodSync(targetPath, 0o755);
     
+    // Create Windows .cmd shim for Windows CMD compatibility
+    const windowsShimPath = join(localBinDir, 'github-pr-automation.cmd');
+    const windowsShim = `@echo off
+REM GitHub PR Automation CLI - Windows CMD Shim
+REM This script runs the CLI from the standalone installation directory
+
+set STANDALONE_DIR=%USERPROFILE%\\.local\\lib\\github-pr-automation
+set CLI_PATH=%STANDALONE_DIR%\\dist\\cli.js
+
+node "%CLI_PATH%" %*
+`;
+    
+    console.log(`Installing Windows shim to: ${windowsShimPath}`);
+    writeFileSync(windowsShimPath, windowsShim);
+    
     console.log('✅ CLI installed successfully!');
-    console.log(`📁 CLI Location: ${targetPath}`);
+    console.log(`📁 Unix CLI: ${targetPath}`);
+    console.log(`📁 Windows CLI: ${windowsShimPath}`);
     console.log(`📁 Standalone Directory: ${standaloneDir}`);
     console.log('🔧 Make sure ~/.local/bin is in your PATH');
     console.log('   Add this to your ~/.bashrc or ~/.zshrc:');
     console.log('   export PATH="$HOME/.local/bin:$PATH"');
     console.log('');
     console.log('🎉 This installation is completely standalone and portable!');
+    console.log('   Works on Unix (bash/zsh) and Windows (CMD/PowerShell)');
     
   } catch (error) {
     console.error('❌ Installation failed:', error.message);
