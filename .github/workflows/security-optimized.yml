@@ -41,12 +41,7 @@ jobs:
           
           (
             echo "📋 Running license compliance check..."
-            npx license-checker --json \
-              --onlyAllow "MIT;Apache-2.0;BSD-2-Clause;BSD-3-Clause;ISC;GPL-2.0;GPL-3.0;LGPL-2.1;LGPL-3.0;Python-2.0;CC-BY-3.0;CC0-1.0;(MIT AND CC-BY-3.0)" \
-              --excludePrivatePackages \
-              --production --development --optional --peer --direct --indirect \
-              --depth 0 \
-              --noColor true --silent false
+            npm run license-check:optimized
             echo "✅ License check completed"
           ) &
           
