@@ -287,8 +287,7 @@ describe('MCP Server', () => {
       'handleManageStackedPRs',
       'handleResolveReviewThread',
       'handleDetectMergeConflicts',
-      'handleCheckMergeReadiness',
-      'handleGetReviewSuggestions'
+      'handleCheckMergeReadiness'
     ];
     
     // Verify all handlers are imported in the server
@@ -320,7 +319,6 @@ describe('MCP Server', () => {
       'resolve_review_thread',
       'detect_merge_conflicts',
       'check_merge_readiness',
-,
       'rebase_after_squash_merge'
     ];
     
