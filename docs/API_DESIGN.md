@@ -109,6 +109,8 @@ interface GetFailingTestsOutput {
 - AI preparing to address reviewer feedback
 - Bulk comment triage and resolution
 - Filtering out bot nits vs. human concerns
+- **NEW**: Extracting actionable suggestions from AI review tools (CodeRabbit, etc.)
+- **NEW**: Capturing structured feedback embedded in review bodies
 
 **Input Schema**:
 ```typescript
@@ -118,6 +120,7 @@ interface FindUnresolvedCommentsInput {
   exclude_authors?: string[];  // Specific authors to exclude (optional)
   cursor?: string;             // MCP cursor for pagination
   sort?: "chronological" | "by_file" | "by_author"; // Default: chronological 💾
+  parse_review_bodies?: boolean; // Parse review bodies for actionable comments (default: true) 💾
 }
 ```
 
@@ -199,6 +202,15 @@ interface FindUnresolvedCommentsOutput {
   };
 }
 ```
+
+**Review Body Parsing** (NEW Feature):
+- **Purpose**: Extracts actionable suggestions from AI review tools like CodeRabbit that embed feedback in review bodies
+- **Why Needed**: Traditional GitHub comments miss structured feedback from AI tools that use review bodies instead of individual comments
+- **How It Works**: Parses structured markup to extract file context, line ranges, and actionable suggestions
+- **Format Support**: Handles CodeRabbit's `<summary>filename (n)</summary>` and `line-range: **suggestion**` patterns
+- **Pagination**: Properly handles review body pagination to capture all suggestions across multiple pages
+- **Backward Compatible**: Can be disabled with `parse_review_bodies: false` if not needed
+- **See**: [REVIEW_BODY_PARSING.md](./REVIEW_BODY_PARSING.md) for detailed documentation
 
 **Bot Detection**:
 - Account type from GitHub API (`is_bot` field)

@@ -43,6 +43,7 @@ export async function handleFindUnresolvedComments(
 
   // Fetch reviews to parse for actionable comments in review bodies
   let reviewBodiesComments: Comment[] = [];
+  let hasMoreReviews = false;
   if (input.parse_review_bodies) {
     const reviewsResponse = await octokit.pulls.listReviews({
       owner: pr.owner,
@@ -54,9 +55,9 @@ export async function handleFindUnresolvedComments(
     
     reviewBodiesComments = parseReviewBodiesForActionableComments(
       reviewsResponse.data,
-      pr,
-      nodeIdMap
+      pr
     );
+    hasMoreReviews = reviewsResponse.headers.link?.includes('rel="next"') ?? false;
   }
   
   // Convert to our Comment type with action commands and hints
@@ -170,7 +171,7 @@ export async function handleFindUnresolvedComments(
   // GitHub API includes Link header with pagination info
   const hasMoreReviewComments = reviewCommentsResponse.headers.link?.includes('rel="next"') ?? false;
   const hasMoreIssueComments = issueCommentsResponse.headers.link?.includes('rel="next"') ?? false;
-  const hasMore = hasMoreReviewComments || hasMoreIssueComments;
+  const hasMore = hasMoreReviewComments || hasMoreIssueComments || hasMoreReviews;
   
   // Create next cursor if there are more results
   const nextCursor = createNextCursor(input.cursor, githubPagination.per_page, hasMore);
@@ -281,8 +282,7 @@ async function fetchReviewCommentNodeIds(
  */
 function parseReviewBodiesForActionableComments(
   reviews: any[],
-  pr: { owner: string; repo: string; number: number },
-  nodeIdMap: Map<number, string>
+  pr: { owner: string; repo: string; number: number }
 ): Comment[] {
   const actionableComments: Comment[] = [];
   
@@ -303,7 +303,6 @@ function parseReviewBodiesForActionableComments(
     // Add support for other AI review tools here in the future
     // e.g., GitHub Copilot, SonarQube, etc.
   }
-  
   return actionableComments;
 }
 
@@ -326,26 +325,32 @@ function parseCodeRabbitReviewBody(
   let currentFile = '';
   let currentLineRange = '';
   let currentSuggestion = '';
-  let inCodeBlock = false;
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     
-    // Detect file context - look for patterns like `scripts/install-cli.js (1)`
-    const fileMatch = line.match(/^`([^`]+)`\s*\((\d+)\)/);
+    // Detect file context:
+    // - <summary>scripts/install-cli.js (1)</summary>
+    // - `scripts/install-cli.js (1)` or plain "scripts/install-cli.js (1)"
+    const fileMatch =
+      line.match(/^<summary>\s*`?([^<`]+?)`?\s*\((\d+)\)\s*<\/summary>/i) ||
+      line.match(/^\s*`?([^<`]+?)`?\s*\((\d+)\)\s*$/);
     if (fileMatch) {
       currentFile = fileMatch[1];
       continue;
     }
     
-    // Detect line range and suggestion - look for patterns like `36-41`: **Consider copying the lockfile**
-    const lineRangeMatch = line.match(/^`(\d+-\d+)`:\s*\*\*(.*?)\*\*/);
+    // Detect line or line-range header:
+    // - `36-41`: **...** or 36-41: **...**
+    // - `36`: **...** or 36: **...**
+    const lineRangeMatch = line.match(/^(?:`)?(\d+(?:-\d+)?)`?:\s*\*\*(.*?)\*\*/);
     if (lineRangeMatch) {
       currentLineRange = lineRangeMatch[1];
       currentSuggestion = lineRangeMatch[2];
       
       // Look for code suggestion in next few lines
       let suggestionBody = currentSuggestion;
+      let inCodeBlock = false;
       for (let j = i + 1; j < Math.min(i + 15, lines.length); j++) {
         const nextLine = lines[j];
         if (nextLine.startsWith('```diff') || nextLine.startsWith('```')) {
@@ -357,7 +362,7 @@ function parseCodeRabbitReviewBody(
             inCodeBlock = false;
             break;
           }
-        } else if (nextLine.trim() && !nextLine.startsWith('---') && !nextLine.startsWith('</blockquote>')) {
+        } else if (nextLine.trim() && !nextLine.startsWith('---') && !nextLine.startsWith('</blockquote>') && !nextLine.startsWith('<summary>')) {
           suggestionBody += '\n' + nextLine;
         } else if (nextLine.startsWith('---') || nextLine.startsWith('</blockquote>')) {
           break;
@@ -372,7 +377,9 @@ function parseCodeRabbitReviewBody(
           // Look backwards for file context
           for (let k = Math.max(0, i - 10); k < i; k++) {
             const prevLine = lines[k];
-            const prevFileMatch = prevLine.match(/^`([^`]+)`\s*\((\d+)\)/);
+            const prevFileMatch =
+              prevLine.match(/^<summary>\s*`?([^<`]+?)`?\s*\((\d+)\)\s*<\/summary>/i) ||
+              prevLine.match(/^\s*`?([^<`]+?)`?\s*\((\d+)\)\s*$/);
             if (prevFileMatch) {
               fileToUse = prevFileMatch[1];
               break;

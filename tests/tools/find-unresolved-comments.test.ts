@@ -571,7 +571,8 @@ If reproducibility is important, add lockfile copying after line 37:
 
     const result = await handleFindUnresolvedComments(mockClient, {
       pr: 'test/repo#123',
-      parse_review_bodies: true
+      parse_review_bodies: true,
+      include_bots: true
     });
 
     expect(result.comments).toHaveLength(1);
@@ -658,7 +659,9 @@ If reproducibility is important, add lockfile copying after line 37:
     });
 
     const result = await handleFindUnresolvedComments(mockClient, {
-      pr: 'test/repo#123'
+      pr: 'test/repo#123',
+      include_bots: true,
+      parse_review_bodies: true
       // parse_review_bodies not specified, should default to true
     });
 
