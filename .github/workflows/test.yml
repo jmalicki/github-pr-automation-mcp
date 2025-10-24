@@ -1,5 +1,8 @@
 name: Test
 
+# Coverage thresholds are managed in vitest.config.ts
+# Do not add manual coverage checks to this workflow
+
 on:
   push:
     branches: ['main']
@@ -32,6 +35,8 @@ jobs:
         run: npm run build
       
       - name: Run tests with coverage
+        # Coverage thresholds are centrally managed in vitest.config.ts
+        # Do not add manual coverage checks here - Vitest handles this automatically
         run: npm run test:coverage
       
       - name: Upload coverage reports
