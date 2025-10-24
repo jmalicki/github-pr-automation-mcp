@@ -1,4 +1,5 @@
 import * as fixtures from '@octokit/fixtures';
+import { Octokit } from '@octokit/rest';
 import { GitHubClient } from '../../src/github/client.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -32,10 +33,14 @@ export class E2ETestSetup {
     
     if (fixture && this.isPlaybackMode) {
       console.log(`✓ Using recorded fixture: ${scenario}`);
-      const mockOctokit = this.fixtureClient.mock(fixture);
+      // Create real Octokit instance
+      const octokit = new Octokit();
+      // Let the fixture intercept HTTP requests
+      const mock = this.fixtureClient.mock(fixture);
       return {
-        client: new GitHubClient(undefined, mockOctokit),
-        octokit: mockOctokit,
+        client: new GitHubClient(undefined, octokit),
+        octokit: octokit,
+        mock: mock,
         isRecorded: true
       };
     }
@@ -43,11 +48,16 @@ export class E2ETestSetup {
     // Fall back to @octokit/fixtures scenarios
     console.log(`✓ Using @octokit/fixtures scenario: ${scenario}`);
     const octokitFixture = this.fixtureClient.get(scenario);
-    const mockOctokit = this.fixtureClient.mock(octokitFixture);
+    
+    // Create real Octokit instance
+    const octokit = new Octokit();
+    // Let the fixture intercept HTTP requests
+    const mock = this.fixtureClient.mock(octokitFixture);
     
     return {
-      client: new GitHubClient(undefined, mockOctokit),
-      octokit: mockOctokit,
+      client: new GitHubClient(undefined, octokit),
+      octokit: octokit,
+      mock: mock,
       isRecorded: false
     };
   }
