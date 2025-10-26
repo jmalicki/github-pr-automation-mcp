@@ -94,7 +94,9 @@ program
   .option('--include-bots', 'Include bot comments')
   .option('--exclude-authors <authors>', 'Comma-separated list of authors to exclude')
   .option('--cursor <string>', 'Pagination cursor (from previous response)')
-  .option('--sort <type>', 'Sort order (chronological|by_file|by_author)')
+  .option('--sort <type>', 'Sort order (chronological|by_file|by_author|priority)')
+  .option('--include-status-indicators', 'Include status indicators and priority scoring')
+  .option('--priority-ordering', 'Use priority-based ordering')
   .option('--json', 'Output as JSON')
   .action(async (options: {
     pr: string;
@@ -102,6 +104,8 @@ program
     excludeAuthors?: string;
     cursor?: string;
     sort?: string;
+    includeStatusIndicators?: boolean;
+    priorityOrdering?: boolean;
     json?: boolean;
   }) => {
     try {
@@ -112,7 +116,9 @@ program
         ...(options.includeBots !== undefined && { include_bots: options.includeBots }),
         ...(options.excludeAuthors && { exclude_authors: options.excludeAuthors.split(',') }),
         ...(options.sort && { sort: options.sort }),
-        ...(options.cursor && { cursor: options.cursor })
+        ...(options.cursor && { cursor: options.cursor }),
+        ...(options.includeStatusIndicators !== undefined && { include_status_indicators: options.includeStatusIndicators }),
+        ...(options.priorityOrdering !== undefined && { priority_ordering: options.priorityOrdering })
       });
       const result = await handleFindUnresolvedComments(client, input);
       
