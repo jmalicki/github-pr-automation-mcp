@@ -124,16 +124,45 @@ npm run cli -- --help
 npm run dev
 ```
 
-## Environment Variables
+## GitHub Token Setup
 
-The CLI requires a GitHub token:
+### Recommended: Import from GitHub CLI
 
+The easiest way to set up your GitHub token is to import it from your existing GitHub CLI configuration:
+
+```bash
+# Import token from GitHub CLI (recommended)
+github-pr-automation config import-token-from-gh
+```
+
+This will automatically:
+- Read your token from `~/.config/gh/config.yml`
+- Store it securely in the tool's config file
+- Validate that the token works
+
+### Alternative: Manual Setup
+
+You can also set up your token manually:
+
+**Option 1: Secure Config File**
+```bash
+github-pr-automation config set-token "your_token_here"
+```
+
+**Option 2: Environment Variable**
 ```bash
 export GITHUB_TOKEN="your_token_here"
 ```
 
-Or use a `.env` file:
-
+**Option 3: .env File**
 ```bash
 echo "GITHUB_TOKEN=your_token_here" > .env
+```
+
+### Verify Setup
+
+Check that your token is configured correctly:
+
+```bash
+github-pr-automation config show-token
 ```

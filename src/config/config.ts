@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
+import { parse } from 'yaml';
 
 export interface GitHubConfig {
   token?: string;
@@ -114,4 +115,41 @@ export function getConfigPath(): string {
  */
 export function hasConfigFile(): boolean {
   return existsSync(CONFIG_FILE);
+}
+
+/**
+ * Import GitHub token from GitHub CLI configuration
+ */
+export async function importTokenFromGitHubCLI(): Promise<string | null> {
+  try {
+    // Try to read from gh config file
+    const ghConfigPath = join(homedir(), '.config', 'gh', 'config.yml');
+    if (existsSync(ghConfigPath)) {
+      const content = readFileSync(ghConfigPath, 'utf-8');
+      const config = parse(content) as Record<string, unknown>;
+
+      // Look for token in various possible locations
+      const hosts = config?.hosts as Record<string, Record<string, unknown>>;
+      const githubHost = hosts?.['github.com'] as Record<string, unknown> | undefined;
+      const token = (githubHost?.oauth_token as string) ||
+                   (config?.oauth_token as string) ||
+                   (config?.token as string);
+
+      if (token && typeof token === 'string') {
+        return token;
+      }
+    }
+    
+    // Fallback: try to get from gh CLI directly
+    try {
+      const { execSync } = await import('child_process');
+      const result = execSync('gh auth token', { encoding: 'utf-8' });
+      return result.trim();
+    } catch {
+      return null;
+    }
+  } catch (error) {
+    console.warn('Failed to import token from GitHub CLI:', error);
+    return null;
+  }
 }

@@ -21,7 +21,8 @@ export class GitHubClient {
       
       if (!githubToken) {
         throw new Error(
-          'GitHub token not found. Set GITHUB_TOKEN environment variable or use: github-pr-automation config set-token <token>'
+          'GitHub token not found. Set GITHUB_TOKEN environment variable or use: github-pr-automation config set-token <token>\n' +
+          '💡 Quick setup: github-pr-automation config import-token-from-gh (imports from GitHub CLI)'
         );
       }
       

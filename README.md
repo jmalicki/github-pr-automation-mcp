@@ -11,7 +11,10 @@ cd github-pr-automation-mcp
 npm install && npm run build
 npm run install:cli:npm-link
 
-# Set your GitHub token
+# Setup GitHub token (recommended: import from GitHub CLI)
+github-pr-automation config import-token-from-gh
+
+# Or set manually
 export GITHUB_TOKEN="your_token_here"
 
 # Use the CLI
@@ -87,7 +90,10 @@ github-pr-automation get-failing-tests --pr "owner/repo#123"
 
 **Recommended (Secure):**
 ```bash
-# One-time setup - stores token in secure config file
+# One-time setup - imports token from GitHub CLI
+github-pr-automation config import-token-from-gh
+
+# Or manually set token in secure config file
 github-pr-automation config set-token "your_github_personal_access_token"
 ```
 
@@ -318,6 +324,7 @@ github-pr-automation resolve-review-thread --pr "owner/repo#123" --thread-id "th
 github-pr-automation check-github-permissions --pr "owner/repo#123" --detailed
 
 # Config management
+github-pr-automation config import-token-from-gh        # Import from GitHub CLI
 github-pr-automation config set-token "your_token_here"
 github-pr-automation config show-token
 github-pr-automation config clear-token
@@ -407,6 +414,9 @@ echo "GITHUB_TOKEN=your_token_here" > .env
 ### Commands
 
 ```bash
+# Import token from GitHub CLI (recommended)
+github-pr-automation config import-token-from-gh
+
 # Set GitHub token in secure config file
 github-pr-automation config set-token "ghp_your_token_here"
 

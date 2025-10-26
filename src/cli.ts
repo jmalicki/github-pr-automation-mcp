@@ -18,7 +18,8 @@ import {
   getGitHubToken, 
   getConfigPath, 
   hasConfigFile,
-  loadConfig 
+  loadConfig,
+  importTokenFromGitHubCLI
 } from './config/config.js';
 
 const program = new Command();
@@ -482,12 +483,48 @@ configCommand
     /* eslint-enable no-console */
   });
 
+        configCommand
+          .command('import-token-from-gh')
+          .description('Import GitHub token from GitHub CLI configuration')
+  .action(async () => {
+    try {
+      const token = await importTokenFromGitHubCLI();
+      if (!token) {
+        /* eslint-disable no-console */
+        console.error('❌ No GitHub token found in GitHub CLI configuration');
+        console.log('💡 Make sure you\'re logged in: gh auth login');
+        /* eslint-enable no-console */
+        process.exit(1);
+      }
+
+      await setGitHubToken(token);
+      /* eslint-disable no-console */
+      console.log('✅ GitHub token imported from GitHub CLI');
+      console.log(`📁 Stored in: ${getConfigPath()}`);
+
+      // Validate the imported token
+      try {
+        const client = new GitHubClient();
+        const octokit = client.getOctokit();
+        const { data: user } = await octokit.rest.users.getAuthenticated();
+        console.log(`👤 Token validated for user: ${user.login}`);
+      } catch (error) {
+        console.warn('⚠️  Token validation failed:', error instanceof Error ? error.message : String(error));
+      }
+      /* eslint-enable no-console */
+    } catch (error) {
+      console.error(`❌ Failed to import token: ${error instanceof Error ? error.message : String(error)}`);
+      process.exit(1);
+    }
+  });
+
 // Default action for config command
 configCommand.action(() => {
   /* eslint-disable no-console */
-  console.log('Config management commands:');
-  console.log('  set-token <token>  - Set GitHub token in config file');
-  console.log('  show-token         - Show current token status');
+        console.log('Config management commands:');
+        console.log('  set-token <token>  - Set GitHub token in config file');
+        console.log('  import-token-from-gh - Import GitHub token from GitHub CLI');
+        console.log('  show-token         - Show current token status');
   console.log('  clear-token        - Remove token from config file');
   console.log('  show-path          - Show config file location');
   console.log('  show-config        - Show full configuration');
