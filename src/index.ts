@@ -11,6 +11,7 @@ import { GetFailingTestsSchema } from './tools/get-failing-tests/schema.js';
 import { FindUnresolvedCommentsSchema } from './tools/find-unresolved-comments/schema.js';
 import { ManageStackedPRsSchema } from './tools/manage-stacked-prs/schema.js';
 import { ResolveReviewThreadInputSchema } from './tools/resolve-review-thread/schema.js';
+import { CheckPermissionsSchema } from './tools/check-github-permissions/schema.js';
 import { handleGetFailingTests } from './tools/get-failing-tests/handler.js';
 import { handleFindUnresolvedComments } from './tools/find-unresolved-comments/handler.js';
 import { handleManageStackedPRs } from './tools/manage-stacked-prs/handler.js';
@@ -18,6 +19,7 @@ import { handleDetectMergeConflicts } from './tools/detect-merge-conflicts/handl
 import { handleCheckMergeReadiness } from './tools/check-merge-readiness/handler.js';
 import { handleRebaseAfterSquashMerge } from './tools/rebase-after-squash-merge/handler.js';
 import { handleResolveReviewThread } from './tools/resolve-review-thread/handler.js';
+import { handleCheckPermissions } from './tools/check-github-permissions/handler.js';
 import { handleGitHubError } from './github/errors.js';
 import { PRIdentifierStringSchema } from './utils/validation.js';
 import { z } from 'zod';
@@ -237,6 +239,34 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         readOnlyHint: false,
         destructiveHint: false,
         idempotentHint: true
+      },
+      {
+        name: 'check_github_permissions',
+        description: 'Diagnose GitHub token permissions and provide fix guidance. Use when other tools fail with permission errors.',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            pr: {
+              type: 'string',
+              description: 'PR identifier (owner/repo#123 or URL)'
+            },
+            actions: {
+              type: 'array',
+              description: 'Specific actions to test (optional)',
+              items: {
+                type: 'string',
+                enum: ['read_comments', 'create_comments', 'resolve_threads', 'merge_pr', 'approve_pr', 'request_changes', 'read_ci', 'write_ci']
+              }
+            },
+            detailed: {
+              type: 'boolean',
+              description: 'Include detailed diagnostics (default: false)',
+              default: false
+            }
+          },
+          required: ['pr']
+        },
+        readOnlyHint: true
       }
     ]
   };
@@ -339,6 +369,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'resolve_review_thread': {
         const input = ResolveReviewThreadInputSchema.parse(args);
         const result = await handleResolveReviewThread(githubClient, input);
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(result, null, 2)
+          }]
+        };
+      }
+      
+      case 'check_github_permissions': {
+        const input = CheckPermissionsSchema.parse(args);
+        const result = await handleCheckPermissions(githubClient, input);
         return {
           content: [{
             type: 'text',
