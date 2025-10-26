@@ -33,7 +33,7 @@
     "lint:fix": "eslint src --fix",
     "type-check": "tsc --noEmit",
     "prepare": "husky install && npm run build",
-    "postinstall": "husky install",
+    "postinstall": "husky install && node scripts/check-permissions.cjs",
     "release": "node scripts/release.js",
     "release:patch": "node scripts/release.js patch",
     "release:minor": "node scripts/release.js minor",

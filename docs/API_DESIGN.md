@@ -885,6 +885,8 @@ interface RateLimitInfo {
 4. **Repository Access**: To verify you can access the target repository
 5. **Rate Limit Monitoring**: To check your API usage status
 6. **Troubleshooting**: When GitHub CLI commands work but MCP tools don't
+7. **Installation Check**: Automatically runs during installation to warn about potential issues
+8. **Manual Verification**: Use CLI command for on-demand permission checking
 
 ### Safety Features
 
@@ -892,6 +894,33 @@ interface RateLimitInfo {
 - **No Side Effects**: Never creates, modifies, or deletes any GitHub resources
 - **Safe Testing**: Uses repository permission checks instead of actual write operations
 - **Rate Limit Aware**: Monitors but doesn't consume significant API quota
+
+### CLI Usage
+
+The diagnostic tool is also available as a CLI command:
+
+```bash
+# Basic permission check
+github-pr-automation check-github-permissions --pr owner/repo#123
+
+# Test specific actions
+github-pr-automation check-github-permissions --pr owner/repo#123 --actions "create_comments,resolve_threads"
+
+# Get detailed output
+github-pr-automation check-github-permissions --pr owner/repo#123 --detailed
+
+# JSON output for scripting
+github-pr-automation check-github-permissions --pr owner/repo#123 --json
+```
+
+### Installation-Time Checks
+
+The tool automatically runs permission checks during installation:
+
+- **Postinstall Script**: Runs after `npm install` to check token validity
+- **Install Script**: Runs after CLI installation to verify permissions
+- **CI Skip**: Automatically skips checks in CI environments
+- **Environment Skip**: Can be disabled with `SKIP_PERMISSION_CHECK=true`
 
 ### Integration with Other Tools
 

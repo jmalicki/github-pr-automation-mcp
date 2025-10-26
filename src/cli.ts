@@ -10,6 +10,8 @@ import { FindUnresolvedCommentsSchema } from './tools/find-unresolved-comments/s
 import { ManageStackedPRsSchema } from './tools/manage-stacked-prs/schema.js';
 import { handleResolveReviewThread } from './tools/resolve-review-thread/handler.js';
 import { ResolveReviewThreadInputSchema } from './tools/resolve-review-thread/schema.js';
+import { handleCheckPermissions } from './tools/check-github-permissions/handler.js';
+import { CheckPermissionsSchema } from './tools/check-github-permissions/schema.js';
 
 const program = new Command();
 
@@ -268,6 +270,75 @@ program
         /* eslint-disable no-console */
         console.log(`\n✅ Resolved thread ${result.thread_id}${result.alreadyResolved ? ' (already resolved)' : ''}`);
         if (result.message) console.log(result.message);
+        /* eslint-enable no-console */
+      }
+      process.exit(0);
+    } catch (error) {
+      console.error(`Error: ${error instanceof Error ? error.message : String(error)}`);
+      process.exit(1);
+    }
+  });
+
+program
+  .command('check-github-permissions')
+  .description('Diagnose GitHub token permissions and provide fix guidance')
+  .requiredOption('--pr <identifier>', 'PR identifier (owner/repo#123)')
+  .option('--actions <actions>', 'Comma-separated list of actions to test')
+  .option('--detailed', 'Include detailed diagnostics')
+  .option('--json', 'Output as JSON')
+  .action(async (options: {
+    pr: string;
+    actions?: string;
+    detailed?: boolean;
+    json?: boolean;
+  }) => {
+    try {
+      const client = getClient();
+      const input = CheckPermissionsSchema.parse({
+        pr: options.pr,
+        ...(options.actions && { actions: options.actions.split(',') }),
+        ...(options.detailed !== undefined && { detailed: options.detailed })
+      });
+      const result = await handleCheckPermissions(client, input);
+      
+      if (options.json) {
+        // eslint-disable-next-line no-console
+        console.log(JSON.stringify(result, null, 2));
+      } else {
+        /* eslint-disable no-console */
+        console.log(`\n🔍 GitHub Permissions Diagnostic`);
+        console.log(`PR: ${options.pr}`);
+        console.log(`Token: ${result.token_valid ? '✅ Valid' : '❌ Invalid'} (${result.token_type})`);
+        if (result.user) console.log(`User: ${result.user}`);
+        console.log(`Repository Access: ${result.repository_access ? '✅' : '❌'}`);
+        console.log(`Overall Status: ${result.summary.overall_status.toUpperCase()}`);
+        
+        if (result.summary.primary_issue) {
+          console.log(`\n⚠️  ${result.summary.primary_issue}`);
+        }
+        
+        if (result.diagnostics.suggestions.length > 0) {
+          console.log('\n📋 Issues Found:');
+          result.diagnostics.suggestions.forEach(suggestion => {
+            console.log(`   ${suggestion}`);
+          });
+        }
+        
+        if (result.fixes.token_update.length > 0) {
+          console.log('\n🔧 Fix Instructions:');
+          result.fixes.token_update.forEach(instruction => {
+            console.log(`   ${instruction}`);
+          });
+        }
+        
+        if (Object.keys(result.fixes.alternative_commands).length > 0) {
+          console.log('\n🔄 Alternative Commands:');
+          Object.entries(result.fixes.alternative_commands).forEach(([action, command]) => {
+            console.log(`   ${action}: ${command}`);
+          });
+        }
+        
+        console.log('\n💡 Run with --json for detailed output');
         /* eslint-enable no-console */
       }
       process.exit(0);
