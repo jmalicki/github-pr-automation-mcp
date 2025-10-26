@@ -97,9 +97,9 @@ github-pr-automation get-failing-tests --pr "owner/repo#123"
 - `manage_stacked_prs` - Create comments and manage PRs
 
 **Graceful Degradation:**
-- 📖 **Read-Only Mode**: All tools work with minimal permissions for reading data
-- ⚠️ **Write Operations**: Require `repo` scope, show clear error messages when missing
-- 🔄 **Partial Functionality**: Tools like `manage_stacked_prs` can analyze without making changes
+- 📖 **Read-Only Tools**: Work with minimal permissions (`public_repo` scope)
+- ⚠️ **Write-Required Tools**: `resolve_review_thread` and `manage_stacked_prs` require `repo` scope
+- 🔄 **Partial Functionality**: Some tools can analyze without making changes
 - 📝 **Helpful Guidance**: Always get specific instructions on how to enable full functionality
 
 **Permission Checking:**
@@ -221,13 +221,19 @@ github-pr-automation check-github-permissions --pr "owner/repo#123" --detailed -
 # With read-only permissions (public_repo scope):
 github-pr-automation get-failing-tests --pr "owner/repo#123"  # ✅ Works
 github-pr-automation find-unresolved-comments --pr "owner/repo#123"  # ✅ Works
+github-pr-automation detect-merge-conflicts --pr "owner/repo#123"  # ✅ Works
+github-pr-automation check-merge-readiness --pr "owner/repo#123"  # ✅ Works
 
-# Write operations show helpful errors:
+# Write-required tools show helpful errors:
 github-pr-automation resolve-review-thread --pr "owner/repo#123" --thread-id "abc"
 # ❌ Error: Forbidden: insufficient permissions
 # 💡 Suggestion: Use check_github_permissions tool to diagnose token issues
 # 🔧 Diagnostic: Use MCP tool: check_github_permissions
 # 📝 Example: {"pr": "owner/repo#123", "actions": ["resolve_threads"]}
+
+github-pr-automation manage-stacked-prs --base-pr "owner/repo#100" --dependent-pr "owner/repo#101"
+# ❌ Error: Forbidden: insufficient permissions
+# 💡 Suggestion: Use check_github_permissions tool to diagnose token issues
 ```
 
 ## Usage
