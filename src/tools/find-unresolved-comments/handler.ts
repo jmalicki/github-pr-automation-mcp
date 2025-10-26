@@ -10,12 +10,6 @@ import type { Octokit } from '@octokit/rest';
 type ReviewList = RestEndpointMethodTypes['pulls']['listReviews']['response']['data'];
 type Review = ReviewList[number];
 
-// Import for type extraction
-import { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods';
-
-// Type for review list from Octokit API
-type ReviewList = RestEndpointMethodTypes['pulls']['listReviews']['response']['data'];
-
 /**
  * Find unresolved comments in a GitHub pull request
  * @param client - GitHub API client instance
@@ -367,7 +361,7 @@ function parseReviewBodiesForActionableComments(
  */
 function parseCodeRabbitReviewBody(
   body: string,
-  review: ReviewList[number],
+  review: Review,
   pr: { owner: string; repo: string; number: number },
   author: string,
   authorAssociation: string,
