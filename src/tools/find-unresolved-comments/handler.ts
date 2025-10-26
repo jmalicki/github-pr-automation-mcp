@@ -3,7 +3,7 @@ import { parsePRIdentifier, formatPRIdentifier } from '../../utils/parser.js';
 import { cursorToGitHubPagination, createNextCursor } from '../../utils/pagination.js';
 import type { FindUnresolvedCommentsInput, FindUnresolvedCommentsOutput, Comment } from './schema.js';
 import { generateActionCommands } from './command-generator.js';
-import type { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods';
+import { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods';
 import type { Octokit } from '@octokit/rest';
 
 // Type aliases for better readability
@@ -265,6 +265,24 @@ async function fetchReviewCommentNodeIds(
   }
 
   try {
+    // Type the GraphQL response
+    interface GraphQLResponse {
+      repository?: {
+        pullRequest?: {
+          reviewThreads?: {
+            nodes?: Array<{
+              id: string;
+              comments?: {
+                nodes?: Array<{
+                  databaseId: number;
+                }>;
+              };
+            }>;
+          };
+        };
+      };
+    }
+
     const response = await octokit.graphql<GraphQLResponse>(query, {
       owner: pr.owner,
       repo: pr.repo,
@@ -274,13 +292,12 @@ async function fetchReviewCommentNodeIds(
     const threads = response?.repository?.pullRequest?.reviewThreads?.nodes || [];
     
     // Map each comment's databaseId (numeric ID) to its thread's GraphQL node ID
-    const idSet = new Set(commentIds);
     threads.forEach((thread) => {
       const threadId = thread.id;
       const comments = thread.comments?.nodes || [];
       comments.forEach((comment) => {
         const dbId = comment.databaseId;
-        if (dbId != null && idSet.has(dbId)) {
+        if (dbId && commentIds.includes(dbId)) {
           nodeIdMap.set(dbId, threadId);
         }
       });
