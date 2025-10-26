@@ -184,67 +184,52 @@ async function testReadComments(octokit: unknown, pr: { owner: string; repo: str
 
 async function testCreateComments(octokit: unknown, pr: { owner: string; repo: string; number: number }): Promise<ActionResult> {
   try {
-    // Test by trying to create a comment (we'll catch the error)
-    await (octokit as Octokit).rest.issues.createComment({
+    // Check repository write permission instead of actually creating a comment
+    const repo = await (octokit as Octokit).rest.repos.get({
       owner: pr.owner,
-      repo: pr.repo,
-      issue_number: pr.number,
-      body: 'Test comment'
+      repo: pr.repo
     });
-    return { allowed: true };
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message.includes('Resource not accessible')) {
+    
+    const hasWriteAccess = repo.data.permissions?.push || false;
+    if (!hasWriteAccess) {
       return {
         allowed: false,
-        reason: 'Cannot create comments',
+        reason: 'No write access to repository',
         required_scopes: ['repo']
       };
     }
-    return { allowed: true }; // Other errors might be OK
+    return { allowed: true };
+  } catch {
+    return {
+      allowed: false,
+      reason: 'Cannot access repository',
+      required_scopes: ['repo']
+    };
   }
 }
 
 async function testResolveThreads(octokit: unknown, pr: { owner: string; repo: string; number: number }): Promise<ActionResult> {
   try {
-    // Try to get review threads
-    await (octokit as Octokit).graphql(`
-      query($prId: ID!) {
-        node(id: $prId) {
-          ... on PullRequest {
-            reviewThreads(first: 1) {
-              nodes { id isResolved }
-            }
-          }
-        }
-      }
-    `, { prId: `PR_${pr.number}` });
+    // Check repository write permission (required to resolve threads)
+    const repo = await (octokit as Octokit).rest.repos.get({
+      owner: pr.owner,
+      repo: pr.repo
+    });
     
-    // Try a dummy resolve to test permissions
-    try {
-      await (octokit as Octokit).graphql(`
-        mutation($threadId: ID!) {
-          resolveReviewThread(input: { threadId: $threadId }) {
-            thread { id }
-          }
-        }
-      `, { threadId: 'dummy' });
-    } catch (resolveError: unknown) {
-      const err = resolveError as Error;
-      if (err.message.includes('Resource not accessible')) {
-        return {
-          allowed: false,
-          reason: 'Cannot resolve review threads',
-          required_scopes: ['repo']
-        };
-      }
+    const hasWriteAccess = repo.data.permissions?.push || false;
+    if (!hasWriteAccess) {
+      return {
+        allowed: false,
+        reason: 'No write access to resolve threads',
+        required_scopes: ['repo']
+      };
     }
     
     return { allowed: true };
   } catch {
     return {
       allowed: false,
-      reason: 'Cannot access review threads',
+      reason: 'Cannot check repository permissions',
       required_scopes: ['repo']
     };
   }
@@ -282,49 +267,53 @@ async function testMergePR(octokit: unknown, pr: { owner: string; repo: string; 
 
 async function testApprovePR(octokit: unknown, pr: { owner: string; repo: string; number: number }): Promise<ActionResult> {
   try {
-    // Test by trying to create an approval review
-    await (octokit as Octokit).rest.pulls.createReview({
+    // Check repository write permission
+    const repo = await (octokit as Octokit).rest.repos.get({
       owner: pr.owner,
-      repo: pr.repo,
-      pull_number: pr.number,
-      event: 'APPROVE',
-      body: 'Test approval'
+      repo: pr.repo
     });
-    return { allowed: true };
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message.includes('Resource not accessible')) {
+    
+    const hasWriteAccess = repo.data.permissions?.push || false;
+    if (!hasWriteAccess) {
       return {
         allowed: false,
-        reason: 'Cannot approve PR',
+        reason: 'No write access to approve PR',
         required_scopes: ['repo']
       };
     }
-    return { allowed: true }; // Other errors might be OK
+    return { allowed: true };
+  } catch {
+    return {
+      allowed: false,
+      reason: 'Cannot check repository permissions',
+      required_scopes: ['repo']
+    };
   }
 }
 
 async function testRequestChanges(octokit: unknown, pr: { owner: string; repo: string; number: number }): Promise<ActionResult> {
   try {
-    // Test by trying to create a request changes review
-    await (octokit as Octokit).rest.pulls.createReview({
+    // Check repository write permission
+    const repo = await (octokit as Octokit).rest.repos.get({
       owner: pr.owner,
-      repo: pr.repo,
-      pull_number: pr.number,
-      event: 'REQUEST_CHANGES',
-      body: 'Test request changes'
+      repo: pr.repo
     });
-    return { allowed: true };
-  } catch (error: unknown) {
-    const err = error as Error;
-    if (err.message.includes('Resource not accessible')) {
+    
+    const hasWriteAccess = repo.data.permissions?.push || false;
+    if (!hasWriteAccess) {
       return {
         allowed: false,
-        reason: 'Cannot request changes',
+        reason: 'No write access to request changes',
         required_scopes: ['repo']
       };
     }
-    return { allowed: true }; // Other errors might be OK
+    return { allowed: true };
+  } catch {
+    return {
+      allowed: false,
+      reason: 'Cannot check repository permissions',
+      required_scopes: ['repo']
+    };
   }
 }
 

@@ -132,7 +132,7 @@ describe('handleCheckPermissions', () => {
     mockOctokit.rest.pulls.listReviewComments.mockRejectedValue(
       new Error('Resource not accessible')
     );
-    mockOctokit.graphql.mockRejectedValue(
+    mockOctokit.rest.repos.get.mockRejectedValue(
       new Error('Resource not accessible')
     );
 
