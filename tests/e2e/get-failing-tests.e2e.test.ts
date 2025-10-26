@@ -15,7 +15,8 @@ describe('get-failing-tests E2E', () => {
     
     const result = await handleGetFailingTests(client, {
       pr: testPR,
-      wait: false
+      wait: false,
+      bail_on_first: true
     });
     
     expect(result.status).toBeDefined();
@@ -32,7 +33,8 @@ describe('get-failing-tests E2E', () => {
     // Test immediate mode first
     const immediate = await handleGetFailingTests(client, {
       pr: 'owner/repo#123',
-      wait: false
+      wait: false,
+      bail_on_first: true
     });
     
     expect(immediate.status).toBeDefined();
@@ -41,7 +43,8 @@ describe('get-failing-tests E2E', () => {
     // Test wait mode (would normally poll, but with fixtures it's immediate)
     const waitMode = await handleGetFailingTests(client, {
       pr: 'owner/repo#123',
-      wait: true
+      wait: true,
+      bail_on_first: true
     });
     
     expect(waitMode.status).toBeDefined();
@@ -55,7 +58,8 @@ describe('get-failing-tests E2E', () => {
     
     const page1 = await handleGetFailingTests(client, {
       pr: 'owner/repo#123',
-      wait: false
+      wait: false,
+      bail_on_first: true
     });
     
     expect(page1.failures).toBeDefined();
@@ -65,7 +69,8 @@ describe('get-failing-tests E2E', () => {
     const page2 = await handleGetFailingTests(client, {
       pr: 'owner/repo#123',
       wait: false,
-      cursor: page1.nextCursor
+      cursor: page1.nextCursor,
+      bail_on_first: true
     });
     
     expect(page2.failures).toBeDefined();
@@ -79,14 +84,14 @@ describe('get-failing-tests E2E', () => {
     
     // Test different scenarios
     const scenarios = [
-      { wait: false },
-      { wait: true },
-      { wait: false, cursor: 'test-cursor' }
+      { wait: false, bail_on_first: true },
+      { wait: true, bail_on_first: true },
+      { wait: false, cursor: 'test-cursor', bail_on_first: true }
     ];
     
     for (const scenario of scenarios) {
-    const result = await handleGetFailingTests(client, {
-      pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123',
+      const result = await handleGetFailingTests(client, {
+        pr: setup.isRecording() ? 'jmalicki/resolve-pr-mcp#2' : 'owner/repo#123',
         ...scenario
       });
       
@@ -105,7 +110,8 @@ describe('get-failing-tests E2E', () => {
     // Test with invalid PR (should still return structured response)
     const result = await handleGetFailingTests(client, {
       pr: 'invalid/repo#999',
-      wait: false
+      wait: false,
+      bail_on_first: true
     });
     
     expect(result.status).toBeDefined();

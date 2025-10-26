@@ -3,6 +3,11 @@ import { Octokit } from '@octokit/rest';
 import { GitHubClient } from '../../src/github/client.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * E2E test setup with dual-mode operation:
@@ -36,7 +41,7 @@ export class E2ETestSetup {
       // Create real Octokit instance
       const octokit = new Octokit();
       // Let the fixture intercept HTTP requests
-      const mock = this.fixtureClient.mock(fixture);
+      const mock = this.fixtureClient.mock(fixture.data || fixture);
       return {
         client: new GitHubClient(undefined, octokit),
         octokit: octokit,
