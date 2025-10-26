@@ -32,9 +32,21 @@ export async function handleCheckPermissions(
   const repoAccess = await checkRepositoryAccess(octokit, pr);
   
   // Step 3: Test each action
-  const actionResults: Partial<Record<PermissionAction, ActionResult>> = {};
+  const actionResults: Record<PermissionAction, ActionResult> = {} as Record<PermissionAction, ActionResult>;
   for (const action of actionsToTest) {
     actionResults[action] = await testAction(octokit, pr, action);
+  }
+  
+  // Fill in missing actions with default "not tested" results
+  const allActions: PermissionAction[] = ['read_comments', 'create_comments', 'resolve_threads', 'merge_pr', 'approve_pr', 'request_changes', 'read_ci', 'write_ci'];
+  for (const action of allActions) {
+    if (!actionResults[action]) {
+      actionResults[action] = {
+        allowed: false,
+        reason: 'Action not tested',
+        required_scopes: []
+      };
+    }
   }
   
   // Step 4: Check rate limits
@@ -377,7 +389,7 @@ async function checkRateLimits(octokit: unknown): Promise<RateLimitInfo> {
 function generateDiagnostics(
   tokenInfo: TokenInfo,
   repoAccess: RepositoryAccess,
-  actionResults: Partial<Record<PermissionAction, ActionResult>>,
+  actionResults: Record<PermissionAction, ActionResult>,
   rateLimitInfo: RateLimitInfo
 ) {
   const missingScopes: string[] = [];
@@ -417,12 +429,12 @@ function generateDiagnostics(
 }
 
 function generateFixRecommendations(
-  actionResults: Partial<Record<PermissionAction, ActionResult>>,
+  actionResults: Record<PermissionAction, ActionResult>,
   missingScopes: string[]
 ) {
   const immediate: string[] = [];
   const tokenUpdate: string[] = [];
-  const alternatives: Partial<Record<PermissionAction, string>> = {};
+  const alternatives: Record<PermissionAction, string> = {} as Record<PermissionAction, string>;
   
   // Generate token update instructions
   if (missingScopes.includes('repo')) {
@@ -470,7 +482,7 @@ function generateFixRecommendations(
 function generateSummary(
   tokenInfo: TokenInfo,
   repoAccess: RepositoryAccess,
-  actionResults: Partial<Record<PermissionAction, ActionResult>>,
+  actionResults: Record<PermissionAction, ActionResult>,
   _diagnostics: unknown
 ) {
   const workingActions: PermissionAction[] = [];
@@ -479,7 +491,8 @@ function generateSummary(
   Object.entries(actionResults).forEach(([action, result]) => {
     if (result.allowed) {
       workingActions.push(action as PermissionAction);
-    } else {
+    } else if (result.reason !== 'Action not tested') {
+      // Only count as failing if it was actually tested and failed
       failingActions.push(action as PermissionAction);
     }
   });

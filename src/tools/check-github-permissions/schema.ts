@@ -81,7 +81,7 @@ export interface CheckPermissionsOutput {
   fixes: {
     immediate: string[];
     token_update: string[];
-    alternative_commands: Record<PermissionAction, string>;
+    alternative_commands: Partial<Record<PermissionAction, string>>;
   };
   
   // Summary
