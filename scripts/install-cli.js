@@ -4,6 +4,7 @@ const { execSync } = require('child_process');
 const { existsSync, mkdirSync, copyFileSync, chmodSync, cpSync, writeFileSync } = require('fs');
 const { join } = require('path');
 const { homedir } = require('os');
+const { checkGitHubPermissions } = require('./check-permissions.cjs');
 
 const INSTALL_METHODS = {
   'npm-link': 'npm run build && npm link',
@@ -89,6 +90,10 @@ node "%CLI_PATH%" %*
     console.log('🎉 This installation is completely standalone and portable!');
     console.log('   Works on Unix (bash/zsh) and Windows (CMD/PowerShell)');
     
+    // Run permission check after successful installation
+    console.log('');
+    await checkGitHubPermissions();
+    
   } catch (error) {
     console.error('❌ Installation failed:', error.message);
     process.exit(1);
@@ -129,6 +134,10 @@ function main() {
       console.log(`Running: ${INSTALL_METHODS[method]}`);
       execSync(INSTALL_METHODS[method], { stdio: 'inherit' });
       console.log('✅ CLI installed successfully!');
+      
+      // Run permission check after successful installation
+      console.log('');
+      await checkGitHubPermissions();
     }
     
     console.log('');

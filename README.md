@@ -70,11 +70,37 @@ github-pr-automation get-failing-tests --pr "owner/repo#123"
    - Supports both thread ID and comment ID targeting
    - Immediate resolution without manual intervention
 
+8. **`check_github_permissions`** - Diagnose GitHub token permissions
+   - Validates GitHub token and repository access
+   - Tests specific action permissions (read, write, etc.)
+   - Provides actionable fix guidance for permission issues
+   - Runs automatically during installation to warn about potential issues
+   - Available as CLI command for manual verification
+
 ## Requirements
 
 - **Node.js v20 or higher** - Minimum version required (v22 LTS recommended)
 - **GitHub Token** - Set `GITHUB_TOKEN` environment variable for API access
 - **Git** - Required for git operations in stacked PR management
+
+### GitHub Token Permissions
+
+**Read-Only Tools** (minimal permissions required):
+- `get_failing_tests` - Read CI status and logs
+- `find_unresolved_comments` - Read PR comments and reviews
+- `detect_merge_conflicts` - Read PR and branch information
+- `check_merge_readiness` - Read PR status and requirements
+- `check_github_permissions` - Read repository permissions
+
+**Write Permission Tools** (require `repo` scope):
+- `resolve_review_thread` - Resolve review threads
+- `manage_stacked_prs` - Create comments and manage PRs
+
+**Permission Checking:**
+- 🔍 **Automatic**: Permission checks run during installation
+- ⚠️ **Warnings**: Get notified about missing permissions upfront
+- 🛠️ **Diagnostic**: Use `check_github_permissions` tool to troubleshoot issues
+- 🚫 **Optional**: Tools gracefully handle missing permissions with helpful error messages
 
 ### Node.js Version Management
 
@@ -153,9 +179,34 @@ Set the following environment variable:
 export GITHUB_TOKEN="your_github_personal_access_token"
 ```
 
-The token needs the following scopes:
+### Token Scopes
+
+**Minimum Required** (for read-only tools):
+- `public_repo` (read public repositories)
+- `read:org` (read organization membership)
+
+**Full Access** (for write operations):
 - `repo` (full control of private repositories)
 - `read:org` (read organization membership)
+
+### Permission Troubleshooting
+
+```bash
+# Check your token permissions
+github-pr-automation check-github-permissions --pr "owner/repo#123"
+
+# Test specific actions
+github-pr-automation check-github-permissions --pr "owner/repo#123" --actions "create_comments,resolve_threads"
+
+# Get detailed diagnostics
+github-pr-automation check-github-permissions --pr "owner/repo#123" --detailed --json
+```
+
+**Installation-Time Checks:**
+- 🔍 Permission validation runs automatically during `npm install`
+- ⚠️ Warnings appear if token is missing or invalid
+- 🚫 Checks are skipped in CI environments
+- 🔧 Can be disabled with `SKIP_PERMISSION_CHECK=true`
 
 ## Usage
 
@@ -193,6 +244,9 @@ github-pr-automation manage-stacked-prs --base-pr "owner/repo#100" --dependent-p
 
 # Resolve review thread
 github-pr-automation resolve-review-thread --pr "owner/repo#123" --thread-id "thread_id"
+
+# Check GitHub permissions
+github-pr-automation check-github-permissions --pr "owner/repo#123" --detailed
 
 # Output as JSON for scripting
 github-pr-automation get-failing-tests --pr "owner/repo#123" --json
@@ -261,6 +315,16 @@ echo "GITHUB_TOKEN=your_token_here" > .env
   thread_id: "thread_id",         // Review thread GraphQL node ID (optional)
   comment_id: "comment_id",       // Comment GraphQL node ID (optional)
   prefer: "thread"                // Prefer "thread" or "comment" when both provided
+}
+```
+
+### check_github_permissions
+
+```typescript
+{
+  pr: "owner/repo#123",           // PR identifier
+  actions: ["create_comments", "resolve_threads"], // Optional: specific actions to test
+  detailed: true                   // Optional: include detailed diagnostics
 }
 ```
 
