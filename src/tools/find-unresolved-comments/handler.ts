@@ -9,9 +9,10 @@ import type { Octokit } from '@octokit/rest';
 /**
  * Calculate status indicators for a comment
  */
-function calculateStatusIndicators(comment: Comment): Comment['status_indicators'] {
+function calculateStatusIndicators(comment: Comment, allComments?: Comment[]): Comment['status_indicators'] {
   const hasMcpAction = !!comment.action_commands.mcp_action;
-  const hasManualResponse = !!comment.in_reply_to_id; // Simplified: has replies
+  // Check if this comment has replies by looking for other comments that reply to it
+  const hasManualResponse = allComments ? allComments.some(c => c.in_reply_to_id === comment.id) : false;
   const isActionable = comment.coderabbit_metadata?.suggestion_type === 'actionable' || 
                       comment.body.toLowerCase().includes('fix') ||
                       comment.body.toLowerCase().includes('suggest') ||
@@ -64,10 +65,10 @@ function calculateStatusIndicators(comment: Comment): Comment['status_indicators
   
   // Determine resolution status
   let resolutionStatus: 'unresolved' | 'acknowledged' | 'in_progress' | 'resolved';
-  if (hasManualResponse) {
+  if (hasManualResponse && isActionable) {
+    resolutionStatus = 'in_progress';
+  } else if (hasManualResponse) {
     resolutionStatus = 'acknowledged';
-  } else if (priorityScore >= 70) {
-    resolutionStatus = 'unresolved';
   } else {
     resolutionStatus = 'unresolved';
   }
@@ -204,10 +205,6 @@ export async function handleFindUnresolvedComments(
         )
       };
       
-      // Add status indicators if enabled
-      if (input.include_status_indicators !== false) {
-        comment.status_indicators = calculateStatusIndicators(comment);
-      }
       
       return comment;
     }),
@@ -241,14 +238,17 @@ export async function handleFindUnresolvedComments(
         action_commands: generateActionCommands(pr, c.id, 'issue_comment', body)
       };
       
-      // Add status indicators if enabled
-      if (input.include_status_indicators !== false) {
-        comment.status_indicators = calculateStatusIndicators(comment);
-      }
       
       return comment;
     })
   ];
+  
+  // Calculate status indicators for all comments (second pass)
+  if (input.include_status_indicators !== false) {
+    for (const comment of allComments) {
+      comment.status_indicators = calculateStatusIndicators(comment, allComments);
+    }
+  }
   
   // Filter by bots if requested
   let filtered = allComments;
