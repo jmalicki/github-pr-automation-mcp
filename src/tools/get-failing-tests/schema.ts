@@ -5,7 +5,8 @@ export const GetFailingTestsSchema = z.object({
   pr: PRIdentifierStringSchema,
   wait: z.boolean().default(false),
   bail_on_first: z.boolean().default(true),
-  cursor: z.string().optional() // MCP cursor-based pagination
+  cursor: z.string().optional(), // MCP cursor-based pagination
+  detailed_logs: z.boolean().default(false) // Enable detailed log parsing from workflow runs
 });
 
 export type GetFailingTestsInput = z.infer<typeof GetFailingTestsSchema>;
