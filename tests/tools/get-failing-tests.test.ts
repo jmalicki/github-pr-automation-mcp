@@ -12,13 +12,139 @@ describe('handleGetFailingTests', () => {
         get: vi.fn()
       },
       checks: {
-        listForRef: vi.fn()
+        listForRef: vi.fn(),
+        get: vi.fn()
       }
     };
 
     mockClient = {
       getOctokit: () => mockOctokit
     } as any;
+  });
+
+  it('should extract detailed error messages from check run output', async () => {
+    mockOctokit.pulls.get.mockResolvedValue({
+      data: {
+        head: { sha: 'abc123' }
+      }
+    });
+
+    mockOctokit.checks.listForRef.mockResolvedValue({
+      data: {
+        check_runs: [
+          {
+            id: 1,
+            name: 'test',
+            status: 'completed',
+            conclusion: 'failure',
+            html_url: 'https://github.com/test/repo/actions/runs/1'
+          }
+        ]
+      },
+      headers: { link: '' }
+    });
+
+    // Mock detailed check run with rich output
+    mockOctokit.checks.get = vi.fn().mockResolvedValue({
+      data: {
+        id: 1,
+        name: 'test',
+        output: {
+          title: 'Test Suite Failed',
+          summary: '3 tests failed in the test suite',
+          text: `FAIL tests/example.test.ts
+  Error: Expected "hello" but received "world"
+    at Object.<anonymous> (tests/example.test.ts:5:10)
+  
+FAIL tests/another.test.ts
+  AssertionError: Expected 42 but received 0
+    at expect (tests/another.test.ts:10:5)`
+        }
+      }
+    });
+
+    const result = await handleGetFailingTests(mockClient, {
+      pr: 'owner/repo#123',
+      wait: false,
+      bail_on_first: true
+    });
+
+    expect(result.status).toBe('failed');
+    expect(result.failures).toHaveLength(1);
+    
+    const failure = result.failures[0];
+    expect(failure.check_name).toBe('test');
+    expect(failure.test_name).toBe('Test Suite Failed');
+    expect(failure.error_message).toContain('**Test Suite Failed**');
+    expect(failure.error_message).toContain('3 tests failed in the test suite');
+    expect(failure.error_message).toContain('**Last few lines of output:**');
+    expect(failure.error_message).toContain('AssertionError: Expected 42 but received 0');
+    expect(failure.confidence).toBe('high');
+  });
+
+  it('should handle detailed_logs option', async () => {
+    mockOctokit.pulls.get.mockResolvedValue({
+      data: {
+        head: { sha: 'abc123' }
+      }
+    });
+
+    mockOctokit.checks.listForRef.mockResolvedValue({
+      data: {
+        check_runs: [
+          {
+            id: 1,
+            name: 'test',
+            status: 'completed',
+            conclusion: 'failure',
+            html_url: 'https://github.com/test/repo/actions/runs/1',
+            external_id: 'workflow-run-123'
+          }
+        ]
+      },
+      headers: { link: '' }
+    });
+
+    // Mock detailed check run
+    mockOctokit.checks.get = vi.fn().mockResolvedValue({
+      data: {
+        id: 1,
+        name: 'test',
+        external_id: 'workflow-run-123',
+        output: {
+          title: 'Test Failed',
+          summary: 'Basic error info'
+        }
+      }
+    });
+
+    // Mock workflow runs API
+    mockOctokit.actions = {
+      listWorkflowRunsForRepo: vi.fn().mockResolvedValue({
+        data: {
+          workflow_runs: [
+            {
+              id: 123,
+              pull_requests: [{ number: 123 }]
+            }
+          ]
+        }
+      }),
+      downloadWorkflowRunLogs: vi.fn().mockResolvedValue({
+        data: Buffer.from('test log data')
+      })
+    };
+
+    const result = await handleGetFailingTests(mockClient, {
+      pr: 'owner/repo#123',
+      wait: false,
+      bail_on_first: true,
+      detailed_logs: true
+    });
+
+    expect(result.status).toBe('failed');
+    expect(result.failures).toHaveLength(1);
+    expect(mockOctokit.actions.listWorkflowRunsForRepo).toHaveBeenCalled();
   });
 
   it('should handle PR with no CI checks', async () => {
@@ -95,18 +221,27 @@ describe('handleGetFailingTests', () => {
       data: {
         check_runs: [
           {
+            id: 1,
             name: 'test',
             status: 'completed',
             conclusion: 'failure',
-            html_url: 'https://github.com/owner/repo/runs/1',
-            output: {
-              title: 'Tests failed',
-              summary: 'TypeError: Cannot read property "foo" of undefined'
-            }
+            html_url: 'https://github.com/owner/repo/runs/1'
           }
         ]
       },
       headers: { link: '' } // No next page
+    });
+
+    // Mock detailed check run
+    mockOctokit.checks.get.mockResolvedValue({
+      data: {
+        id: 1,
+        name: 'test',
+        output: {
+          title: 'Tests failed',
+          summary: 'TypeError: Cannot read property "foo" of undefined'
+        }
+      }
     });
 
     const result = await handleGetFailingTests(mockClient, {
@@ -120,9 +255,9 @@ describe('handleGetFailingTests', () => {
     expect(result.failures[0]).toMatchObject({
       check_name: 'test',
       test_name: 'Tests failed',
-      error_message: 'TypeError: Cannot read property "foo" of undefined',
+      error_message: '**Tests failed**\n\nTypeError: Cannot read property "foo" of undefined',
       log_url: 'https://github.com/owner/repo/runs/1',
-      confidence: 'medium'
+      confidence: 'high'
     });
     expect(result.instructions.summary).toContain('1 test failed');
   });
@@ -179,14 +314,11 @@ describe('handleGetFailingTests', () => {
     });
 
     const failedChecks = Array.from({ length: TOTAL_ITEMS }, (_, i) => ({
+      id: i + 1,
       name: `test-${i}`,
       status: 'completed',
       conclusion: 'failure',
-      html_url: `https://github.com/owner/repo/runs/${i}`,
-      output: {
-        title: `Test ${i} failed`,
-        summary: `Error in test ${i}`
-      }
+      html_url: `https://github.com/owner/repo/runs/${i}`
     }));
 
     // Mock pagination responses
@@ -209,6 +341,21 @@ describe('handleGetFailingTests', () => {
         },
         headers: { link: '' } // No next page
       });
+
+    // Mock detailed check run for each failed check
+    mockOctokit.checks.get.mockImplementation(({ check_run_id }: any) => {
+      const checkIndex = check_run_id - 1;
+      return Promise.resolve({
+        data: {
+          id: check_run_id,
+          name: `test-${checkIndex}`,
+          output: {
+            title: `Test ${checkIndex} failed`,
+            summary: `Error in test ${checkIndex}`
+          }
+        }
+      });
+    });
 
     // First page (no cursor)
     const page1 = await handleGetFailingTests(mockClient, {
@@ -254,22 +401,21 @@ describe('handleGetFailingTests', () => {
       data: {
         check_runs: [
           {
+            id: 1,
             name: 'build',
             status: 'completed',
             conclusion: 'success',
             html_url: 'https://github.com/owner/repo/runs/1'
           },
           {
+            id: 2,
             name: 'test',
             status: 'completed',
             conclusion: 'failure',
-            html_url: 'https://github.com/owner/repo/runs/2',
-            output: {
-              title: 'Test failure',
-              summary: 'Some tests failed'
-            }
+            html_url: 'https://github.com/owner/repo/runs/2'
           },
           {
+            id: 3,
             name: 'lint',
             status: 'in_progress',
             conclusion: null,
@@ -278,6 +424,18 @@ describe('handleGetFailingTests', () => {
         ]
       },
       headers: { link: '' } // No next page
+    });
+
+    // Mock detailed check run for the failed test
+    mockOctokit.checks.get.mockResolvedValue({
+      data: {
+        id: 2,
+        name: 'test',
+        output: {
+          title: 'Test failure',
+          summary: 'Some tests failed'
+        }
+      }
     });
 
     const result = await handleGetFailingTests(mockClient, {
