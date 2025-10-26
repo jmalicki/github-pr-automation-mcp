@@ -96,11 +96,18 @@ github-pr-automation get-failing-tests --pr "owner/repo#123"
 - `resolve_review_thread` - Resolve review threads
 - `manage_stacked_prs` - Create comments and manage PRs
 
+**Graceful Degradation:**
+- 📖 **Read-Only Mode**: All tools work with minimal permissions for reading data
+- ⚠️ **Write Operations**: Require `repo` scope, show clear error messages when missing
+- 🔄 **Partial Functionality**: Tools like `manage_stacked_prs` can analyze without making changes
+- 📝 **Helpful Guidance**: Always get specific instructions on how to enable full functionality
+
 **Permission Checking:**
 - 🔍 **Automatic**: Permission checks run during installation
 - ⚠️ **Warnings**: Get notified about missing permissions upfront
 - 🛠️ **Diagnostic**: Use `check_github_permissions` tool to troubleshoot issues
-- 🚫 **Optional**: Tools gracefully handle missing permissions with helpful error messages
+- 🔄 **Graceful Degradation**: Tools work with read-only permissions, write features are disabled
+- 📝 **Clear Error Messages**: Always get helpful guidance when permissions are insufficient
 
 ### Node.js Version Management
 
@@ -207,6 +214,21 @@ github-pr-automation check-github-permissions --pr "owner/repo#123" --detailed -
 - ⚠️ Warnings appear if token is missing or invalid
 - 🚫 Checks are skipped in CI environments
 - 🔧 Can be disabled with `SKIP_PERMISSION_CHECK=true`
+
+**Example: Using Tools with Limited Permissions**
+
+```bash
+# With read-only permissions (public_repo scope):
+github-pr-automation get-failing-tests --pr "owner/repo#123"  # ✅ Works
+github-pr-automation find-unresolved-comments --pr "owner/repo#123"  # ✅ Works
+
+# Write operations show helpful errors:
+github-pr-automation resolve-review-thread --pr "owner/repo#123" --thread-id "abc"
+# ❌ Error: Forbidden: insufficient permissions
+# 💡 Suggestion: Use check_github_permissions tool to diagnose token issues
+# 🔧 Diagnostic: Use MCP tool: check_github_permissions
+# 📝 Example: {"pr": "owner/repo#123", "actions": ["resolve_threads"]}
+```
 
 ## Usage
 
