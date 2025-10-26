@@ -86,7 +86,7 @@ describe('get-failing-tests E2E', () => {
     const scenarios = [
       { wait: false, bail_on_first: true },
       { wait: true, bail_on_first: true },
-      { wait: false, cursor: 'test-cursor', bail_on_first: true }
+      { wait: false, cursor: Buffer.from(JSON.stringify({ page: 2 })).toString('base64'), bail_on_first: true }
     ];
     
     for (const scenario of scenarios) {

@@ -174,6 +174,20 @@ export class E2ETestSetup {
             base: { sha: 'def456' }
           }
         }),
+        listReviews: async () => ({
+          data: [
+            {
+              id: 1,
+              user: { login: 'testuser', type: 'User' },
+              state: 'APPROVED',
+              body: 'Looks good!',
+              submitted_at: '2023-01-01T00:00:00Z'
+            }
+          ],
+          headers: {
+            link: '<https://api.github.com/repos/test/repo/pulls/123/reviews?page=2>; rel="next"'
+          }
+        }),
         listReviewComments: async () => ({
           data: [
             {
