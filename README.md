@@ -96,12 +96,6 @@ github-pr-automation get-failing-tests --pr "owner/repo#123"
 - `resolve_review_thread` - Resolve review threads
 - `manage_stacked_prs` - Create comments and manage PRs
 
-**Graceful Degradation:**
-- 📖 **Read-Only Tools**: Work with minimal permissions (`public_repo` scope)
-- ⚠️ **Write-Required Tools**: `resolve_review_thread` and `manage_stacked_prs` require `repo` scope
-- 🔄 **Partial Functionality**: Some tools can analyze without making changes
-- 📝 **Helpful Guidance**: Always get specific instructions on how to enable full functionality
-
 **Permission Checking:**
 - 🔍 **Automatic**: Permission checks run during installation
 - ⚠️ **Warnings**: Get notified about missing permissions upfront
