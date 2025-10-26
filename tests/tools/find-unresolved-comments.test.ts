@@ -658,11 +658,10 @@ If reproducibility is important, add lockfile copying after line 37:
       }
     });
 
+    // Not specifying parse_review_bodies to verify it defaults to true
     const result = await handleFindUnresolvedComments(mockClient, {
       pr: 'test/repo#123',
-      include_bots: true,
-      parse_review_bodies: true
-      // parse_review_bodies not specified, should default to true
+      include_bots: true
     });
 
     expect(mockOctokit.pulls.listReviews).toHaveBeenCalled();
@@ -1158,7 +1157,7 @@ While the current approach works, copying only \`package.json\` without the lock
       // Test with empty coderabbit_options (should use defaults)
       const result = await handleFindUnresolvedComments(mockClient, {
         pr: 'test/repo#123',
-        parse_review_bodies: true,
+        parse_review_bodies: true, // Explicitly set to test the coderabbit_options defaults
         include_bots: true,
         coderabbit_options: {}
       });

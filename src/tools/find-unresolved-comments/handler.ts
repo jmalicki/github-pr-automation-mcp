@@ -74,7 +74,7 @@ export async function handleFindUnresolvedComments(
       const author = c.user?.login || 'unknown';
       const authorAssociation = c.author_association || 'NONE';
       const isBot = c.user?.type === 'Bot';
-      const body = c.body;
+      const body = c.body || '';
       
       return {
         id: c.id,
@@ -271,24 +271,6 @@ async function fetchReviewCommentNodeIds(
   }
 
   try {
-    // Type the GraphQL response
-    interface GraphQLResponse {
-      repository?: {
-        pullRequest?: {
-          reviewThreads?: {
-            nodes?: Array<{
-              id: string;
-              comments?: {
-                nodes?: Array<{
-                  databaseId: number;
-                }>;
-              };
-            }>;
-          };
-        };
-      };
-    }
-
     const response = await octokit.graphql<GraphQLResponse>(query, {
       owner: pr.owner,
       repo: pr.repo,
