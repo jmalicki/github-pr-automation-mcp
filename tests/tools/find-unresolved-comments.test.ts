@@ -667,5 +667,506 @@ If reproducibility is important, add lockfile copying after line 37:
 
     expect(mockOctokit.pulls.listReviews).toHaveBeenCalled();
   });
+
+  describe('CodeRabbit parsing', () => {
+    it('should parse CodeRabbit review body with nits', async () => {
+      // Mock review comments response
+      mockOctokit.pulls.listReviewComments.mockResolvedValue({
+        data: [],
+        headers: { link: '' }
+      });
+
+      // Mock issue comments response
+      mockOctokit.issues.listComments.mockResolvedValue({
+        data: [],
+        headers: { link: '' }
+      });
+
+      // Mock CodeRabbit review with nits
+      mockOctokit.pulls.listReviews.mockResolvedValue({
+        data: [
+          {
+            id: 124,
+            user: { login: 'coderabbitai[bot]', type: 'Bot' },
+            author_association: 'CONTRIBUTOR',
+            state: 'COMMENTED',
+            submitted_at: '2024-01-01T10:05:00Z',
+            created_at: '2024-01-01T10:05:00Z',
+            body: `<details>
+<summary>🧹 Nitpick comments (2)</summary>
+<blockquote>
+<details>
+<summary>src/file.ts (1)</summary>
+<blockquote>
+\`36-41\`: **Consider copying the lockfile for reproducible builds.**
+While the current approach works, copying only \`package.json\` without the lockfile means the standalone installation might pull different dependency versions.
+
+\`\`\`diff
+- // Copy package.json for dependencies
+- copyFileSync('package.json', join(standaloneDir, 'package.json'));
++ // Copy package.json for dependencies
++ copyFileSync('package.json', join(standaloneDir, 'package.json'));
++
++ // Copy lockfile for reproducible builds
++ const lockFiles = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'];
++ for (const lockFile of lockFiles) {
++   if (existsSync(lockFile)) {
++     copyFileSync(lockFile, join(standaloneDir, lockFile));
++     break;
++   }
++ }
+\`\`\`
+</blockquote>
+</details>
+</blockquote>
+</details>`,
+            html_url: 'https://github.com/test/repo/pull/123#pullrequestreview-124'
+          }
+        ],
+        headers: { link: '' }
+      });
+
+      // Mock GraphQL response
+      mockOctokit.graphql.mockResolvedValue({
+        repository: {
+          pullRequest: {
+            reviewThreads: { nodes: [] }
+          }
+        }
+      });
+
+      const result = await handleFindUnresolvedComments(mockClient, {
+        pr: 'test/repo#123',
+        parse_review_bodies: true,
+        include_bots: true
+      });
+
+      expect(result.comments).toHaveLength(1);
+      expect(result.comments[0].coderabbit_metadata).toBeDefined();
+      expect(result.comments[0].coderabbit_metadata?.suggestion_type).toBe('nit');
+      expect(result.comments[0].coderabbit_metadata?.severity).toBe('low');
+      expect(result.comments[0].coderabbit_metadata?.file_context?.path).toBe('src/file.ts');
+      expect(result.comments[0].coderabbit_metadata?.file_context?.line_start).toBe(36);
+      expect(result.comments[0].coderabbit_metadata?.agent_prompt).toContain('CodeRabbit nit suggestion');
+    });
+
+    it('should filter CodeRabbit comments by type', async () => {
+      // Mock review comments response
+      mockOctokit.pulls.listReviewComments.mockResolvedValue({
+        data: [],
+        headers: { link: '' }
+      });
+
+      // Mock issue comments response
+      mockOctokit.issues.listComments.mockResolvedValue({
+        data: [],
+        headers: { link: '' }
+      });
+
+      // Mock CodeRabbit review with multiple types
+      mockOctokit.pulls.listReviews.mockResolvedValue({
+        data: [
+          {
+            id: 124,
+            user: { login: 'coderabbitai[bot]', type: 'Bot' },
+            author_association: 'CONTRIBUTOR',
+            state: 'COMMENTED',
+            submitted_at: '2024-01-01T10:05:00Z',
+            created_at: '2024-01-01T10:05:00Z',
+            body: `<details>
+<summary>🧹 Nitpick comments (1)</summary>
+<blockquote>
+<details>
+<summary>src/file.ts (1)</summary>
+<blockquote>
+\`10\`: **Minor style suggestion**
+</blockquote>
+</details>
+</blockquote>
+</details>
+<details>
+<summary>♻️ Duplicate comments (1)</summary>
+<blockquote>
+<details>
+<summary>src/file.ts (1)</summary>
+<blockquote>
+\`15\`: **This was already mentioned above**
+</blockquote>
+</details>
+</blockquote>
+</details>`,
+            html_url: 'https://github.com/test/repo/pull/123#pullrequestreview-124'
+          }
+        ],
+        headers: { link: '' }
+      });
+
+      // Mock GraphQL response
+      mockOctokit.graphql.mockResolvedValue({
+        repository: {
+          pullRequest: {
+            reviewThreads: { nodes: [] }
+          }
+        }
+      });
+
+      // Test filtering to only include nits
+      const result = await handleFindUnresolvedComments(mockClient, {
+        pr: 'test/repo#123',
+        parse_review_bodies: true,
+        include_bots: true,
+        coderabbit_options: {
+          include_nits: true,
+          include_duplicates: false,
+          include_additional: false
+        }
+      });
+
+      expect(result.comments).toHaveLength(1);
+      expect(result.comments[0].coderabbit_metadata?.suggestion_type).toBe('nit');
+    });
+
+    it('should prioritize actionable items when requested', async () => {
+      // Mock review comments response
+      mockOctokit.pulls.listReviewComments.mockResolvedValue({
+        data: [],
+        headers: { link: '' }
+      });
+
+      // Mock issue comments response
+      mockOctokit.issues.listComments.mockResolvedValue({
+        data: [],
+        headers: { link: '' }
+      });
+
+      // Mock CodeRabbit review with mixed types
+      mockOctokit.pulls.listReviews.mockResolvedValue({
+        data: [
+          {
+            id: 124,
+            user: { login: 'coderabbitai[bot]', type: 'Bot' },
+            author_association: 'CONTRIBUTOR',
+            state: 'COMMENTED',
+            submitted_at: '2024-01-01T10:05:00Z',
+            created_at: '2024-01-01T10:05:00Z',
+            body: `<details>
+<summary>🧹 Nitpick comments (1)</summary>
+<blockquote>
+<details>
+<summary>src/file.ts (1)</summary>
+<blockquote>
+\`10\`: **Minor style suggestion**
+</blockquote>
+</details>
+</blockquote>
+</details>
+<details>
+<summary>Actionable comments posted: 1</summary>
+<blockquote>
+<details>
+<summary>src/file.ts (1)</summary>
+<blockquote>
+\`20\`: **Critical security issue that must be fixed**
+</blockquote>
+</details>
+</blockquote>
+</details>`,
+            html_url: 'https://github.com/test/repo/pull/123#pullrequestreview-124'
+          }
+        ],
+        headers: { link: '' }
+      });
+
+      // Mock GraphQL response
+      mockOctokit.graphql.mockResolvedValue({
+        repository: {
+          pullRequest: {
+            reviewThreads: { nodes: [] }
+          }
+        }
+      });
+
+      const result = await handleFindUnresolvedComments(mockClient, {
+        pr: 'test/repo#123',
+        parse_review_bodies: true,
+        include_bots: true,
+        coderabbit_options: {
+          prioritize_actionable: true
+        }
+      });
+
+      expect(result.comments).toHaveLength(2);
+      // Actionable items should come first
+      expect(result.comments[0].coderabbit_metadata?.suggestion_type).toBe('actionable');
+      expect(result.comments[1].coderabbit_metadata?.suggestion_type).toBe('nit');
+    });
+
+    it('should group comments by type when requested', async () => {
+      // Mock review comments response
+      mockOctokit.pulls.listReviewComments.mockResolvedValue({
+        data: [],
+        headers: { link: '' }
+      });
+
+      // Mock issue comments response
+      mockOctokit.issues.listComments.mockResolvedValue({
+        data: [],
+        headers: { link: '' }
+      });
+
+      // Mock CodeRabbit review with multiple types
+      mockOctokit.pulls.listReviews.mockResolvedValue({
+        data: [
+          {
+            id: 124,
+            user: { login: 'coderabbitai[bot]', type: 'Bot' },
+            author_association: 'CONTRIBUTOR',
+            state: 'COMMENTED',
+            submitted_at: '2024-01-01T10:05:00Z',
+            created_at: '2024-01-01T10:05:00Z',
+            body: `<details>
+<summary>🧹 Nitpick comments (1)</summary>
+<blockquote>
+<details>
+<summary>src/file1.ts (1)</summary>
+<blockquote>
+\`10\`: **Minor style suggestion**
+</blockquote>
+</details>
+</blockquote>
+</details>
+<details>
+<summary>♻️ Duplicate comments (1)</summary>
+<blockquote>
+<details>
+<summary>src/file2.ts (1)</summary>
+<blockquote>
+\`15\`: **This was already mentioned**
+</blockquote>
+</details>
+</blockquote>
+</details>`,
+            html_url: 'https://github.com/test/repo/pull/123#pullrequestreview-124'
+          }
+        ],
+        headers: { link: '' }
+      });
+
+      // Mock GraphQL response
+      mockOctokit.graphql.mockResolvedValue({
+        repository: {
+          pullRequest: {
+            reviewThreads: { nodes: [] }
+          }
+        }
+      });
+
+      const result = await handleFindUnresolvedComments(mockClient, {
+        pr: 'test/repo#123',
+        parse_review_bodies: true,
+        include_bots: true,
+        coderabbit_options: {
+          group_by_type: true
+        }
+      });
+
+      expect(result.comments).toHaveLength(2);
+      // Should be grouped by type (nit first, then duplicate)
+      expect(result.comments[0].coderabbit_metadata?.suggestion_type).toBe('nit');
+      expect(result.comments[1].coderabbit_metadata?.suggestion_type).toBe('duplicate');
+    });
+
+    it('should generate agent prompts when requested', async () => {
+      // Mock review comments response
+      mockOctokit.pulls.listReviewComments.mockResolvedValue({
+        data: [],
+        headers: { link: '' }
+      });
+
+      // Mock issue comments response
+      mockOctokit.issues.listComments.mockResolvedValue({
+        data: [],
+        headers: { link: '' }
+      });
+
+      // Mock CodeRabbit review with code suggestion
+      mockOctokit.pulls.listReviews.mockResolvedValue({
+        data: [
+          {
+            id: 124,
+            user: { login: 'coderabbitai[bot]', type: 'Bot' },
+            author_association: 'CONTRIBUTOR',
+            state: 'COMMENTED',
+            submitted_at: '2024-01-01T10:05:00Z',
+            created_at: '2024-01-01T10:05:00Z',
+            body: `<details>
+<summary>🧹 Nitpick comments (1)</summary>
+<blockquote>
+<details>
+<summary>src/file.ts (1)</summary>
+<blockquote>
+\`10\`: **Use const instead of let**
+\`\`\`diff
+- let x = 1
++ const x = 1
+\`\`\`
+</blockquote>
+</details>
+</blockquote>
+</details>`,
+            html_url: 'https://github.com/test/repo/pull/123#pullrequestreview-124'
+          }
+        ],
+        headers: { link: '' }
+      });
+
+      // Mock GraphQL response
+      mockOctokit.graphql.mockResolvedValue({
+        repository: {
+          pullRequest: {
+            reviewThreads: { nodes: [] }
+          }
+        }
+      });
+
+      const result = await handleFindUnresolvedComments(mockClient, {
+        pr: 'test/repo#123',
+        parse_review_bodies: true,
+        include_bots: true,
+        coderabbit_options: {
+          extract_agent_prompts: true
+        }
+      });
+
+      expect(result.comments).toHaveLength(1);
+      expect(result.comments[0].coderabbit_metadata?.agent_prompt).toContain('CodeRabbit nit suggestion');
+      expect(result.comments[0].coderabbit_metadata?.agent_prompt).toContain('Current code:');
+      expect(result.comments[0].coderabbit_metadata?.agent_prompt).toContain('Suggested change:');
+    });
+
+    it('should not generate agent prompts when disabled', async () => {
+      // Mock review comments response
+      mockOctokit.pulls.listReviewComments.mockResolvedValue({
+        data: [],
+        headers: { link: '' }
+      });
+
+      // Mock issue comments response
+      mockOctokit.issues.listComments.mockResolvedValue({
+        data: [],
+        headers: { link: '' }
+      });
+
+      // Mock CodeRabbit review
+      mockOctokit.pulls.listReviews.mockResolvedValue({
+        data: [
+          {
+            id: 124,
+            user: { login: 'coderabbitai[bot]', type: 'Bot' },
+            author_association: 'CONTRIBUTOR',
+            state: 'COMMENTED',
+            submitted_at: '2024-01-01T10:05:00Z',
+            created_at: '2024-01-01T10:05:00Z',
+            body: `<details>
+<summary>🧹 Nitpick comments (1)</summary>
+<blockquote>
+<details>
+<summary>src/file.ts (1)</summary>
+<blockquote>
+\`10\`: **Minor suggestion**
+</blockquote>
+</details>
+</blockquote>
+</details>`,
+            html_url: 'https://github.com/test/repo/pull/123#pullrequestreview-124'
+          }
+        ],
+        headers: { link: '' }
+      });
+
+      // Mock GraphQL response
+      mockOctokit.graphql.mockResolvedValue({
+        repository: {
+          pullRequest: {
+            reviewThreads: { nodes: [] }
+          }
+        }
+      });
+
+      const result = await handleFindUnresolvedComments(mockClient, {
+        pr: 'test/repo#123',
+        parse_review_bodies: true,
+        include_bots: true,
+        coderabbit_options: {
+          extract_agent_prompts: false
+        }
+      });
+
+      expect(result.comments).toHaveLength(1);
+      expect(result.comments[0].coderabbit_metadata?.agent_prompt).toBeUndefined();
+    });
+
+    it('should handle CodeRabbit options with defaults', async () => {
+      // Mock review comments response
+      mockOctokit.pulls.listReviewComments.mockResolvedValue({
+        data: [],
+        headers: { link: '' }
+      });
+
+      // Mock issue comments response
+      mockOctokit.issues.listComments.mockResolvedValue({
+        data: [],
+        headers: { link: '' }
+      });
+
+      // Mock CodeRabbit review
+      mockOctokit.pulls.listReviews.mockResolvedValue({
+        data: [
+          {
+            id: 124,
+            user: { login: 'coderabbitai[bot]', type: 'Bot' },
+            author_association: 'CONTRIBUTOR',
+            state: 'COMMENTED',
+            submitted_at: '2024-01-01T10:05:00Z',
+            created_at: '2024-01-01T10:05:00Z',
+            body: `<details>
+<summary>🧹 Nitpick comments (1)</summary>
+<blockquote>
+<details>
+<summary>src/file.ts (1)</summary>
+<blockquote>
+\`10\`: **Minor suggestion**
+</blockquote>
+</details>
+</blockquote>
+</details>`,
+            html_url: 'https://github.com/test/repo/pull/123#pullrequestreview-124'
+          }
+        ],
+        headers: { link: '' }
+      });
+
+      // Mock GraphQL response
+      mockOctokit.graphql.mockResolvedValue({
+        repository: {
+          pullRequest: {
+            reviewThreads: { nodes: [] }
+          }
+        }
+      });
+
+      // Test with empty coderabbit_options (should use defaults)
+      const result = await handleFindUnresolvedComments(mockClient, {
+        pr: 'test/repo#123',
+        parse_review_bodies: true,
+        include_bots: true,
+        coderabbit_options: {}
+      });
+
+      expect(result.comments).toHaveLength(1);
+      expect(result.comments[0].coderabbit_metadata?.suggestion_type).toBe('nit');
+      expect(result.comments[0].coderabbit_metadata?.agent_prompt).toBeDefined(); // Should be generated by default
+    });
+  });
 });
 

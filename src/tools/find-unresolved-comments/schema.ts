@@ -7,7 +7,16 @@ export const FindUnresolvedCommentsSchema = z.object({
   exclude_authors: z.array(z.string()).optional(),
   cursor: z.string().optional(), // MCP cursor-based pagination
   sort: z.enum(['chronological', 'by_file', 'by_author']).default('chronological'),
-  parse_review_bodies: z.boolean().default(true) // Parse review bodies for actionable comments
+  parse_review_bodies: z.boolean().default(true), // Parse review bodies for actionable comments
+  coderabbit_options: z.object({
+    include_nits: z.boolean().optional().default(true), // 💾 User preference: Include minor suggestions
+    include_duplicates: z.boolean().optional().default(true), // 💾 User preference: Include duplicate suggestions
+    include_additional: z.boolean().optional().default(true), // 💾 User preference: Include additional comments
+    suggestion_types: z.array(z.enum(['nit', 'duplicate', 'additional', 'actionable'])).optional(),
+    prioritize_actionable: z.boolean().optional().default(false), // 💾 User preference: Show actionable items first
+    group_by_type: z.boolean().optional().default(false), // 💾 User preference: Group comments by suggestion type
+    extract_agent_prompts: z.boolean().optional().default(true) // 💾 User preference: Generate agent-friendly prompts
+  }).optional()
 });
 
 export type FindUnresolvedCommentsInput = z.infer<typeof FindUnresolvedCommentsSchema>;
@@ -52,6 +61,30 @@ export interface Comment {
         pr: string;
         thread_id: string;
       };
+    };
+  };
+  
+  // CodeRabbit-specific metadata (only present for CodeRabbit comments)
+  coderabbit_metadata?: {
+    suggestion_type: 'nit' | 'duplicate' | 'additional' | 'actionable';
+    severity: 'low' | 'medium' | 'high';
+    category: string; // e.g., "style", "performance", "security"
+    file_context: {
+      path: string;
+      line_start: number;
+      line_end?: number;
+    };
+    code_suggestion?: {
+      old_code?: string;
+      new_code?: string;
+      language?: string;
+    };
+    agent_prompt?: string; // Structured prompt for AI agents
+    implementation_guidance?: {
+      priority: 'low' | 'medium' | 'high';
+      effort_estimate: string; // e.g., "2-3 minutes", "quick fix"
+      dependencies?: string[]; // Other suggestions that should be addressed first
+      rationale: string; // Why this change is suggested
     };
   };
 }
