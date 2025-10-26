@@ -17,6 +17,9 @@ function calculateStatusIndicators(comment: Comment): Comment['status_indicators
                       comment.body.toLowerCase().includes('suggest') ||
                       comment.body.toLowerCase().includes('change');
   
+  // Use GitHub API's outdated field (available for review comments)
+  const isOutdated = comment.outdated || false;
+  
   // Calculate priority score (0-100)
   let priorityScore = 0;
   
@@ -51,6 +54,11 @@ function calculateStatusIndicators(comment: Comment): Comment['status_indicators
     priorityScore -= 10;
   }
   
+  // Reduce priority for outdated comments
+  if (isOutdated) {
+    priorityScore -= 20; // Significant reduction for outdated comments
+  }
+  
   // Cap at 100
   priorityScore = Math.min(100, Math.max(0, priorityScore));
   
@@ -80,6 +88,7 @@ function calculateStatusIndicators(comment: Comment): Comment['status_indicators
     needs_mcp_resolution: hasMcpAction,
     has_manual_response: hasManualResponse,
     is_actionable: isActionable,
+    is_outdated: isOutdated,
     priority_score: priorityScore,
     resolution_status: resolutionStatus,
     suggested_action: suggestedAction
@@ -171,6 +180,7 @@ export async function handleFindUnresolvedComments(
         diff_hunk: c.diff_hunk || undefined,
         body,
         in_reply_to_id: c.in_reply_to_id || undefined,
+        outdated: c.outdated || false,
         reactions: c.reactions ? {
           total_count: c.reactions.total_count,
           '+1': c.reactions['+1'],
@@ -325,6 +335,7 @@ export async function handleFindUnresolvedComments(
   let needsMcpResolutionCount = 0;
   let hasManualResponsesCount = 0;
   let actionableItemsCount = 0;
+  let outdatedCommentsCount = 0;
   
   // Status-based grouping
   const statusGroups: {
@@ -362,6 +373,7 @@ export async function handleFindUnresolvedComments(
       if (indicators.needs_mcp_resolution) needsMcpResolutionCount++;
       if (indicators.has_manual_response) hasManualResponsesCount++;
       if (indicators.is_actionable) actionableItemsCount++;
+      if (indicators.is_outdated) outdatedCommentsCount++;
       
       // Status grouping
       statusGroups[indicators.resolution_status].push(comment);
@@ -386,7 +398,8 @@ export async function handleFindUnresolvedComments(
       low_priority: lowPriorityCount,
       needs_mcp_resolution: needsMcpResolutionCount,
       has_manual_responses: hasManualResponsesCount,
-      actionable_items: actionableItemsCount
+      actionable_items: actionableItemsCount,
+      outdated_comments: outdatedCommentsCount
     };
   }
   

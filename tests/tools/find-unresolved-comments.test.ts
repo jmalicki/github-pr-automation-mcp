@@ -1368,6 +1368,7 @@ While the current approach works, copying only \`package.json\` without the lock
       expect(result.summary.priority_summary?.needs_mcp_resolution).toBe(0);
       expect(result.summary.priority_summary?.has_manual_responses).toBe(0);
       expect(result.summary.priority_summary?.actionable_items).toBe(0);
+      expect(result.summary.priority_summary?.outdated_comments).toBe(0);
     });
 
     it('should include status groups when priority ordering is enabled', async () => {
@@ -1399,6 +1400,85 @@ While the current approach works, copying only \`package.json\` without the lock
       expect(result.summary.status_groups?.acknowledged).toEqual([]);
       expect(result.summary.status_groups?.in_progress).toEqual([]);
       expect(result.summary.status_groups?.resolved).toEqual([]);
+    });
+
+    it('should handle outdated comments with lower priority', async () => {
+      // Mock review comments with one outdated comment
+      mockOctokit.pulls.listReviewComments.mockResolvedValue({
+        data: [
+          {
+            id: 1,
+            user: { login: 'coderabbitai[bot]', type: 'Bot' },
+            author_association: 'CONTRIBUTOR',
+            created_at: '2024-01-01T10:00:00Z',
+            updated_at: '2024-01-01T10:00:00Z',
+            path: 'src/file.ts',
+            line: 10,
+            diff_hunk: '@@ -8,5 +8,5 @@',
+            body: 'Fix this critical issue',
+            outdated: false,
+            reactions: { total_count: 0, '+1': 0, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 },
+            html_url: 'https://github.com/owner/repo/pull/123#discussion_r1'
+          },
+          {
+            id: 2,
+            user: { login: 'coderabbitai[bot]', type: 'Bot' },
+            author_association: 'CONTRIBUTOR',
+            created_at: '2024-01-01T11:00:00Z',
+            updated_at: '2024-01-01T11:00:00Z',
+            path: 'src/file.ts',
+            line: 20,
+            diff_hunk: '@@ -18,5 +18,5 @@',
+            body: 'This comment is outdated',
+            outdated: true,
+            reactions: { total_count: 0, '+1': 0, '-1': 0, laugh: 0, hooray: 0, confused: 0, heart: 0, rocket: 0, eyes: 0 },
+            html_url: 'https://github.com/owner/repo/pull/123#discussion_r2'
+          }
+        ],
+        headers: { link: '' }
+      });
+
+      // Mock issue comments response
+      mockOctokit.issues.listComments.mockResolvedValue({
+        data: [],
+        headers: { link: '' }
+      });
+
+      // Mock reviews response
+      mockOctokit.pulls.listReviews.mockResolvedValue({
+        data: [],
+        headers: { link: '' }
+      });
+
+      // Mock GraphQL response
+      mockOctokit.graphql.mockResolvedValue({
+        repository: { pullRequest: { reviewThreads: { nodes: [] } } }
+      });
+
+      const result = await handleFindUnresolvedComments(mockClient, {
+        pr: 'owner/repo#123',
+        sort: 'priority',
+        include_status_indicators: true,
+        priority_ordering: true,
+        include_bots: true
+      });
+
+      expect(result.comments).toHaveLength(2);
+      
+      // The non-outdated comment should come first (higher priority)
+      const firstComment = result.comments[0];
+      const secondComment = result.comments[1];
+      
+      expect(firstComment.outdated).toBe(false);
+      expect(secondComment.outdated).toBe(true);
+      
+      // Priority scores should reflect outdated status
+      expect(firstComment.status_indicators?.priority_score).toBeGreaterThan(
+        secondComment.status_indicators?.priority_score || 0
+      );
+      
+      // Summary should include outdated count
+      expect(result.summary.priority_summary?.outdated_comments).toBe(1);
     });
   });
 });

@@ -6,7 +6,7 @@ export const FindUnresolvedCommentsSchema = z.object({
   include_bots: z.boolean().default(true),
   exclude_authors: z.array(z.string()).optional(),
   cursor: z.string().optional(), // MCP cursor-based pagination
-  sort: z.enum(['chronological', 'by_file', 'by_author', 'priority']).default('chronological'),
+  sort: z.enum(['chronological', 'by_file', 'by_author', 'priority']).default('priority'),
   parse_review_bodies: z.boolean().default(true), // Parse review bodies for actionable comments
   include_status_indicators: z.boolean().default(true), // 💾 User preference: Include status indicators
   priority_ordering: z.boolean().default(true), // 💾 User preference: Use priority-based ordering
@@ -38,6 +38,7 @@ export interface Comment {
   body: string;
   body_html?: string;
   in_reply_to_id?: number;
+  outdated?: boolean; // GitHub API field indicating if comment is on outdated code
   reactions?: {
     total_count: number;
     '+1': number;
@@ -56,6 +57,7 @@ export interface Comment {
     needs_mcp_resolution: boolean; // Has mcp_action that can be resolved via MCP
     has_manual_response: boolean; // Has replies from humans
     is_actionable: boolean; // Contains actionable suggestions
+    is_outdated: boolean; // Comment is likely outdated (old, on changed code, etc.)
     priority_score: number; // Calculated priority (0-100, higher = more important)
     resolution_status: 'unresolved' | 'acknowledged' | 'in_progress' | 'resolved';
     suggested_action: 'reply' | 'resolve' | 'investigate' | 'ignore';
@@ -121,6 +123,7 @@ export interface FindUnresolvedCommentsOutput {
       needs_mcp_resolution: number; // Comments that can be resolved via MCP
       has_manual_responses: number; // Comments with human replies
       actionable_items: number; // Comments with actionable suggestions
+      outdated_comments: number; // Comments that are likely outdated
     };
     // Status-based grouping when priority ordering is enabled
     status_groups?: {
