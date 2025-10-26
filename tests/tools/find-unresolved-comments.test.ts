@@ -61,6 +61,12 @@ describe('handleFindUnresolvedComments', () => {
       headers: { link: '' } // No next page
     });
 
+    // Mock reviews response (default is to parse review bodies)
+    mockOctokit.pulls.listReviews.mockResolvedValue({
+      data: [],
+      headers: { link: '' }
+    });
+
     // Mock GraphQL response for node IDs
     mockOctokit.graphql.mockResolvedValue({
       repository: {
@@ -118,6 +124,12 @@ describe('handleFindUnresolvedComments', () => {
         }
       ],
       headers: { link: '' } // No next page
+    });
+
+    // Mock reviews response (default is to parse review bodies)
+    mockOctokit.pulls.listReviews.mockResolvedValue({
+      data: [],
+      headers: { link: '' }
     });
 
     // Mock GraphQL response for node IDs
@@ -178,6 +190,12 @@ describe('handleFindUnresolvedComments', () => {
       headers: { link: '' } // No next page
     });
 
+    // Mock reviews response (default is to parse review bodies)
+    mockOctokit.pulls.listReviews.mockResolvedValue({
+      data: [],
+      headers: { link: '' }
+    });
+
     // Mock GraphQL response for node IDs
     mockOctokit.graphql.mockResolvedValue({
       repository: {
@@ -236,6 +254,12 @@ describe('handleFindUnresolvedComments', () => {
       headers: { link: '' } // No next page
     });
 
+    // Mock reviews response (default is to parse review bodies)
+    mockOctokit.pulls.listReviews.mockResolvedValue({
+      data: [],
+      headers: { link: '' }
+    });
+
     // Mock GraphQL response for node IDs
     mockOctokit.graphql.mockResolvedValue({
       repository: {
@@ -291,6 +315,12 @@ describe('handleFindUnresolvedComments', () => {
     mockOctokit.issues.listComments.mockResolvedValue({
       data: [],
       headers: { link: '' } // No next page
+    });
+
+    // Mock reviews response (default is to parse review bodies)
+    mockOctokit.pulls.listReviews.mockResolvedValue({
+      data: [],
+      headers: { link: '' }
     });
 
     // Mock GraphQL response for node IDs
@@ -359,6 +389,12 @@ describe('handleFindUnresolvedComments', () => {
 
         // Mock issue comments (empty for all pages)
         mockOctokit.issues.listComments.mockResolvedValue({ data: [], headers: { link: '' } });
+
+    // Mock reviews response (default is to parse review bodies)
+    mockOctokit.pulls.listReviews.mockResolvedValue({
+      data: [],
+      headers: { link: '' }
+    });
 
     // Mock GraphQL response for node IDs
     mockOctokit.graphql.mockResolvedValue({
@@ -462,6 +498,12 @@ describe('handleFindUnresolvedComments', () => {
         }
       ],
       headers: { link: '' } // No next page
+    });
+
+    // Mock reviews response (default is to parse review bodies)
+    mockOctokit.pulls.listReviews.mockResolvedValue({
+      data: [],
+      headers: { link: '' }
     });
 
     // Mock GraphQL response for node IDs

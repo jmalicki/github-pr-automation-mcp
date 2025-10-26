@@ -50,7 +50,7 @@ export async function handleFindUnresolvedComments(
   // Fetch reviews to parse for actionable comments in review bodies
   let reviewBodiesComments: Comment[] = [];
   let hasMoreReviews = false;
-  if (input.parse_review_bodies) {
+  if (input.parse_review_bodies !== false) {
     const reviewsResponse = await octokit.pulls.listReviews({
       owner: pr.owner,
       repo: pr.repo,
