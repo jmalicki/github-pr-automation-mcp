@@ -1,8 +1,11 @@
-# E2E Tests with Octokit Fixtures
+# E2E Tests with Dual-Mode Fixture System
 
 ## Overview
 
-End-to-end tests using recorded Octokit fixtures to provide realistic GitHub API interactions without network calls.
+End-to-end tests with dual-mode operation:
+- **Record Mode**: Records real GitHub API calls to fixtures for future playback
+- **Playback Mode**: Uses recorded fixtures for fast, offline testing
+- **Mock Mode**: Uses @octokit/fixtures for basic testing (default)
 
 ## Test Tagging System
 
@@ -14,8 +17,9 @@ End-to-end tests using recorded Octokit fixtures to provide realistic GitHub API
 
 ### Test Execution
 
+#### Default Mode (Mock)
 ```bash
-# Run all E2E tests
+# Run all E2E tests with @octokit/fixtures
 npm run test:e2e
 
 # Run only fast E2E tests (development)
@@ -23,7 +27,22 @@ npm run test:e2e:fast
 
 # Run only slow E2E tests (comprehensive)
 npm run test:e2e:slow
+```
 
+#### Record Mode (First Time Setup)
+```bash
+# Record real GitHub API calls to fixtures
+npm run test:e2e:record
+```
+
+#### Playback Mode (Fast, Offline)
+```bash
+# Use recorded fixtures for fast testing
+npm run test:e2e:playback
+```
+
+#### Combined Testing
+```bash
 # Run all fast tests (unit + E2E fast)
 npm run test:fast
 

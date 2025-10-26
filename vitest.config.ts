@@ -5,7 +5,7 @@ export default defineConfig({
     globals: true,
     environment: 'node',
     include: ['tests/**/*.test.ts', 'tests/**/*.cli.test.ts'],
-        exclude: ['tests/integration/**', 'tests/e2e.disabled/**'],
+    exclude: ['tests/integration/**'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html', 'lcov'],

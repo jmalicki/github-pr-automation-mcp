@@ -18,6 +18,8 @@
     "test:e2e": "ROLLUP_FORCE_JS=1 vitest run tests/e2e/",
     "test:e2e:fast": "ROLLUP_FORCE_JS=1 vitest run tests/e2e/ --testNamePattern=\"\\[fast\\]\"",
     "test:e2e:slow": "ROLLUP_FORCE_JS=1 vitest run tests/e2e/ --testNamePattern=\"\\[slow\\]\"",
+    "test:e2e:record": "RECORD_E2E_FIXTURES=true RUN_E2E_TESTS=true ROLLUP_FORCE_JS=1 vitest run tests/e2e/",
+    "test:e2e:playback": "RUN_E2E_TESTS=true ROLLUP_FORCE_JS=1 vitest run tests/e2e/",
     "test:watch": "vitest watch",
     "test:coverage": "ROLLUP_FORCE_JS=1 vitest run --coverage",
     "test:coverage:fast": "ROLLUP_FORCE_JS=1 vitest run --coverage --testNamePattern=\"\\[fast\\]\"",
