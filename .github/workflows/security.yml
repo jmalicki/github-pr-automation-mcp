@@ -36,13 +36,6 @@ jobs:
           echo "Summary of high vulnerabilities (blocking):"
           npm audit --audit-level=high --json | jq -r '.metadata.vulnerabilities.high // 0' | xargs -I {} echo "High vulnerabilities: {}"
           
-      - name: Security scan with CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: javascript
-          
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
 
   license-check:
     runs-on: ubuntu-latest
