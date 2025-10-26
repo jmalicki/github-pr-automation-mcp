@@ -180,7 +180,8 @@ export async function handleFindUnresolvedComments(
         diff_hunk: c.diff_hunk || undefined,
         body,
         in_reply_to_id: c.in_reply_to_id || undefined,
-        outdated: c.outdated || false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        outdated: Boolean((c as any).outdated),
         reactions: c.reactions ? {
           total_count: c.reactions.total_count,
           '+1': c.reactions['+1'],
@@ -723,7 +724,6 @@ function parseCodeRabbitSections(body: string): Array<{
       
       // Extract description and code suggestion
       let description = title;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let codeSuggestion: any = null;
       let inCodeBlock = false;
       let codeBlockContent = '';
@@ -791,16 +791,13 @@ function parseCodeRabbitSections(body: string): Array<{
  */
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
 function createCodeRabbitComment(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   item: any,
   suggestionType: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   review: any,
   pr: { owner: string; repo: string; number: number },
   author: string,
   authorAssociation: string,
   isBot: boolean,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   coderabbitOptions?: any,
   includeStatusIndicators?: boolean
 ): Comment {
@@ -863,7 +860,6 @@ function createCodeRabbitComment(
 /**
  * Generate agent-friendly prompt from CodeRabbit suggestion
  */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 function generateAgentPrompt(item: { file_path: string; line_range: string; code_suggestion?: { old_code: string; new_code: string }; description: string }, suggestionType: string): string {
   const basePrompt = `CodeRabbit ${suggestionType} suggestion for ${item.file_path}:${item.line_range}`;
   
@@ -890,7 +886,6 @@ Effort: Quick fix (1-2 minutes)`;
 Description: ${item.description}
 Priority: ${suggestionType === 'nit' ? 'Low' : 'Medium'}`;
 }
-/* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
 /**
  * Infer category from suggestion description
