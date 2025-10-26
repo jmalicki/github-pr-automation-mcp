@@ -178,7 +178,10 @@ describe('MCP Server', () => {
     const expectedMCPTools = [
       'get_failing_tests',
       'find_unresolved_comments',
-      'manage_stacked_prs', 
+      'manage_stacked_prs',
+      'detect_merge_conflicts',
+      'check_merge_readiness',
+      'rebase_after_squash_merge',
       'resolve_review_thread'
     ];
     
@@ -186,11 +189,17 @@ describe('MCP Server', () => {
     const { handleGetFailingTests } = await import('../src/tools/get-failing-tests/handler.js');
     const { handleFindUnresolvedComments } = await import('../src/tools/find-unresolved-comments/handler.js');
     const { handleManageStackedPRs } = await import('../src/tools/manage-stacked-prs/handler.js');
+    const { handleDetectMergeConflicts } = await import('../src/tools/detect-merge-conflicts/handler.js');
+    const { handleCheckMergeReadiness } = await import('../src/tools/check-merge-readiness/handler.js');
+    const { handleRebaseAfterSquashMerge } = await import('../src/tools/rebase-after-squash-merge/handler.js');
     const { handleResolveReviewThread } = await import('../src/tools/resolve-review-thread/handler.js');
     
     expect(handleGetFailingTests).toBeDefined();
     expect(handleFindUnresolvedComments).toBeDefined();
     expect(handleManageStackedPRs).toBeDefined();
+    expect(handleDetectMergeConflicts).toBeDefined();
+    expect(handleCheckMergeReadiness).toBeDefined();
+    expect(handleRebaseAfterSquashMerge).toBeDefined();
     expect(handleResolveReviewThread).toBeDefined();
     
     // Verify schemas are available for each tool
@@ -254,9 +263,10 @@ describe('MCP Server', () => {
       'get_failing_tests',
       'find_unresolved_comments',
       'manage_stacked_prs',
-      'resolve_review_thread',
       'detect_merge_conflicts',
       'check_merge_readiness',
+      'rebase_after_squash_merge',
+      'resolve_review_thread'
     ];
     
     // Verify all expected tools are documented
