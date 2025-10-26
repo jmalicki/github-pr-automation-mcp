@@ -6,8 +6,10 @@ export const FindUnresolvedCommentsSchema = z.object({
   include_bots: z.boolean().default(true),
   exclude_authors: z.array(z.string()).optional(),
   cursor: z.string().optional(), // MCP cursor-based pagination
-  sort: z.enum(['chronological', 'by_file', 'by_author']).default('chronological'),
+  sort: z.enum(['chronological', 'by_file', 'by_author', 'priority']).default('chronological'),
   parse_review_bodies: z.boolean().default(true), // Parse review bodies for actionable comments
+  include_status_indicators: z.boolean().default(true), // 💾 User preference: Include status indicators
+  priority_ordering: z.boolean().default(true), // 💾 User preference: Use priority-based ordering
   coderabbit_options: z.object({
     include_nits: z.boolean().optional().default(true), // 💾 User preference: Include minor suggestions
     include_duplicates: z.boolean().optional().default(true), // 💾 User preference: Include duplicate suggestions
@@ -48,6 +50,16 @@ export interface Comment {
     eyes: number;
   };
   html_url: string;
+  
+  // Status indicators for better workflow management
+  status_indicators?: {
+    needs_mcp_resolution: boolean; // Has mcp_action that can be resolved via MCP
+    has_manual_response: boolean; // Has replies from humans
+    is_actionable: boolean; // Contains actionable suggestions
+    priority_score: number; // Calculated priority (0-100, higher = more important)
+    resolution_status: 'unresolved' | 'acknowledged' | 'in_progress' | 'resolved';
+    suggested_action: 'reply' | 'resolve' | 'investigate' | 'ignore';
+  };
   
   // Action commands for AI agent to execute
   action_commands: {
@@ -101,6 +113,22 @@ export interface FindUnresolvedCommentsOutput {
     bot_comments: number;
     human_comments: number;
     with_reactions: number;
+    // Priority-based summary when status indicators are enabled
+    priority_summary?: {
+      high_priority: number; // Priority score >= 70
+      medium_priority: number; // Priority score 30-69
+      low_priority: number; // Priority score < 30
+      needs_mcp_resolution: number; // Comments that can be resolved via MCP
+      has_manual_responses: number; // Comments with human replies
+      actionable_items: number; // Comments with actionable suggestions
+    };
+    // Status-based grouping when priority ordering is enabled
+    status_groups?: {
+      unresolved: Comment[]; // No responses, needs attention
+      acknowledged: Comment[]; // Has responses but not resolved
+      in_progress: Comment[]; // Being worked on
+      resolved: Comment[]; // Should be filtered out but included for completeness
+    };
   };
 }
 
