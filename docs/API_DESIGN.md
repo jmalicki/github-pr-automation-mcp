@@ -643,10 +643,27 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 ```typescript
 interface ErrorResponse {
   error: string;
-  category: "user" | "api" | "logical";
+  category: "user" | "api" | "logical" | "network" | "authentication" | "authorization" | "rate_limit" | "timeout" | "unknown";
   details?: Record<string, any>;
   suggestion?: string;
   retry_after?: number;
+  diagnostic_tool?: string;        // Suggested diagnostic tool
+  diagnostic_context?: string;     // Context for diagnostic tool
+  diagnostic_command?: string;     // How to use the diagnostic tool
+  diagnostic_example?: string;     // Example command/input
+}
+```
+
+#### Enhanced Error with Diagnostic Tool Suggestion
+```json
+{
+  "error": "Forbidden: insufficient permissions",
+  "category": "authorization",
+  "suggestion": "Ensure the token has required repository permissions",
+  "diagnostic_tool": "check_github_permissions",
+  "diagnostic_context": "Permission denied - use diagnostic tool to identify missing scopes",
+  "diagnostic_command": "Use MCP tool: check_github_permissions",
+  "diagnostic_example": "Example: {\"pr\": \"owner/repo#123\", \"actions\": [\"resolve_threads\"]}"
 }
 ```
 
@@ -654,6 +671,241 @@ interface ErrorResponse {
 - Track GitHub API usage
 - Return `retry_after` when rate limited
 - Implement exponential backoff internally
+
+## GitHub Permissions Diagnostic Tool
+
+### Purpose
+The `check_github_permissions` tool diagnoses GitHub token permissions and provides actionable fix guidance. Use this tool when other MCP tools fail with permission errors to understand what's wrong and how to fix it.
+
+### Input Schema
+```typescript
+interface CheckPermissionsInput {
+  pr: string;                    // PR identifier (owner/repo#123 or URL)
+  actions?: PermissionAction[];  // Specific actions to test (optional)
+  detailed?: boolean;            // Include detailed diagnostics (default: false)
+}
+
+type PermissionAction = 
+  | 'read_comments'     // Read PR comments and reviews
+  | 'create_comments'   // Create new comments
+  | 'resolve_threads'   // Resolve review threads
+  | 'merge_pr'          // Merge pull requests
+  | 'approve_pr'        // Approve pull requests
+  | 'request_changes'   // Request changes on PRs
+  | 'read_ci'           // Read CI status and logs
+  | 'write_ci';         // Write CI status (not testable safely)
+```
+
+### Output Schema
+```typescript
+interface CheckPermissionsOutput {
+  // Basic token validation
+  token_valid: boolean;
+  token_type: 'classic' | 'fine_grained' | 'unknown';
+  user?: string;
+  
+  // Repository access
+  repository_access: boolean;
+  repository_permissions: {
+    admin: boolean;
+    write: boolean;
+    read: boolean;
+  };
+  
+  // Action-specific test results
+  action_results: Record<PermissionAction, ActionResult>;
+  
+  // Diagnostic information
+  diagnostics: {
+    missing_scopes: string[];           // Required scopes not present
+    suggestions: string[];              // Human-readable issue descriptions
+    rate_limit_status: 'healthy' | 'warning' | 'critical';
+    rate_limit_details: RateLimitInfo;
+  };
+  
+  // Fix recommendations
+  fixes: {
+    immediate: string[];                // Quick fixes (usually empty)
+    token_update: string[];             // Token configuration steps
+    alternative_commands: Record<PermissionAction, string>; // GH CLI alternatives
+  };
+  
+  // Overall summary
+  summary: {
+    overall_status: 'healthy' | 'warning' | 'critical';
+    working_actions: PermissionAction[];
+    failing_actions: PermissionAction[];
+    primary_issue?: string;
+  };
+}
+
+interface ActionResult {
+  allowed: boolean;
+  reason?: string;              // Why the action failed
+  required_scopes?: string[];   // Scopes needed for this action
+  error_details?: string;      // Technical error details
+}
+
+interface RateLimitInfo {
+  remaining: number;
+  limit: number;
+  reset_time: string;           // ISO timestamp
+  status: 'healthy' | 'warning' | 'critical';
+}
+```
+
+### Usage Examples
+
+#### Basic Permission Check
+```json
+{
+  "pr": "owner/repo#123"
+}
+```
+
+#### Specific Action Testing
+```json
+{
+  "pr": "owner/repo#123",
+  "actions": ["create_comments", "resolve_threads"],
+  "detailed": true
+}
+```
+
+### Response Examples
+
+#### Healthy Token
+```json
+{
+  "token_valid": true,
+  "token_type": "classic",
+  "user": "testuser",
+  "repository_access": true,
+  "repository_permissions": {
+    "admin": false,
+    "write": true,
+    "read": true
+  },
+  "action_results": {
+    "read_comments": { "allowed": true },
+    "create_comments": { "allowed": true },
+    "resolve_threads": { "allowed": true },
+    "merge_pr": { "allowed": true },
+    "approve_pr": { "allowed": true },
+    "request_changes": { "allowed": true },
+    "read_ci": { "allowed": true },
+    "write_ci": { "allowed": false, "reason": "CI write permissions not testable safely" }
+  },
+  "diagnostics": {
+    "missing_scopes": [],
+    "suggestions": [],
+    "rate_limit_status": "healthy",
+    "rate_limit_details": {
+      "remaining": 4500,
+      "limit": 5000,
+      "reset_time": "2024-01-01T12:00:00Z",
+      "status": "healthy"
+    }
+  },
+  "fixes": {
+    "immediate": [],
+    "token_update": [],
+    "alternative_commands": {}
+  },
+  "summary": {
+    "overall_status": "healthy",
+    "working_actions": ["read_comments", "create_comments", "resolve_threads", "merge_pr", "approve_pr", "request_changes", "read_ci"],
+    "failing_actions": ["write_ci"],
+    "primary_issue": "All tested permissions are healthy"
+  }
+}
+```
+
+#### Critical Permission Issues
+```json
+{
+  "token_valid": false,
+  "token_type": "unknown",
+  "repository_access": false,
+  "repository_permissions": {
+    "admin": false,
+    "write": false,
+    "read": false
+  },
+  "action_results": {
+    "read_comments": { "allowed": false, "reason": "Cannot read review comments", "required_scopes": ["repo"] },
+    "create_comments": { "allowed": false, "reason": "Cannot access repository", "required_scopes": ["repo"] },
+    "resolve_threads": { "allowed": false, "reason": "Cannot check repository permissions", "required_scopes": ["repo"] }
+  },
+  "diagnostics": {
+    "missing_scopes": ["repo"],
+    "suggestions": [
+      "❌ Token invalid: Bad credentials",
+      "❌ Repository access: Repo not found",
+      "❌ read_comments: Cannot read review comments",
+      "❌ create_comments: Cannot access repository",
+      "❌ resolve_threads: Cannot check repository permissions"
+    ],
+    "rate_limit_status": "critical",
+    "rate_limit_details": {
+      "remaining": 0,
+      "limit": 0,
+      "reset_time": "2024-01-01T12:00:00Z",
+      "status": "critical"
+    }
+  },
+  "fixes": {
+    "immediate": [],
+    "token_update": [
+      "Add \"repo\" scope to your GitHub token",
+      "Visit: https://github.com/settings/tokens",
+      "Edit your token and check the \"repo\" checkbox",
+      "This will enable most GitHub operations"
+    ],
+    "alternative_commands": {
+      "read_comments": "gh pr view 123 --repo owner/repo --web",
+      "create_comments": "gh pr comment 123 --repo owner/repo --body \"Your response here\"",
+      "resolve_threads": "gh pr review 123 --repo owner/repo --comment --body \"✅ Fixed\""
+    }
+  },
+  "summary": {
+    "overall_status": "critical",
+    "working_actions": [],
+    "failing_actions": ["read_comments", "create_comments", "resolve_threads"],
+    "primary_issue": "Critical permission issues detected"
+  }
+}
+```
+
+### When to Use This Tool
+
+1. **Permission Errors**: When other MCP tools fail with "Resource not accessible" errors
+2. **Token Validation**: To verify your GitHub token is working correctly
+3. **Scope Verification**: To check if your token has the required scopes
+4. **Repository Access**: To verify you can access the target repository
+5. **Rate Limit Monitoring**: To check your API usage status
+6. **Troubleshooting**: When GitHub CLI commands work but MCP tools don't
+
+### Safety Features
+
+- **Read-Only Operations**: All diagnostic tests use read-only operations
+- **No Side Effects**: Never creates, modifies, or deletes any GitHub resources
+- **Safe Testing**: Uses repository permission checks instead of actual write operations
+- **Rate Limit Aware**: Monitors but doesn't consume significant API quota
+
+### Integration with Other Tools
+
+When other MCP tools fail with permission errors, they should suggest using this diagnostic tool:
+
+```typescript
+// Example error message from other tools
+{
+  "error": "Resource not accessible by personal access token",
+  "category": "api",
+  "suggestion": "Use check_github_permissions tool to diagnose token issues",
+  "diagnostic_tool": "check_github_permissions"
+}
+```
 
 <!-- MCP_TOOLS_END -->
 
