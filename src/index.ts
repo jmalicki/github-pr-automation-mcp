@@ -395,6 +395,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     // Handle GitHub API errors
     if (error && typeof error === 'object' && 'status' in error) {
       const toolError = handleGitHubError(error, name);
+      
+      // If the error suggests a diagnostic tool, include helpful context
+      if (toolError.diagnostic_tool) {
+        const enhancedError = {
+          ...toolError,
+          diagnostic_command: `Use MCP tool: ${toolError.diagnostic_tool}`,
+          diagnostic_example: toolError.diagnostic_tool === 'check_github_permissions' 
+            ? `Example: {"pr": "owner/repo#123", "actions": ["${name}"]}`
+            : undefined
+        };
+        
+        return {
+          content: [{
+            type: 'text',
+            text: JSON.stringify(enhancedError, null, 2)
+          }],
+          isError: true
+        };
+      }
+      
       return {
         content: [{
           type: 'text',

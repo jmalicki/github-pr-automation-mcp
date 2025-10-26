@@ -64,7 +64,9 @@ export function handleGitHubError(error: unknown, context: string): ToolError {
     return {
       error: 'Forbidden: insufficient permissions',
       category: 'authorization',
-      suggestion: 'Ensure the token has required repository permissions'
+      suggestion: 'Ensure the token has required repository permissions',
+      diagnostic_tool: 'check_github_permissions',
+      diagnostic_context: 'Permission denied - use diagnostic tool to identify missing scopes'
     };
   }
   
@@ -123,6 +125,31 @@ export function createToolError(
     error: message,
     category,
     suggestion
+  };
+}
+
+/**
+ * Create a ToolError that suggests using a diagnostic tool
+ * @param message - Error message describing what went wrong
+ * @param category - Error category for classification
+ * @param diagnosticTool - Name of the diagnostic tool to suggest
+ * @param diagnosticContext - Context for the diagnostic tool
+ * @param suggestion - Optional suggestion for resolving the error
+ * @returns ToolError with diagnostic tool suggestion
+ */
+export function createDiagnosticError(
+  message: string,
+  category: ErrorCategory,
+  diagnosticTool: string,
+  diagnosticContext: string,
+  suggestion?: string
+): ToolError {
+  return {
+    error: message,
+    category,
+    suggestion: suggestion || `Use ${diagnosticTool} tool to diagnose the issue`,
+    diagnostic_tool: diagnosticTool,
+    diagnostic_context: diagnosticContext
   };
 }
 

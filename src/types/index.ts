@@ -39,6 +39,8 @@ export interface ToolError {
   suggestion?: string;
   retry_after?: number;
   documentation_url?: string;
+  diagnostic_tool?: string;  // Suggest using a diagnostic tool
+  diagnostic_context?: string; // Context for the diagnostic tool
 }
 
 export type Result<T, E = ToolError> = 
