@@ -462,16 +462,16 @@ function parseCodeRabbitSections(body: string): Array<{
     // Detect section headers - handle multi-line format
     if (line.includes('<details>') && i + 1 < lines.length) {
       const nextLine = lines[i + 1];
-      const sectionMatch = nextLine.match(/<summary>\s*([🧹♻](?:️)?[📜🔇])\s*([^<]+)\s*\((\d+)\)\s*<\/summary>/u);
+      const sectionMatch = nextLine.match(/<summary>\s*(🧹|♻️|♻|📜)\s*([^<]+)\s*\((\d+)\)\s*<\/summary>/u);
       if (sectionMatch) {
         const emoji = sectionMatch[1];
         const title = sectionMatch[2].trim();
         const count = parseInt(sectionMatch[3]);
         
         let type: 'nit' | 'duplicate' | 'additional' | 'actionable';
-        if (emoji === '🧹') type = 'nit';
-        else if (emoji === '♻' || emoji === '♻️') type = 'duplicate';
-        else if (emoji === '📜') type = 'additional';
+        if (emoji.includes('🧹')) type = 'nit';
+        else if (emoji.includes('♻')) type = 'duplicate';
+        else if (emoji.includes('📜')) type = 'additional';
         else type = 'actionable';
         
         currentSection = {
@@ -541,8 +541,14 @@ function parseCodeRabbitSections(body: string): Array<{
             const diffMatch = codeBlockContent.match(/```diff\n([\s\S]*?)\n```/) || codeBlockContent.match(/\\`\\`\\`diff\n([\s\S]*?)\n\\`\\`\\`/);
             if (diffMatch) {
               const diffContent = diffMatch[1];
-              const oldLines = diffContent.split('\n').filter(l => l.startsWith('-')).map(l => l.substring(1));
-              const newLines = diffContent.split('\n').filter(l => l.startsWith('+')).map(l => l.substring(1));
+              const oldLines = diffContent
+                .split('\n')
+                .filter(l => l.startsWith('-') && !l.startsWith('---'))
+                .map(l => l.substring(1));
+              const newLines = diffContent
+                .split('\n')
+                .filter(l => l.startsWith('+') && !l.startsWith('+++'))
+                .map(l => l.substring(1));
               codeSuggestion = {
                 old_code: oldLines.join('\n'),
                 new_code: newLines.join('\n'),
