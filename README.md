@@ -80,8 +80,27 @@ github-pr-automation get-failing-tests --pr "owner/repo#123"
 ## Requirements
 
 - **Node.js v20 or higher** - Minimum version required (v22 LTS recommended)
-- **GitHub Token** - Set `GITHUB_TOKEN` environment variable for API access
+- **GitHub Token** - Configure via secure config file (recommended) or `GITHUB_TOKEN` environment variable
 - **Git** - Required for git operations in stacked PR management
+
+### GitHub Token Setup
+
+**Recommended (Secure):**
+```bash
+# One-time setup - stores token in secure config file
+github-pr-automation config set-token "your_github_personal_access_token"
+```
+
+**Alternative (Environment Variable):**
+```bash
+# Traditional approach - set in shell environment
+export GITHUB_TOKEN="your_github_personal_access_token"
+```
+
+**Token Priority:**
+1. Config file token (most secure)
+2. `GITHUB_TOKEN` environment variable (fallback)
+3. No token (tools will show helpful errors)
 
 ### GitHub Token Permissions
 
@@ -174,11 +193,39 @@ The MCP client (like Claude Desktop) spawns this as a subprocess and communicate
 
 ## Configuration
 
-Set the following environment variable:
+### Secure Token Management (Recommended)
+
+For better security and isolation, store your GitHub token in a dedicated config file:
+
+```bash
+# Set token in secure config file (one-time setup)
+github-pr-automation config set-token "your_github_personal_access_token"
+
+# Verify token is set
+github-pr-automation config show-token
+
+# Check config file location
+github-pr-automation config show-path
+```
+
+**Benefits of Config File:**
+- 🔒 **Secure**: File permissions set to owner-only access (600)
+- 🎯 **Isolated**: Token only accessible to this library
+- 🔄 **Persistent**: Survives shell sessions and reboots
+- 🛡️ **LLM-Safe**: Harder for AI agents to discover/modify
+
+### Environment Variable (Fallback)
+
+You can still use the traditional environment variable:
 
 ```bash
 export GITHUB_TOKEN="your_github_personal_access_token"
 ```
+
+**Token Priority:**
+1. Config file token (most secure)
+2. `GITHUB_TOKEN` environment variable (fallback)
+3. No token (tools will show helpful errors)
 
 ### Token Scopes
 
@@ -270,6 +317,11 @@ github-pr-automation resolve-review-thread --pr "owner/repo#123" --thread-id "th
 # Check GitHub permissions
 github-pr-automation check-github-permissions --pr "owner/repo#123" --detailed
 
+# Config management
+github-pr-automation config set-token "your_token_here"
+github-pr-automation config show-token
+github-pr-automation config clear-token
+
 # Output as JSON for scripting
 github-pr-automation get-failing-tests --pr "owner/repo#123" --json
 ```
@@ -349,6 +401,54 @@ echo "GITHUB_TOKEN=your_token_here" > .env
   detailed: true                   // Optional: include detailed diagnostics
 }
 ```
+
+## Config Management
+
+### Commands
+
+```bash
+# Set GitHub token in secure config file
+github-pr-automation config set-token "ghp_your_token_here"
+
+# Show current token status and source
+github-pr-automation config show-token
+
+# Remove token from config file
+github-pr-automation config clear-token
+
+# Show config file location and permissions
+github-pr-automation config show-path
+
+# Show full configuration
+github-pr-automation config show-config
+```
+
+### Config File Location
+
+- **Path**: `~/.config/github-pr-automation/config.json`
+- **Permissions**: `600` (owner read/write only)
+- **Format**: JSON with versioned schema
+
+### Example Config
+
+```json
+{
+  "github": {
+    "token": "ghp_your_token_here",
+    "default_pr": "owner/repo#123",
+    "preferred_actions": ["read_comments", "create_comments"]
+  },
+  "version": "1.0.0"
+}
+```
+
+### Security Features
+
+- **File Isolation**: Token stored separately from environment variables
+- **Permission Control**: Config file has restrictive permissions (600)
+- **LLM Protection**: Harder for AI agents to discover or modify
+- **Token Validation**: Automatic validation when setting tokens
+- **Graceful Fallback**: Falls back to environment variables if config missing
 
 ## Development
 

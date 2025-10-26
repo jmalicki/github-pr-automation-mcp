@@ -12,7 +12,7 @@ const INSTALL_METHODS = {
   'global': 'npm run build && npm install -g .'
 };
 
-function installToLocalBin() {
+async function installToLocalBin() {
   console.log('🔧 Installing to ~/.local/bin (standalone installation)');
   
   const localBinDir = join(homedir(), '.local', 'bin');
@@ -116,7 +116,7 @@ function showUsage() {
   console.log('  npm run install:cli global');
 }
 
-function main() {
+async function main() {
   const method = process.argv[2] || 'local-bin';
   
   if (!INSTALL_METHODS[method]) {
@@ -129,7 +129,7 @@ function main() {
   
   try {
     if (method === 'local-bin') {
-      installToLocalBin();
+      await installToLocalBin();
     } else {
       console.log(`Running: ${INSTALL_METHODS[method]}`);
       execSync(INSTALL_METHODS[method], { stdio: 'inherit' });

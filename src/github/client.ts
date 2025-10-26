@@ -1,5 +1,6 @@
 import { Octokit } from '@octokit/rest';
 import type { PRIdentifier } from '../types/index.js';
+import { getGitHubToken } from '../config/config.js';
 
 /**
  * GitHub API client wrapper with authentication and error handling
@@ -16,11 +17,11 @@ export class GitHubClient {
     if (octokitInstance) {
       this.octokit = octokitInstance;
     } else {
-      const githubToken = token || process.env.GITHUB_TOKEN;
+      const githubToken = token || getGitHubToken();
       
       if (!githubToken) {
         throw new Error(
-          'GitHub token not found. Set GITHUB_TOKEN environment variable.'
+          'GitHub token not found. Set GITHUB_TOKEN environment variable or use: github-pr-automation config set-token <token>'
         );
       }
       

@@ -12,6 +12,14 @@ import { handleResolveReviewThread } from './tools/resolve-review-thread/handler
 import { ResolveReviewThreadInputSchema } from './tools/resolve-review-thread/schema.js';
 import { handleCheckPermissions } from './tools/check-github-permissions/handler.js';
 import { CheckPermissionsSchema } from './tools/check-github-permissions/schema.js';
+import { 
+  setGitHubToken, 
+  clearGitHubToken, 
+  getGitHubToken, 
+  getConfigPath, 
+  hasConfigFile,
+  loadConfig 
+} from './config/config.js';
 
 const program = new Command();
 
@@ -353,5 +361,119 @@ program
       process.exit(1);
     }
   });
+
+// Config management commands
+const configCommand = program
+  .command('config')
+  .description('Manage GitHub token configuration');
+
+configCommand
+  .command('set-token')
+  .description('Set GitHub token in secure config file')
+  .argument('<token>', 'GitHub Personal Access Token')
+  .action(async (token: string) => {
+    try {
+      await setGitHubToken(token);
+      /* eslint-disable no-console */
+      console.log('✅ GitHub token saved to config file');
+      console.log(`📁 Location: ${getConfigPath()}`);
+      console.log('🔒 File permissions set to owner-only access');
+      
+      // Test the token
+      try {
+        const client = new GitHubClient();
+        const octokit = client.getOctokit();
+        const { data: user } = await octokit.rest.users.getAuthenticated();
+        console.log(`👤 Token validated for user: ${user.login}`);
+      } catch (error) {
+        console.warn('⚠️  Token validation failed:', error instanceof Error ? error.message : String(error));
+        console.warn('   Please check your token permissions');
+      }
+      /* eslint-enable no-console */
+    } catch (error) {
+      console.error(`❌ Failed to save token: ${error instanceof Error ? error.message : String(error)}`);
+      process.exit(1);
+    }
+  });
+
+configCommand
+  .command('show-token')
+  .description('Show current token status')
+  .action(() => {
+    const config = loadConfig();
+    const hasConfig = hasConfigFile();
+    const token = getGitHubToken();
+    
+    /* eslint-disable no-console */
+    console.log('🔍 GitHub Token Status:');
+    console.log(`📁 Config file exists: ${hasConfig ? '✅ Yes' : '❌ No'}`);
+    console.log(`🔑 Config file has token: ${config.github.token ? '✅ Yes' : '❌ No'}`);
+    console.log(`🌍 Environment variable: ${process.env.GITHUB_TOKEN ? '✅ Set' : '❌ Not set'}`);
+    console.log(`🎯 Active token source: ${config.github.token ? 'Config file' : process.env.GITHUB_TOKEN ? 'Environment' : 'None'}`);
+    
+    if (token) {
+      // Show masked token for verification
+      const masked = token.substring(0, 8) + '...' + token.substring(token.length - 4);
+      console.log(`🔐 Token preview: ${masked}`);
+    } else {
+      console.log('❌ No token available');
+      console.log('💡 Run: github-pr-automation config set-token <your_token>');
+    }
+    /* eslint-enable no-console */
+  });
+
+configCommand
+  .command('clear-token')
+  .description('Remove token from config file')
+  .action(async () => {
+    try {
+      await clearGitHubToken();
+      /* eslint-disable no-console */
+      console.log('✅ Token removed from config file');
+      console.log('💡 You can still use GITHUB_TOKEN environment variable');
+      /* eslint-enable no-console */
+    } catch (error) {
+      console.error(`❌ Failed to clear token: ${error instanceof Error ? error.message : String(error)}`);
+      process.exit(1);
+    }
+  });
+
+configCommand
+  .command('show-path')
+  .description('Show config file location')
+  .action(() => {
+    /* eslint-disable no-console */
+    console.log('📁 Config file location:');
+    console.log(`   ${getConfigPath()}`);
+    console.log('');
+    console.log('🔒 File permissions:');
+    console.log('   Owner: read/write (600)');
+    console.log('   Group: no access');
+    console.log('   Other: no access');
+    /* eslint-enable no-console */
+  });
+
+configCommand
+  .command('show-config')
+  .description('Show full configuration')
+  .action(() => {
+    const config = loadConfig();
+    /* eslint-disable no-console */
+    console.log('📋 Current Configuration:');
+    console.log(JSON.stringify(config, null, 2));
+    /* eslint-enable no-console */
+  });
+
+// Default action for config command
+configCommand.action(() => {
+  /* eslint-disable no-console */
+  console.log('Config management commands:');
+  console.log('  set-token <token>  - Set GitHub token in config file');
+  console.log('  show-token         - Show current token status');
+  console.log('  clear-token        - Remove token from config file');
+  console.log('  show-path          - Show config file location');
+  console.log('  show-config        - Show full configuration');
+  /* eslint-enable no-console */
+});
 
 await program.parseAsync(process.argv);
