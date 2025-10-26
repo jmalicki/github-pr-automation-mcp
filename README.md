@@ -493,15 +493,27 @@ The server is built using:
 
 Comprehensive documentation is available in the [`docs/`](./docs) directory:
 
+**Core Documentation:**
 - **[Documentation Index](./docs/INDEX.md)** - Complete documentation overview
-- **[Design Decisions](./docs/DESIGN_DECISIONS.md)** - Rationale for key design choices
 - **[Architecture](./docs/ARCHITECTURE.md)** - System architecture and design
 - **[API Design](./docs/API_DESIGN.md)** - Complete API specifications
 - **[Data Models](./docs/DATA_MODELS.md)** - TypeScript type definitions
+
+**Design & Planning:**
+- **[Design Decisions](./docs/DESIGN_DECISIONS.md)** - Rationale for key design choices
+- **[Design Philosophy](./docs/DESIGN_PHILOSOPHY.md)** - Core design principles
+- **[Design Summary](./docs/DESIGN_SUMMARY.md)** - High-level design overview
 - **[Implementation Plan](./docs/IMPLEMENTATION_PLAN.md)** - Development roadmap
+
+**Integration & Usage:**
 - **[GitHub Integration](./docs/GITHUB_INTEGRATION.md)** - GitHub API patterns
-- **[Testing Strategy](./docs/TESTING_STRATEGY.md)** - Testing approach
 - **[Usage Examples](./docs/USAGE_EXAMPLES.md)** - Real-world workflows
+- **[CLI Installation](./docs/CLI_INSTALLATION.md)** - Installation guide
+- **[Testing Strategy](./docs/TESTING_STRATEGY.md)** - Testing approach
+
+**Analysis & Optimization:**
+- **[Performance Summary](./docs/PERFORMANCE_SUMMARY.md)** - Performance analysis
+- **[Security Audit](./docs/SECURITY_AUDIT_OPTIMIZATION.md)** - Security review
 
 ### Quick Links
 

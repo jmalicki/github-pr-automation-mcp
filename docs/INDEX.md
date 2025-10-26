@@ -17,6 +17,10 @@ Complete documentation for the GitHub PR Automation MCP Server.
   - Responsibility boundaries
   - Real-world examples
 
+- **[DESIGN_SUMMARY](./DESIGN_SUMMARY.md)** - High-level design overview
+  - Quick design summary and key concepts
+  - System boundaries and responsibilities
+
 - **[DESIGN_DECISIONS](./DESIGN_DECISIONS.md)** - Key design choices and rationale
   - PR identifier format
   - Tool vs. LLM responsibilities
@@ -93,6 +97,22 @@ Complete documentation for the GitHub PR Automation MCP Server.
   - Decision trees for rebase strategies
   - Error recovery patterns
   - Adaptive strategies
+
+## Analysis & Optimization
+
+### Performance & Security
+
+- **[PERFORMANCE_SUMMARY](./PERFORMANCE_SUMMARY.md)** - Performance analysis
+  - Benchmark results and metrics
+  - Optimization strategies
+  - Scalability considerations
+  - Resource usage patterns
+
+- **[SECURITY_AUDIT_OPTIMIZATION](./SECURITY_AUDIT_OPTIMIZATION.md)** - Security review
+  - Security audit findings
+  - Vulnerability assessments
+  - Security best practices
+  - Risk mitigation strategies
 
 ## Documentation Organization
 
