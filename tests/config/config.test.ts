@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync, rmSync, statSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -15,7 +15,7 @@ describe('Config Management', () => {
       unlinkSync(testConfigFile);
     }
     if (existsSync(testConfigDir)) {
-      require('fs').rmSync(testConfigDir, { recursive: true, force: true });
+      rmSync(testConfigDir, { recursive: true, force: true });
     }
     
     // Create test config directory
@@ -28,7 +28,7 @@ describe('Config Management', () => {
       unlinkSync(testConfigFile);
     }
     if (existsSync(testConfigDir)) {
-      require('fs').rmSync(testConfigDir, { recursive: true, force: true });
+      rmSync(testConfigDir, { recursive: true, force: true });
     }
   });
 
@@ -131,12 +131,20 @@ describe('Config Management', () => {
         version: '1.0.0'
       };
       
-      // Create directory and file
-      mkdirSync(testConfigDir, { recursive: true });
-      writeFileSync(testConfigFile, JSON.stringify(testConfig, null, 2));
+      // Create directory and file with proper permissions
+      mkdirSync(testConfigDir, { recursive: true, mode: 0o700 });
+      writeFileSync(testConfigFile, JSON.stringify(testConfig, null, 2), { mode: 0o600 });
       
       expect(existsSync(testConfigDir)).toBe(true);
       expect(existsSync(testConfigFile)).toBe(true);
+      
+      // Verify file permissions (600 = owner read/write only)
+      // Note: On Windows, permission modes work differently
+      if (process.platform !== 'win32') {
+        const stats = statSync(testConfigFile);
+        const mode = stats.mode & 0o777;
+        expect(mode).toBe(0o600);
+      }
       
       // Verify file content
       const saved = JSON.parse(readFileSync(testConfigFile, 'utf-8'));

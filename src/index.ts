@@ -401,8 +401,20 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const enhancedError = {
           ...toolError,
           diagnostic_command: `Use MCP tool: ${toolError.diagnostic_tool}`,
-          diagnostic_example: toolError.diagnostic_tool === 'check_github_permissions' 
-            ? `Example: {"pr": "owner/repo#123", "actions": ["${name}"]}`
+          diagnostic_example: toolError.diagnostic_tool === 'check_github_permissions'
+            ? (() => {
+                const map: Record<string, string> = {
+                  find_unresolved_comments: 'read_comments',
+                  resolve_review_thread: 'resolve_threads',
+                  get_failing_tests: 'read_ci',
+                  manage_stacked_prs: 'merge_pr',
+                  check_merge_readiness: 'read_ci',
+                  detect_merge_conflicts: 'read_ci',
+                  rebase_after_squash_merge: 'merge_pr'
+                };
+                const action = map[name] ?? 'read_comments';
+                return `Example: {"pr":"owner/repo#123","actions":["${action}"]}`;
+              })()
             : undefined
         };
         

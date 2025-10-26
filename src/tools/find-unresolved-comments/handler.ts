@@ -654,7 +654,7 @@ function parseCodeRabbitSections(body: string): Array<{
     }>;
   }> = [];
   
-  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
+  /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
   const lines = body.split('\n');
   let currentSection: any = null;
   let currentItem: any = null;
@@ -724,7 +724,7 @@ function parseCodeRabbitSections(body: string): Array<{
       
       // Extract description and code suggestion
       let description = title;
-      let codeSuggestion: any = null;
+      let codeSuggestion: unknown = null;
       let inCodeBlock = false;
       let codeBlockContent = '';
       
@@ -783,7 +783,7 @@ function parseCodeRabbitSections(body: string): Array<{
   }
   
   return sections;
-  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
+  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
 }
 
 /**
@@ -854,7 +854,7 @@ function createCodeRabbitComment(
   }
   
   return comment;
-  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
+  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
 }
 
 /**

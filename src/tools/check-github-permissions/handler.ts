@@ -56,7 +56,7 @@ export async function handleCheckPermissions(
   const diagnostics = generateDiagnostics(tokenInfo, repoAccess, actionResults, rateLimitInfo);
   
   // Step 6: Generate fix recommendations
-  const fixes = generateFixRecommendations(actionResults, diagnostics.missing_scopes);
+  const fixes = generateFixRecommendations(actionResults, diagnostics.missing_scopes, pr);
   
   // Step 7: Generate summary
   const summary = generateSummary(tokenInfo, repoAccess, actionResults, diagnostics);
@@ -74,13 +74,16 @@ export async function handleCheckPermissions(
   };
 }
 
-async function validateToken(octokit: unknown): Promise<TokenInfo> {
+async function validateToken(octokit: Octokit): Promise<TokenInfo> {
   try {
-    const user = await (octokit as Octokit).rest.users.getAuthenticated();
+    const resp = await octokit.rest.users.getAuthenticated();
+    const scopeHeader = resp.headers?.['x-oauth-scopes'] ?? '';
+    const type: TokenInfo['type'] =
+      scopeHeader && String(scopeHeader).trim().length > 0 ? 'classic' : 'fine_grained';
     return {
       valid: true,
-      type: 'classic', // TODO: Detect fine-grained tokens
-      user: user.data.login
+      type,
+      user: resp.data.login
     };
   } catch (error: unknown) {
     const err = error as Error;
@@ -419,7 +422,8 @@ function generateDiagnostics(
 
 function generateFixRecommendations(
   actionResults: Record<PermissionAction, ActionResult>,
-  missingScopes: string[]
+  missingScopes: string[],
+  pr: { owner: string; repo: string; number: number }
 ) {
   const immediate: string[] = [];
   const tokenUpdate: string[] = [];
@@ -440,22 +444,22 @@ function generateFixRecommendations(
     if (!result.allowed) {
       switch (action) {
         case 'resolve_threads':
-          alternatives.resolve_threads = 'gh pr review 123 --repo owner/repo --comment --body "✅ Fixed"';
+          alternatives.resolve_threads = `gh pr review ${pr.number} --repo ${pr.owner}/${pr.repo} --comment --body "✅ Fixed"`;
           break;
         case 'create_comments':
-          alternatives.create_comments = 'gh pr comment 123 --repo owner/repo --body "Your response here"';
+          alternatives.create_comments = `gh pr comment ${pr.number} --repo ${pr.owner}/${pr.repo} --body "Your response here"`;
           break;
         case 'read_comments':
-          alternatives.read_comments = 'gh pr view 123 --repo owner/repo --web';
+          alternatives.read_comments = `gh pr view ${pr.number} --repo ${pr.owner}/${pr.repo} --web`;
           break;
         case 'approve_pr':
-          alternatives.approve_pr = 'gh pr review 123 --repo owner/repo --approve';
+          alternatives.approve_pr = `gh pr review ${pr.number} --repo ${pr.owner}/${pr.repo} --approve`;
           break;
         case 'request_changes':
-          alternatives.request_changes = 'gh pr review 123 --repo owner/repo --request-changes --body "Please fix these issues"';
+          alternatives.request_changes = `gh pr review ${pr.number} --repo ${pr.owner}/${pr.repo} --request-changes --body "Please fix these issues"`;
           break;
         case 'read_ci':
-          alternatives.read_ci = 'gh pr checks 123 --repo owner/repo';
+          alternatives.read_ci = `gh pr checks ${pr.number} --repo ${pr.owner}/${pr.repo}`;
           break;
       }
     }

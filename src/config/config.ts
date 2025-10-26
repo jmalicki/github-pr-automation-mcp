@@ -13,7 +13,13 @@ export interface ConfigFile {
   version: string;
 }
 
-const CONFIG_DIR = join(homedir(), '.config', 'github-pr-automation');
+const isWin = process.platform === 'win32';
+const baseDir = isWin
+  ? (process.env.APPDATA || join(homedir(), 'AppData', 'Roaming'))
+  : (process.env.XDG_CONFIG_HOME || (process.platform === 'darwin'
+      ? join(homedir(), 'Library', 'Application Support')
+      : join(homedir(), '.config')));
+const CONFIG_DIR = join(baseDir, 'github-pr-automation');
 const CONFIG_FILE = join(CONFIG_DIR, 'config.json');
 
 /**
@@ -44,15 +50,15 @@ export function loadConfig(): ConfigFile {
  */
 export async function saveConfig(config: ConfigFile): Promise<void> {
   try {
-    // Ensure config directory exists
+    // Ensure config directory exists with secure permissions
     if (!existsSync(CONFIG_DIR)) {
-      mkdirSync(CONFIG_DIR, { recursive: true });
+      mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
     }
 
-    // Set secure permissions (readable only by owner)
-    writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2));
+    // Write file with secure permissions atomically
+    writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), { mode: 0o600 });
     
-    // Set file permissions to 600 (read/write for owner only)
+    // Verify permissions on non-Windows platforms
     if (process.platform !== 'win32') {
       const { chmodSync } = await import('fs');
       chmodSync(CONFIG_FILE, 0o600);

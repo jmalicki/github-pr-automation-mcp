@@ -377,7 +377,11 @@ configCommand
       /* eslint-disable no-console */
       console.log('✅ GitHub token saved to config file');
       console.log(`📁 Location: ${getConfigPath()}`);
-      console.log('🔒 File permissions set to owner-only access');
+      if (process.platform === 'win32') {
+        console.log('🔒 Config saved. Windows ACLs apply to your user profile; POSIX 600 not applicable.');
+      } else {
+        console.log('🔒 File permissions set to owner-only access (600)');
+      }
       
       // Test the token
       try {
@@ -455,12 +459,26 @@ configCommand
 
 configCommand
   .command('show-config')
-  .description('Show full configuration')
-  .action(() => {
+  .description('Show full configuration (token masked by default)')
+  .option('--reveal-token', 'Print raw token (dangerous)')
+  .action((opts: { revealToken?: boolean }) => {
     const config = loadConfig();
+    const safeConfig = opts?.revealToken
+      ? config
+      : {
+          ...config,
+          github: {
+            ...config.github,
+            ...(config.github.token && {
+              token: config.github.token.length <= 8
+                ? '***'
+                : `${config.github.token.slice(0, 4)}…${config.github.token.slice(-4)}`
+            })
+          }
+        };
     /* eslint-disable no-console */
     console.log('📋 Current Configuration:');
-    console.log(JSON.stringify(config, null, 2));
+    console.log(JSON.stringify(safeConfig, null, 2));
     /* eslint-enable no-console */
   });
 
