@@ -20,12 +20,13 @@ import { handleRebaseAfterSquashMerge } from './tools/rebase-after-squash-merge/
 import { handleResolveReviewThread } from './tools/resolve-review-thread/handler.js';
 import { handleGitHubError } from './github/errors.js';
 import { PRIdentifierStringSchema } from './utils/validation.js';
+import { getVersionString } from './utils/version.js';
 import { z } from 'zod';
 
 const server = new Server(
   {
     name: 'resolve-pr-mcp',
-    version: '0.1.0',
+    version: getVersionString(),
   },
   {
     capabilities: {

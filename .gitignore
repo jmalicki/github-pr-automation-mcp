@@ -7,4 +7,5 @@ dist/
 coverage/
 .vitest/
 *.lcov
+src/version-info.json
 
