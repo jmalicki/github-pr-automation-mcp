@@ -85,7 +85,7 @@ export interface Comment {
     category: string; // e.g., "style", "performance", "security"
     file_context: {
       path: string;
-      line_start: number;
+      line_start?: number;
       line_end?: number;
     };
     code_suggestion?: {

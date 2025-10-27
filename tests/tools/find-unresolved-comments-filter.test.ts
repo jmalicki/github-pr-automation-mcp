@@ -83,7 +83,9 @@ describe('filterUnresolvedComments', () => {
     expect(result.find(c => c.id === 1)).toBeUndefined();
   });
 
-  it('should exclude issue comments that are replies', () => {
+  it('should exclude issue comments that are replies (defensive handling)', () => {
+    // Note: GitHub REST API for issue comments doesn't expose in_reply_to_id,
+    // but this test covers defensive handling of synthetic edge cases
     const comments = [
       createMockComment({ 
         id: 1, 
@@ -93,7 +95,7 @@ describe('filterUnresolvedComments', () => {
       createMockComment({ 
         id: 2, 
         type: 'issue_comment', 
-        in_reply_to_id: 1 // Reply to issue comment - should be excluded
+        in_reply_to_id: 1 // Synthetic reply to issue comment - should be excluded
       })
     ];
     const nodeIdMap = new Map<number, string>();

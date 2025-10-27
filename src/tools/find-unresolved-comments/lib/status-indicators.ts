@@ -9,7 +9,14 @@ import type { Comment } from '../schema.js';
 export function calculateStatusIndicators(comment: Comment, allComments?: Comment[]): Comment['status_indicators'] {
   const hasMcpAction = !!comment.action_commands.mcp_action;
   // Check if this comment has replies by looking for other comments that reply to it
-  const hasManualResponse = allComments ? allComments.some(c => c.in_reply_to_id === comment.id) : false;
+  const hasManualResponse = allComments
+    ? allComments.some(
+        c =>
+          c.in_reply_to_id === comment.id &&
+          !c.is_bot &&                       // only humans
+          c.author !== comment.author        // avoid self-acks
+      )
+    : false;
   const isActionable = comment.coderabbit_metadata?.suggestion_type === 'actionable' || 
                       comment.body.toLowerCase().includes('fix') ||
                       comment.body.toLowerCase().includes('suggest') ||

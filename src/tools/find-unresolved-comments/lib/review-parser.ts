@@ -3,6 +3,9 @@ import type { Comment } from '../schema.js';
 import { generateActionCommands } from '../command-generator.js';
 import { calculateStatusIndicators } from './status-indicators.js';
 
+// Safe synthetic IDs for generated "review" comments (negative, monotonic across module)
+let __tempReviewCommentId = -1;
+
 // Type aliases for better readability
 type ReviewList = RestEndpointMethodTypes['pulls']['listReviews']['response']['data'];
 type Review = ReviewList[number];
@@ -302,7 +305,7 @@ function parseCodeRabbitSections(body: string): Array<{
 /**
  * Create a CodeRabbit comment with enhanced metadata
  */
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 function createCodeRabbitComment(
   item: any,
   suggestionType: string,
@@ -314,8 +317,14 @@ function createCodeRabbitComment(
   coderabbitOptions?: any,
   includeStatusIndicators?: boolean
 ): Comment {
-  const lineStart = parseInt(item.line_range.split('-')[0]);
-  const lineEnd = item.line_range.includes('-') ? parseInt(item.line_range.split('-')[1]) : lineStart;
+  // Defensive parsing for line ranges; avoid NaN and validate bounds
+  const [startStr, endStr] = String(item.line_range || '').split('-');
+  const parsedStart = Number.parseInt(startStr, 10);
+  const parsedEnd = endStr ? Number.parseInt(endStr, 10) : parsedStart;
+  const s = Number.isFinite(parsedStart) && parsedStart > 0 ? parsedStart : undefined;
+  const e = Number.isFinite(parsedEnd) && parsedEnd > 0 ? parsedEnd : s;
+  const lineStart = s && e && e >= s ? s : undefined;
+  const lineEnd = s && e && e >= s ? e : undefined;
   
   // Generate agent prompt if requested
   let agentPrompt: string | undefined;
@@ -324,7 +333,7 @@ function createCodeRabbitComment(
   }
   
   const comment: Comment = {
-    id: parseInt(`review-${review.id}-${item.line_range}`.replace(/\D/g, '')) || Date.now(),
+    id: __tempReviewCommentId--,
     type: 'review',
     author,
     author_association: authorAssociation,
@@ -367,7 +376,7 @@ function createCodeRabbitComment(
   }
   
   return comment;
-  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
+  /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 }
 
 /**
