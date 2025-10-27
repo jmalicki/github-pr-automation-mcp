@@ -314,8 +314,15 @@ function createCodeRabbitComment(
   coderabbitOptions?: any,
   includeStatusIndicators?: boolean
 ): Comment {
-  const lineStart = parseInt(item.line_range.split('-')[0]);
-  const lineEnd = item.line_range.includes('-') ? parseInt(item.line_range.split('-')[1]) : lineStart;
+  // Safe synthetic IDs for generated "review" comments (negative, monotonic)
+  let __tempReviewCommentId = -1;
+  
+  // Defensive parsing for line ranges; avoid NaN
+  const [startStr, endStr] = String(item.line_range || '').split('-');
+  const parsedStart = Number.parseInt(startStr, 10);
+  const parsedEnd = endStr ? Number.parseInt(endStr, 10) : parsedStart;
+  const lineStart = Number.isFinite(parsedStart) ? parsedStart : undefined;
+  const lineEnd = Number.isFinite(parsedEnd) ? parsedEnd : lineStart;
   
   // Generate agent prompt if requested
   let agentPrompt: string | undefined;
@@ -324,7 +331,7 @@ function createCodeRabbitComment(
   }
   
   const comment: Comment = {
-    id: parseInt(`review-${review.id}-${item.line_range}`.replace(/\D/g, '')) || Date.now(),
+    id: __tempReviewCommentId--,
     type: 'review',
     author,
     author_association: authorAssociation,

@@ -22,10 +22,10 @@ export async function fetchReviewCommentNodeIds(
   
   // Fetch review threads with comments and resolved status via GraphQL
   const query = `
-    query($owner: String!, $repo: String!, $pr: Int!) {
+    query($owner: String!, $repo: String!, $pr: Int!, $after: String) {
       repository(owner: $owner, name: $repo) {
         pullRequest(number: $pr) {
-          reviewThreads(first: 100) {
+          reviewThreads(first: 100, after: $after) {
             nodes {
               id
               isResolved
@@ -34,6 +34,10 @@ export async function fetchReviewCommentNodeIds(
                   databaseId
                 }
               }
+            }
+            pageInfo {
+              hasNextPage
+              endCursor
             }
           }
         }
@@ -55,39 +59,51 @@ export async function fetchReviewCommentNodeIds(
               }>;
             };
           }>;
+          pageInfo?: {
+            hasNextPage: boolean;
+            endCursor: string | null;
+          };
         };
       };
     };
   }
 
   try {
-    const response = await octokit.graphql<GraphQLResponse>(query, {
-      owner: pr.owner,
-      repo: pr.repo,
-      pr: pr.number
-    });
+    const needed = new Set(commentIds);
+    let after: string | null = null;
     
-    const threads = response?.repository?.pullRequest?.reviewThreads?.nodes || [];
-    
-    // Map each comment's databaseId (numeric ID) to its thread's GraphQL node ID
-    // Also track which threads are resolved
-    threads.forEach((thread) => {
-      const threadId = thread.id;
-      const isResolved = thread.isResolved;
-      
-      // Track resolved threads
-      if (isResolved) {
-        resolvedThreadIds.add(threadId);
-      }
-      
-      const comments = thread.comments?.nodes || [];
-      comments.forEach((comment) => {
-        const dbId = comment.databaseId;
-        if (dbId && commentIds.includes(dbId)) {
-          nodeIdMap.set(dbId, threadId);
-        }
+    do {
+      const response: GraphQLResponse = await octokit.graphql<GraphQLResponse>(query, {
+        owner: pr.owner,
+        repo: pr.repo,
+        pr: pr.number,
+        after
       });
-    });
+
+      const rt = response?.repository?.pullRequest?.reviewThreads;
+      const threads = rt?.nodes || [];
+
+      for (const thread of threads) {
+        const threadId = thread.id;
+        if (thread.isResolved) {
+          resolvedThreadIds.add(threadId);
+        }
+
+        for (const comment of thread.comments?.nodes || []) {
+          const dbId = comment.databaseId;
+          if (dbId && needed.has(dbId)) {
+            nodeIdMap.set(dbId, threadId);
+            needed.delete(dbId);
+          }
+        }
+      }
+
+      const pageInfo = rt?.pageInfo;
+      after = pageInfo?.hasNextPage ? pageInfo.endCursor ?? null : null;
+
+      // Early exit when all IDs are mapped
+      if (needed.size === 0) break;
+    } while (after);
   } catch (error) {
     // If GraphQL fails, return empty map - comments will still work via resolve_command
     console.warn(`Failed to fetch GraphQL node IDs: ${error instanceof Error ? error.message : String(error)}`);
