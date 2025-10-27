@@ -38,7 +38,7 @@ function installToLocalBin() {
     
     // Install production dependencies
     console.log('📦 Installing production dependencies...');
-    execSync('npm install --production --no-optional', { stdio: 'inherit', cwd: standaloneDir });
+    execSync('npm install --production --no-optional --ignore-scripts', { stdio: 'inherit', cwd: standaloneDir });
     
     // Create Unix wrapper script (CommonJS)
     const targetPath = join(localBinDir, 'github-pr-automation');
@@ -98,7 +98,7 @@ node "%CLI_PATH%" %*
 function showUsage() {
   console.log('GitHub PR Automation CLI Installer');
   console.log('');
-  console.log('Usage: node scripts/install-cli.js [method]');
+  console.log('Usage: node scripts/install-cli.cjs [method]');
   console.log('');
   console.log('Installation methods:');
   console.log('  npm-link    - Install using npm link (requires npm)');
