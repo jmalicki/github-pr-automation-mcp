@@ -6,6 +6,96 @@ import { generateActionCommands } from './command-generator.js';
 import { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods';
 import type { Octokit } from '@octokit/rest';
 
+/**
+ * Calculate status indicators for a comment
+ */
+function calculateStatusIndicators(comment: Comment, allComments?: Comment[]): Comment['status_indicators'] {
+  const hasMcpAction = !!comment.action_commands.mcp_action;
+  // Check if this comment has replies by looking for other comments that reply to it
+  const hasManualResponse = allComments ? allComments.some(c => c.in_reply_to_id === comment.id) : false;
+  const isActionable = comment.coderabbit_metadata?.suggestion_type === 'actionable' || 
+                      comment.body.toLowerCase().includes('fix') ||
+                      comment.body.toLowerCase().includes('suggest') ||
+                      comment.body.toLowerCase().includes('change');
+  
+  // Use GitHub API's outdated field (available for review comments)
+  const isOutdated = comment.outdated || false;
+  
+  // Calculate priority score (0-100)
+  let priorityScore = 0;
+  
+  // Base priority from CodeRabbit metadata
+  if (comment.coderabbit_metadata) {
+    switch (comment.coderabbit_metadata.severity) {
+      case 'high': priorityScore += 40; break;
+      case 'medium': priorityScore += 25; break;
+      case 'low': priorityScore += 10; break;
+    }
+    
+    switch (comment.coderabbit_metadata.suggestion_type) {
+      case 'actionable': priorityScore += 30; break;
+      case 'additional': priorityScore += 20; break;
+      case 'nit': priorityScore += 5; break;
+      case 'duplicate': priorityScore += 0; break;
+    }
+  }
+  
+  // Boost priority for bot comments with MCP actions
+  if (comment.is_bot && hasMcpAction) {
+    priorityScore += 20;
+  }
+  
+  // Boost priority for actionable content
+  if (isActionable) {
+    priorityScore += 15;
+  }
+  
+  // Reduce priority if already has manual response
+  if (hasManualResponse) {
+    priorityScore -= 10;
+  }
+  
+  // Reduce priority for outdated comments
+  if (isOutdated) {
+    priorityScore -= 20; // Significant reduction for outdated comments
+  }
+  
+  // Cap at 100
+  priorityScore = Math.min(100, Math.max(0, priorityScore));
+  
+  // Determine resolution status
+  let resolutionStatus: 'unresolved' | 'acknowledged' | 'in_progress' | 'resolved';
+  if (hasManualResponse && isActionable) {
+    resolutionStatus = 'in_progress';
+  } else if (hasManualResponse) {
+    resolutionStatus = 'acknowledged';
+  } else {
+    resolutionStatus = 'unresolved';
+  }
+  
+  // Determine suggested action
+  let suggestedAction: 'reply' | 'resolve' | 'investigate' | 'ignore';
+  if (hasMcpAction && !hasManualResponse) {
+    suggestedAction = 'resolve';
+  } else if (isActionable && !hasManualResponse) {
+    suggestedAction = 'reply';
+  } else if (priorityScore < 30) {
+    suggestedAction = 'ignore';
+  } else {
+    suggestedAction = 'investigate';
+  }
+  
+  return {
+    needs_mcp_resolution: hasMcpAction,
+    has_manual_response: hasManualResponse,
+    is_actionable: isActionable,
+    is_outdated: isOutdated,
+    priority_score: priorityScore,
+    resolution_status: resolutionStatus,
+    suggested_action: suggestedAction
+  };
+}
+
 // Type aliases for better readability
 type ReviewList = RestEndpointMethodTypes['pulls']['listReviews']['response']['data'];
 type Review = ReviewList[number];
@@ -62,7 +152,8 @@ export async function handleFindUnresolvedComments(
     reviewBodiesComments = parseReviewBodiesForActionableComments(
       reviewsResponse.data,
       pr,
-      input.coderabbit_options
+      input.coderabbit_options,
+      input.include_status_indicators
     );
     hasMoreReviews = reviewsResponse.headers.link?.includes('rel="next"') ?? false;
   }
@@ -76,7 +167,7 @@ export async function handleFindUnresolvedComments(
       const isBot = c.user?.type === 'Bot';
       const body = c.body || '';
       
-      return {
+      const comment: Comment = {
         id: c.id,
         type: 'review_comment' as const,
         author,
@@ -90,6 +181,8 @@ export async function handleFindUnresolvedComments(
         diff_hunk: c.diff_hunk || undefined,
         body,
         in_reply_to_id: c.in_reply_to_id || undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
+        outdated: Boolean((c as any).outdated),
         reactions: c.reactions ? {
           total_count: c.reactions.total_count,
           '+1': c.reactions['+1'],
@@ -111,6 +204,9 @@ export async function handleFindUnresolvedComments(
           nodeIdMap.get(c.id) // Pass GraphQL thread ID if available
         )
       };
+      
+      
+      return comment;
     }),
     ...issueCommentsResponse.data.map(c => {
       const author = c.user?.login || 'unknown';
@@ -118,7 +214,7 @@ export async function handleFindUnresolvedComments(
       const isBot = c.user?.type === 'Bot';
       const body = c.body || '';
       
-      return {
+      const comment: Comment = {
         id: c.id,
         type: 'issue_comment' as const,
         author,
@@ -141,8 +237,18 @@ export async function handleFindUnresolvedComments(
         html_url: c.html_url,
         action_commands: generateActionCommands(pr, c.id, 'issue_comment', body)
       };
+      
+      
+      return comment;
     })
   ];
+  
+  // Calculate status indicators for all comments (second pass)
+  if (input.include_status_indicators !== false) {
+    for (const comment of allComments) {
+      comment.status_indicators = calculateStatusIndicators(comment, allComments);
+    }
+  }
   
   // Filter by bots if requested
   let filtered = allComments;
@@ -177,6 +283,35 @@ export async function handleFindUnresolvedComments(
     case 'by_author':
       filtered.sort((a, b) => a.author.localeCompare(b.author));
       break;
+    case 'priority':
+      // Priority-based sorting when enabled
+      if (input.priority_ordering !== false && input.include_status_indicators !== false) {
+        filtered.sort((a, b) => {
+          const scoreA = a.status_indicators?.priority_score || 0;
+          const scoreB = b.status_indicators?.priority_score || 0;
+          
+          // First sort by priority score (descending)
+          if (scoreA !== scoreB) {
+            return scoreB - scoreA;
+          }
+          
+          // Then by MCP resolution capability
+          const mcpA = a.status_indicators?.needs_mcp_resolution ? 1 : 0;
+          const mcpB = b.status_indicators?.needs_mcp_resolution ? 1 : 0;
+          if (mcpA !== mcpB) {
+            return mcpB - mcpA;
+          }
+          
+          // Finally by creation date (newest first)
+          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+        });
+      } else {
+        // Fall back to chronological if priority ordering is disabled
+        filtered.sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+      }
+      break;
   }
   
   // Check if there are more results by looking at response headers
@@ -194,11 +329,84 @@ export async function handleFindUnresolvedComments(
   let botCount = 0;
   let withReactions = 0;
   
+  // Priority-based summary statistics
+  let highPriorityCount = 0;
+  let mediumPriorityCount = 0;
+  let lowPriorityCount = 0;
+  let needsMcpResolutionCount = 0;
+  let hasManualResponsesCount = 0;
+  let actionableItemsCount = 0;
+  let outdatedCommentsCount = 0;
+  
+  // Status-based grouping
+  const statusGroups: {
+    unresolved: Comment[];
+    acknowledged: Comment[];
+    in_progress: Comment[];
+    resolved: Comment[];
+  } = {
+    unresolved: [],
+    acknowledged: [],
+    in_progress: [],
+    resolved: []
+  };
+  
   for (const comment of filtered) {
     byAuthor[comment.author] = (byAuthor[comment.author] || 0) + 1;
     byType[comment.type] = (byType[comment.type] || 0) + 1;
     if (comment.is_bot) botCount++;
     if (comment.reactions && comment.reactions.total_count > 0) withReactions++;
+    
+    // Process status indicators if available
+    if (comment.status_indicators) {
+      const indicators = comment.status_indicators;
+      
+      // Priority counts
+      if (indicators.priority_score >= 70) {
+        highPriorityCount++;
+      } else if (indicators.priority_score >= 30) {
+        mediumPriorityCount++;
+      } else {
+        lowPriorityCount++;
+      }
+      
+      // Status counts
+      if (indicators.needs_mcp_resolution) needsMcpResolutionCount++;
+      if (indicators.has_manual_response) hasManualResponsesCount++;
+      if (indicators.is_actionable) actionableItemsCount++;
+      if (indicators.is_outdated) outdatedCommentsCount++;
+      
+      // Status grouping
+      statusGroups[indicators.resolution_status].push(comment);
+    }
+  }
+  
+  // Build summary object
+  const summary: FindUnresolvedCommentsOutput['summary'] = {
+    comments_in_page: filtered.length, // Current page count
+    by_author: byAuthor,
+    by_type: byType,
+    bot_comments: botCount,
+    human_comments: filtered.length - botCount,
+    with_reactions: withReactions
+  };
+  
+  // Add priority summary if status indicators are enabled
+  if (input.include_status_indicators !== false) {
+    summary.priority_summary = {
+      high_priority: highPriorityCount,
+      medium_priority: mediumPriorityCount,
+      low_priority: lowPriorityCount,
+      needs_mcp_resolution: needsMcpResolutionCount,
+      has_manual_responses: hasManualResponsesCount,
+      actionable_items: actionableItemsCount,
+      outdated_comments: outdatedCommentsCount
+    };
+  }
+  
+  // Add status groups if priority ordering is enabled
+  if (input.priority_ordering !== false && input.include_status_indicators !== false) {
+    summary.status_groups = statusGroups;
   }
   
   return {
@@ -206,14 +414,7 @@ export async function handleFindUnresolvedComments(
     unresolved_in_page: filtered.length, // Current page count
     comments: filtered, // Current page comments
     nextCursor,
-    summary: {
-      comments_in_page: filtered.length, // Current page count
-      by_author: byAuthor,
-      by_type: byType,
-      bot_comments: botCount,
-      human_comments: filtered.length - botCount,
-      with_reactions: withReactions
-    }
+    summary
   };
 }
 
@@ -313,7 +514,8 @@ function parseReviewBodiesForActionableComments(
     prioritize_actionable?: boolean;
     group_by_type?: boolean;
     extract_agent_prompts?: boolean;
-  }
+  },
+  includeStatusIndicators?: boolean
 ): Comment[] {
   const actionableComments: Comment[] = [];
   
@@ -328,7 +530,7 @@ function parseReviewBodiesForActionableComments(
     const isBot = review.user?.type === 'Bot';
     
     // Parse CodeRabbit AI review body for actionable comments
-    const codeRabbitComments = parseCodeRabbitReviewBody(body, review, pr, author, authorAssociation, isBot, coderabbitOptions);
+    const codeRabbitComments = parseCodeRabbitReviewBody(body, review, pr, author, authorAssociation, isBot, coderabbitOptions, includeStatusIndicators);
     actionableComments.push(...codeRabbitComments);
     
     // Add support for other AI review tools here in the future
@@ -356,7 +558,8 @@ function parseCodeRabbitReviewBody(
     prioritize_actionable?: boolean;
     group_by_type?: boolean;
     extract_agent_prompts?: boolean;
-  }
+  },
+  includeStatusIndicators?: boolean
 ): Comment[] {
   const comments: Comment[] = [];
   
@@ -396,7 +599,8 @@ function parseCodeRabbitReviewBody(
         author,
         authorAssociation,
         isBot,
-        coderabbitOptions
+        coderabbitOptions,
+        includeStatusIndicators
       );
       comments.push(comment);
     }
@@ -520,7 +724,6 @@ function parseCodeRabbitSections(body: string): Array<{
       
       // Extract description and code suggestion
       let description = title;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let codeSuggestion: any = null;
       let inCodeBlock = false;
       let codeBlockContent = '';
@@ -588,17 +791,15 @@ function parseCodeRabbitSections(body: string): Array<{
  */
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
 function createCodeRabbitComment(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   item: any,
   suggestionType: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   review: any,
   pr: { owner: string; repo: string; number: number },
   author: string,
   authorAssociation: string,
   isBot: boolean,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  coderabbitOptions?: any
+  coderabbitOptions?: any,
+  includeStatusIndicators?: boolean
 ): Comment {
   const lineStart = parseInt(item.line_range.split('-')[0]);
   const lineEnd = item.line_range.includes('-') ? parseInt(item.line_range.split('-')[1]) : lineStart;
@@ -647,6 +848,11 @@ function createCodeRabbitComment(
     }
   };
   
+  // Add status indicators if enabled
+  if (includeStatusIndicators !== false) {
+    comment.status_indicators = calculateStatusIndicators(comment);
+  }
+  
   return comment;
   /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
 }
@@ -654,7 +860,6 @@ function createCodeRabbitComment(
 /**
  * Generate agent-friendly prompt from CodeRabbit suggestion
  */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 function generateAgentPrompt(item: { file_path: string; line_range: string; code_suggestion?: { old_code: string; new_code: string }; description: string }, suggestionType: string): string {
   const basePrompt = `CodeRabbit ${suggestionType} suggestion for ${item.file_path}:${item.line_range}`;
   
@@ -681,7 +886,6 @@ Effort: Quick fix (1-2 minutes)`;
 Description: ${item.description}
 Priority: ${suggestionType === 'nit' ? 'Low' : 'Medium'}`;
 }
-/* eslint-enable @typescript-eslint/no-unsafe-member-access */
 
 /**
  * Infer category from suggestion description
