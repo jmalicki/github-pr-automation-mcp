@@ -8,7 +8,7 @@
     "github-pr-automation": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "node scripts/generate-version-info.js && tsc",
     "watch": "tsc --watch",
     "dev": "tsc && node dist/index.js",
     "cli": "tsc && node dist/cli.js",

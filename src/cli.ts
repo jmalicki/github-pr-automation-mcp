@@ -10,6 +10,7 @@ import { FindUnresolvedCommentsSchema } from './tools/find-unresolved-comments/s
 import { ManageStackedPRsSchema } from './tools/manage-stacked-prs/schema.js';
 import { handleResolveReviewThread } from './tools/resolve-review-thread/handler.js';
 import { ResolveReviewThreadInputSchema } from './tools/resolve-review-thread/schema.js';
+import { getVersionString } from './utils/version.js';
 
 const program = new Command();
 
@@ -25,7 +26,7 @@ function getClient(): GitHubClient {
 program
   .name('github-pr-automation')
   .description('MCP server and CLI for automated GitHub PR management, review resolution, and workflow optimization')
-  .version('0.1.0');
+  .version(getVersionString());
 
 program
   .command('get-failing-tests')
