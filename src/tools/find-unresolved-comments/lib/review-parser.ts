@@ -3,6 +3,9 @@ import type { Comment } from '../schema.js';
 import { generateActionCommands } from '../command-generator.js';
 import { calculateStatusIndicators } from './status-indicators.js';
 
+// Safe synthetic IDs for generated "review" comments (negative, monotonic across module)
+let __tempReviewCommentId = -1;
+
 // Type aliases for better readability
 type ReviewList = RestEndpointMethodTypes['pulls']['listReviews']['response']['data'];
 type Review = ReviewList[number];
@@ -314,15 +317,14 @@ function createCodeRabbitComment(
   coderabbitOptions?: any,
   includeStatusIndicators?: boolean
 ): Comment {
-  // Safe synthetic IDs for generated "review" comments (negative, monotonic)
-  let __tempReviewCommentId = -1;
-  
-  // Defensive parsing for line ranges; avoid NaN
+  // Defensive parsing for line ranges; avoid NaN and validate bounds
   const [startStr, endStr] = String(item.line_range || '').split('-');
   const parsedStart = Number.parseInt(startStr, 10);
   const parsedEnd = endStr ? Number.parseInt(endStr, 10) : parsedStart;
-  const lineStart = Number.isFinite(parsedStart) ? parsedStart : undefined;
-  const lineEnd = Number.isFinite(parsedEnd) ? parsedEnd : lineStart;
+  const s = Number.isFinite(parsedStart) && parsedStart > 0 ? parsedStart : undefined;
+  const e = Number.isFinite(parsedEnd) && parsedEnd > 0 ? parsedEnd : s;
+  const lineStart = s && e && e >= s ? s : undefined;
+  const lineEnd = s && e && e >= s ? e : undefined;
   
   // Generate agent prompt if requested
   let agentPrompt: string | undefined;
