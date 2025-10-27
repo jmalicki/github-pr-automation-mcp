@@ -125,8 +125,8 @@ export async function handleFindUnresolvedComments(
     per_page: githubPagination.per_page
   });
   
-  // Fetch GraphQL node IDs for review comments and their threads
-  const nodeIdMap = await fetchReviewCommentNodeIds(octokit, pr, reviewCommentsResponse.data.map(c => c.id));
+  // Fetch GraphQL node IDs and resolved status for review comments and their threads
+  const { nodeIdMap, resolvedThreadIds } = await fetchReviewCommentNodeIds(octokit, pr, reviewCommentsResponse.data.map(c => c.id));
   
   // Fetch issue comments (general PR comments) with server-side pagination
   const issueCommentsResponse = await octokit.issues.listComments({
@@ -250,8 +250,28 @@ export async function handleFindUnresolvedComments(
     }
   }
   
+  // Filter out resolved comments at the thread level
+  let filtered = allComments.filter(comment => {
+    // For review comments, check if the thread is resolved via GitHub API
+    if (comment.type === 'review_comment') {
+      const threadId = nodeIdMap.get(comment.id);
+      if (threadId && resolvedThreadIds.has(threadId)) {
+        return false; // Exclude ALL comments from resolved threads
+      }
+    }
+    
+    // Exclude reply comments - only return original thread starters
+    if (comment.in_reply_to_id) {
+      return false; // Exclude comments that are replies to other comments
+    }
+    
+    // Issue comments don't have a resolved status in GitHub API
+    // They remain as unresolved unless explicitly resolved by GitHub's system
+    
+    return true; // Include unresolved comments
+  });
+  
   // Filter by bots if requested
-  let filtered = allComments;
   if (!input.include_bots) {
     filtered = filtered.filter(c => !c.is_bot);
   }
@@ -420,20 +440,21 @@ export async function handleFindUnresolvedComments(
 
 /**
  * Fetch GraphQL node IDs and thread IDs for review comments
- * Maps REST API numeric comment IDs to GraphQL thread node IDs
+ * Maps REST API numeric comment IDs to GraphQL thread node IDs and tracks resolved status
  */
 async function fetchReviewCommentNodeIds(
   octokit: InstanceType<typeof Octokit>,
   pr: { owner: string; repo: string; number: number },
   commentIds: number[]
-): Promise<Map<number, string>> {
+): Promise<{ nodeIdMap: Map<number, string>; resolvedThreadIds: Set<string> }> {
   const nodeIdMap = new Map<number, string>();
+  const resolvedThreadIds = new Set<string>();
   
   if (commentIds.length === 0) {
-    return nodeIdMap;
+    return { nodeIdMap, resolvedThreadIds };
   }
   
-  // Fetch review threads with comments via GraphQL
+  // Fetch review threads with comments and resolved status via GraphQL
   const query = `
     query($owner: String!, $repo: String!, $pr: Int!) {
       repository(owner: $owner, name: $repo) {
@@ -441,6 +462,7 @@ async function fetchReviewCommentNodeIds(
           reviewThreads(first: 100) {
             nodes {
               id
+              isResolved
               comments(first: 100) {
                 nodes {
                   databaseId
@@ -460,6 +482,7 @@ async function fetchReviewCommentNodeIds(
         reviewThreads?: {
           nodes?: Array<{
             id: string;
+            isResolved: boolean;
             comments?: {
               nodes?: Array<{
                 databaseId: number;
@@ -481,8 +504,16 @@ async function fetchReviewCommentNodeIds(
     const threads = response?.repository?.pullRequest?.reviewThreads?.nodes || [];
     
     // Map each comment's databaseId (numeric ID) to its thread's GraphQL node ID
+    // Also track which threads are resolved
     threads.forEach((thread) => {
       const threadId = thread.id;
+      const isResolved = thread.isResolved;
+      
+      // Track resolved threads
+      if (isResolved) {
+        resolvedThreadIds.add(threadId);
+      }
+      
       const comments = thread.comments?.nodes || [];
       comments.forEach((comment) => {
         const dbId = comment.databaseId;
@@ -496,7 +527,7 @@ async function fetchReviewCommentNodeIds(
     console.warn(`Failed to fetch GraphQL node IDs: ${error instanceof Error ? error.message : String(error)}`);
   }
   
-  return nodeIdMap;
+  return { nodeIdMap, resolvedThreadIds };
 }
 
 /**
