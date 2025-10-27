@@ -243,10 +243,18 @@ async function testMergePR(octokit: unknown, pr: { owner: string; repo: string; 
       pull_number: pr.number
     });
     
-    if (!pullRequest.data.mergeable) {
+    if (pullRequest.data.mergeable === false) {
       return {
         allowed: false,
         reason: 'PR is not mergeable',
+        required_scopes: []
+      };
+    }
+    
+    if (pullRequest.data.mergeable === null) {
+      return {
+        allowed: false,
+        reason: 'Merge status unknown (GitHub still computing)',
         required_scopes: []
       };
     }
