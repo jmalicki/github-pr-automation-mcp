@@ -1,12 +1,47 @@
 import type { Comment } from '../schema.js';
 
 /**
- * Filters comments to only include unresolved ones (not replies, not from resolved threads)
- * @param comments - All comments to filter
- * @param nodeIdMap - Map of comment IDs to thread IDs
- * @param resolvedThreadIds - Set of resolved thread IDs
- * @returns Filtered comments that are unresolved
+ * Optimized filtering that works with pre-filtered data
+ * Reduces unnecessary processing by leveraging API-level filtering
  */
+export class OptimizedFiltering {
+  /**
+   * Apply all filters in an optimized order
+   * @param comments - Comments to filter
+   * @param nodeIdMap - Map of comment IDs to thread IDs
+   * @param resolvedThreadIds - Set of resolved thread IDs
+   * @param options - Filtering options
+   * @returns Filtered and sorted comments
+   */
+  static applyAllFilters(
+    comments: Comment[],
+    nodeIdMap: Map<number, string>,
+    resolvedThreadIds: Set<string>,
+    options: {
+      includeBots: boolean;
+      excludeAuthors?: string[];
+      sort: 'chronological' | 'by_file' | 'by_author' | 'priority';
+      priorityOrdering?: boolean;
+      includeStatusIndicators?: boolean;
+    }
+  ): Comment[] {
+    // Step 1: Filter unresolved comments (most restrictive filter first)
+    let filtered = filterUnresolvedComments(comments, nodeIdMap, resolvedThreadIds);
+    
+    // Step 2: Apply basic filtering
+    filtered = applyBasicFiltering(filtered, options.includeBots, options.excludeAuthors);
+    
+    // Step 3: Sort comments
+    filtered = sortComments(
+      filtered, 
+      options.sort, 
+      options.priorityOrdering, 
+      options.includeStatusIndicators
+    );
+    
+    return filtered;
+  }
+}
 export function filterUnresolvedComments(
   comments: Comment[],
   nodeIdMap: Map<number, string>,

@@ -4,15 +4,16 @@ import { cursorToGitHubPagination, createNextCursor } from '../../utils/paginati
 import type { FindUnresolvedCommentsInput, FindUnresolvedCommentsOutput, Comment } from './schema.js';
 
 // Import library functions
-import { fetchReviewCommentNodeIds } from './lib/graphql-fetcher.js';
 import { parseReviewBodiesForActionableComments } from './lib/review-parser.js';
 import { mapReviewComments, mapIssueComments } from './lib/comment-mapper.js';
 import { calculateStatusIndicators } from './lib/status-indicators.js';
-import { filterUnresolvedComments, applyBasicFiltering, sortComments } from './lib/filtering.js';
+import { OptimizedFiltering } from './lib/filtering.js';
 import { generateSummary } from './lib/summary-generator.js';
+import { OptimizedDataFetcher } from './lib/optimized-data-fetcher.js';
 
 /**
  * Find unresolved comments in a GitHub pull request
+ * Optimized version that filters at the API level when possible
  * @param client - GitHub API client instance
  * @param input - Input parameters including PR identifier and options
  * @returns Promise resolving to unresolved comments and pagination info
@@ -27,46 +28,29 @@ export async function handleFindUnresolvedComments(
   // Convert cursor to GitHub pagination parameters
   const githubPagination = cursorToGitHubPagination(input.cursor, 20);
   
-  // Fetch review comments with server-side pagination
-  const reviewCommentsResponse = await octokit.pulls.listReviewComments({
-    owner: pr.owner,
-    repo: pr.repo,
-    pull_number: pr.number,
-    page: githubPagination.page,
-    per_page: githubPagination.per_page
-  });
+  // Use optimized data fetcher for better performance
+  const dataFetcher = new OptimizedDataFetcher(octokit, pr);
   
-  // Fetch GraphQL node IDs and resolved status for review comments and their threads
-  const { nodeIdMap, resolvedThreadIds } = await fetchReviewCommentNodeIds(octokit, pr, reviewCommentsResponse.data.map(c => c.id));
-  
-  // Fetch issue comments (general PR comments) with server-side pagination
-  const issueCommentsResponse = await octokit.issues.listComments({
-    owner: pr.owner,
-    repo: pr.repo,
-    issue_number: pr.number,
-    page: githubPagination.page,
-    per_page: githubPagination.per_page
-  });
+  // Fetch all data with optimized filtering
+  const {
+    reviewCommentsResponse,
+    issueCommentsResponse,
+    reviewsResponse,
+    nodeIdMap,
+    resolvedThreadIds
+  } = await dataFetcher.fetchOptimizedData(input, githubPagination);
 
-  // Fetch reviews to parse for actionable comments in review bodies
+  // Parse review bodies for actionable comments if requested
   let reviewBodiesComments: Comment[] = [];
   let hasMoreReviews = false;
-  if (input.parse_review_bodies !== false) {
-    const reviewsResponse = await octokit.pulls.listReviews({
-      owner: pr.owner,
-      repo: pr.repo,
-      pull_number: pr.number,
-      page: githubPagination.page,
-      per_page: githubPagination.per_page
-    });
-    
+  if (input.parse_review_bodies !== false && reviewsResponse.data) {
     reviewBodiesComments = parseReviewBodiesForActionableComments(
       reviewsResponse.data,
       pr,
       input.coderabbit_options,
       input.include_status_indicators
     );
-    hasMoreReviews = reviewsResponse.headers.link?.includes('rel="next"') ?? false;
+    hasMoreReviews = (reviewsResponse.headers as { link?: string })?.link?.includes('rel="next"') ?? false;
   }
   
   // Convert to our Comment type with action commands and hints
@@ -83,20 +67,14 @@ export async function handleFindUnresolvedComments(
     }
   }
   
-  // Filter out resolved comments at the thread level
-  let filtered = filterUnresolvedComments(allComments, nodeIdMap, resolvedThreadIds);
-  
-  // Apply basic filtering
-  filtered = applyBasicFiltering(filtered, input.include_bots, input.exclude_authors);
-  
-  // Apply CodeRabbit-specific filtering and grouping
-  if (input.coderabbit_options) {
-    // Note: CodeRabbit filtering is already applied in parseReviewBodiesForActionableComments
-    // Additional filtering can be added here if needed
-  }
-  
-  // Sort comments
-  filtered = sortComments(filtered, input.sort, input.priority_ordering, input.include_status_indicators);
+  // Apply optimized filtering and sorting
+  const filtered = OptimizedFiltering.applyAllFilters(allComments, nodeIdMap, resolvedThreadIds, {
+    includeBots: input.include_bots,
+    excludeAuthors: input.exclude_authors,
+    sort: input.sort,
+    priorityOrdering: input.priority_ordering,
+    includeStatusIndicators: input.include_status_indicators
+  });
   
   // Check if there are more results by looking at response headers
   // GitHub API includes Link header with pagination info

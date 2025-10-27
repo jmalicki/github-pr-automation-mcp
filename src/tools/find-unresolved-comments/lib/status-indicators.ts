@@ -6,7 +6,7 @@ import type { Comment } from '../schema.js';
  * @param allComments - Optional array of all comments for context
  * @returns Status indicators object
  */
-export function calculateStatusIndicators(comment: Comment, allComments?: Comment[]): Comment['status_indicators'] {
+export function calculateStatusIndicators(comment: Comment, allComments?: Comment[]): NonNullable<Comment['status_indicators']> {
   const hasMcpAction = !!comment.action_commands.mcp_action;
   // Check if this comment has replies by looking for other comments that reply to it
   const hasManualResponse = allComments ? allComments.some(c => c.in_reply_to_id === comment.id) : false;
