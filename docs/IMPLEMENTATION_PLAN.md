@@ -138,7 +138,7 @@ jobs:
       - run: npm run build
       - run: npm test -- --coverage
       - name: Check coverage thresholds
-        run: npm run test:coverage-check
+        run: npm run test:coverage
 ```
 
 **Lint Workflow**:

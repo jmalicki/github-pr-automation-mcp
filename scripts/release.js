@@ -76,7 +76,7 @@ function updateChangelog(version, type) {
 
 function runTests() {
   console.log('Running tests...');
-  execSync('npm run test:coverage-check', { stdio: 'inherit', cwd: rootDir });
+  execSync('npm run test:coverage', { stdio: 'inherit', cwd: rootDir });
   console.log('Tests passed!');
 }
 
