@@ -6,7 +6,7 @@
  * that will be embedded in the final package.
  */
 
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'fs';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -72,6 +72,10 @@ function generateVersionInfo() {
   const srcOutputPath = join(rootDir, 'src', 'version-info.json');
   const distOutputPath = join(rootDir, 'dist', 'version-info.json');
   const distUtilsOutputPath = join(rootDir, 'dist', 'utils', 'version-info.json');
+  
+  // Ensure directories exist
+  mkdirSync(join(rootDir, 'dist'), { recursive: true });
+  mkdirSync(join(rootDir, 'dist', 'utils'), { recursive: true });
   
   writeFileSync(srcOutputPath, JSON.stringify(versionInfo, null, 2));
   writeFileSync(distOutputPath, JSON.stringify(versionInfo, null, 2));
