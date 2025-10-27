@@ -179,7 +179,7 @@ function parseCodeRabbitSections(body: string): Array<{
     // Detect section headers - handle multi-line format
     if (line.includes('<details>') && i + 1 < lines.length) {
       const nextLine = lines[i + 1];
-      const sectionMatch = nextLine.match(/<summary>\s*(🧹|♻️|♻|📜)\s*([^<]+)\s*\((\d+)\)\s*<\/summary>/u);
+      const sectionMatch = nextLine.match(/<summary>\s*(🧹|♻️|♻|📜)\s*([^<]+)\s*\((\d+)\)\s*<\/summary>/);
       if (sectionMatch) {
         const emoji = sectionMatch[1];
         const title = sectionMatch[2].trim();
@@ -204,7 +204,7 @@ function parseCodeRabbitSections(body: string): Array<{
       }
       
       // Handle actionable comments without emoji
-      const actionableMatch = nextLine.match(/<summary>\s*([^<]+)\s*:\s*(\d+)\s*<\/summary>/u);
+      const actionableMatch = nextLine.match(/<summary>\s*([^<]+)\s*:\s*(\d+)\s*<\/summary>/);
       if (actionableMatch && nextLine.toLowerCase().includes('actionable')) {
         const title = actionableMatch[1].trim();
         const count = parseInt(actionableMatch[2]);

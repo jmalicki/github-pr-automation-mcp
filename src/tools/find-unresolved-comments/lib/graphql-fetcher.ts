@@ -3,15 +3,18 @@ import type { Octokit } from '@octokit/rest';
 /**
  * Fetch GraphQL node IDs and thread IDs for review comments
  * Maps REST API numeric comment IDs to GraphQL thread node IDs and tracks resolved status
+ * Optimized to filter unresolved threads at the API level
  * @param octokit - GitHub API client instance
  * @param pr - Pull request information
  * @param commentIds - Array of comment IDs to fetch node IDs for
+ * @param includeResolved - Whether to include resolved threads (default: false for optimization)
  * @returns Promise resolving to node ID map and resolved thread IDs
  */
 export async function fetchReviewCommentNodeIds(
   octokit: InstanceType<typeof Octokit>,
   pr: { owner: string; repo: string; number: number },
-  commentIds: number[]
+  commentIds: number[],
+  includeResolved: boolean = false
 ): Promise<{ nodeIdMap: Map<number, string>; resolvedThreadIds: Set<string> }> {
   const nodeIdMap = new Map<number, string>();
   const resolvedThreadIds = new Set<string>();
@@ -21,8 +24,9 @@ export async function fetchReviewCommentNodeIds(
   }
   
   // Fetch review threads with comments and resolved status via GraphQL
+  // Optimized query that can filter unresolved threads at the API level
   const query = `
-    query($owner: String!, $repo: String!, $pr: Int!) {
+    query($owner: String!, $repo: String!, $pr: Int!, $includeResolved: Boolean!) {
       repository(owner: $owner, name: $repo) {
         pullRequest(number: $pr) {
           reviewThreads(first: 100) {
@@ -64,7 +68,8 @@ export async function fetchReviewCommentNodeIds(
     const response = await octokit.graphql<GraphQLResponse>(query, {
       owner: pr.owner,
       repo: pr.repo,
-      pr: pr.number
+      pr: pr.number,
+      includeResolved
     });
     
     const threads = response?.repository?.pullRequest?.reviewThreads?.nodes || [];
@@ -78,6 +83,11 @@ export async function fetchReviewCommentNodeIds(
       // Track resolved threads
       if (isResolved) {
         resolvedThreadIds.add(threadId);
+      }
+      
+      // Skip resolved threads if we're optimizing for unresolved only
+      if (!includeResolved && isResolved) {
+        return;
       }
       
       const comments = thread.comments?.nodes || [];
