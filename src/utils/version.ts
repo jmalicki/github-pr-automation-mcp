@@ -34,8 +34,11 @@ function loadVersionInfo(): VersionInfo {
     versionInfo = JSON.parse(versionData) as VersionInfo;
     return versionInfo;
   } catch (error) {
-    // Fallback if version-info.json doesn't exist (e.g., during development)
-    console.warn('Could not load version-info.json, using fallback version info:', error instanceof Error ? error.message : String(error));
+    // Fallback if version-info.json doesn't exist (e.g., during development or testing)
+    // Only show warning if not in test environment
+    if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
+      console.warn('Could not load version-info.json, using fallback version info:', error instanceof Error ? error.message : String(error));
+    }
     versionInfo = {
       version: '0.0.0-dev',
       gitRevision: 'unknown',
