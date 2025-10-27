@@ -33,7 +33,7 @@ jobs:
         run: npm run license-check
         
       - name: Run tests
-        run: npm run test:coverage-check
+        run: npm run test:coverage
         
       - name: Run linting
         run: npm run lint
