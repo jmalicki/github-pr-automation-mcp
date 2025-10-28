@@ -2,6 +2,8 @@ name: Code Quality
 
 # This workflow is called by the main CI workflow
 # No direct triggers - only invoked by ci.yml
+on:
+  workflow_call:
 
 jobs:
   quality:
