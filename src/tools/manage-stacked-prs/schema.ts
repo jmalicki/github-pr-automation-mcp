@@ -1,5 +1,5 @@
-import { z } from 'zod';
-import { PRIdentifierStringSchema } from '../../utils/validation.js';
+import { z } from "zod";
+import { PRIdentifierStringSchema } from "../../utils/validation.js";
 
 export const ManageStackedPRsSchema = z.object({
   base_pr: PRIdentifierStringSchema,
@@ -8,14 +8,14 @@ export const ManageStackedPRsSchema = z.object({
   use_onto: z.boolean().optional(),
   onto_base: z.string().optional(),
   max_iterations: z.number().int().min(1).default(3),
-  cursor: z.string().optional() // MCP cursor-based pagination
+  cursor: z.string().optional(), // MCP cursor-based pagination
 });
 
 export type ManageStackedPRsInput = z.infer<typeof ManageStackedPRsSchema>;
 
 export interface Command {
   step: number;
-  type: 'git' | 'ci_wait' | 'test' | 'fix' | 'verification';
+  type: "git" | "ci_wait" | "test" | "fix" | "verification";
   command: string;
   description: string;
   estimated_duration?: string;
@@ -43,7 +43,7 @@ export interface ManageStackedPRsOutput {
     files_changed: string[];
   };
   rebase_strategy?: {
-    recommended: 'regular' | 'onto';
+    recommended: "regular" | "onto";
     reason: string;
     regular_command?: string;
     onto_command?: string;
@@ -56,7 +56,6 @@ export interface ManageStackedPRsOutput {
     action_required: boolean;
     reason: string;
     estimated_total_time: string;
-    risk_level: 'low' | 'medium' | 'high';
+    risk_level: "low" | "medium" | "high";
   };
 }
-

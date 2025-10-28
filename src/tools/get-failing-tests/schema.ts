@@ -1,12 +1,12 @@
-import { z } from 'zod';
-import { PRIdentifierStringSchema } from '../../utils/validation.js';
+import { z } from "zod";
+import { PRIdentifierStringSchema } from "../../utils/validation.js";
 
 export const GetFailingTestsSchema = z.object({
   pr: PRIdentifierStringSchema,
   wait: z.boolean().default(false),
   bail_on_first: z.boolean().default(true),
   cursor: z.string().optional(), // MCP cursor-based pagination
-  detailed_logs: z.boolean().default(false) // Enable detailed log parsing from workflow runs
+  detailed_logs: z.boolean().default(false), // Enable detailed log parsing from workflow runs
 });
 
 export type GetFailingTestsInput = z.infer<typeof GetFailingTestsSchema>;
@@ -18,12 +18,12 @@ export interface FailedTest {
   log_url: string;
   file_path?: string;
   line_number?: number;
-  confidence: 'high' | 'medium' | 'low';
+  confidence: "high" | "medium" | "low";
 }
 
 export interface GetFailingTestsOutput {
   pr: string;
-  status: 'pending' | 'running' | 'failed' | 'passed' | 'unknown';
+  status: "pending" | "running" | "failed" | "passed" | "unknown";
   failures: FailedTest[];
   nextCursor?: string; // MCP cursor-based pagination
   instructions: {
@@ -35,4 +35,3 @@ export interface GetFailingTestsOutput {
     retry_after_seconds: number;
   };
 }
-
