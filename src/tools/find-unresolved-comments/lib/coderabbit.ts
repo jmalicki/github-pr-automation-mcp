@@ -166,6 +166,9 @@ function parseCodeRabbitReviewInternal(
 
   // Parse structured CodeRabbit sections
   const sections = parseCodeRabbitSections(body);
+  console.log(
+    `DEBUG: Parsed ${sections.length} sections from CodeRabbit review`,
+  );
 
   for (const section of sections) {
     // Apply filtering based on options
@@ -397,7 +400,7 @@ function parseCodeRabbitIssueCommentInternal(
  * @param body - Raw HTML review body from CodeRabbit
  * @returns Array of parsed sections with items and metadata
  */
-function parseCodeRabbitSections(body: string): Array<{
+export function parseCodeRabbitSections(body: string): Array<{
   type: "nit" | "duplicate" | "additional" | "actionable";
   title: string;
   count: number;
@@ -458,7 +461,7 @@ function parseCodeRabbitSections(body: string): Array<{
       // Parse section headers with emoji indicators
       // Pattern: <summary>🧹 Nitpicks (3)</summary>
       const sectionMatch = nextLine.match(
-        /<summary>\s*(🧹|♻️|♻|📜)\s*([^<]+)\s*\((\d+)\)\s*<\/summary>/u,
+        /<summary>\s*(🧹|♻️|♻|📜|🐛|💡)\s*([^<]+)\s*\((\d+)\)\s*<\/summary>/u,
       );
       if (sectionMatch) {
         const emoji = sectionMatch[1];
@@ -473,6 +476,8 @@ function parseCodeRabbitSections(body: string): Array<{
           type = "duplicate"; // Recycling/duplicates
         else if (emoji.includes("📜"))
           type = "additional"; // Scroll/additional
+        else if (emoji.includes("🐛") || emoji.includes("💡"))
+          type = "actionable"; // Bugs and Suggestions are actionable
         else type = "actionable"; // Fallback
 
         // Create new section and add to results
@@ -691,7 +696,7 @@ function parseCodeRabbitSections(body: string): Array<{
  * @param includeStatusIndicators - Whether to include status indicators
  * @returns Standardized Comment object with CodeRabbit metadata
  */
-function createCodeRabbitComment(
+export function createCodeRabbitComment(
   item: any,
   suggestionType: string,
   review: any,
@@ -891,7 +896,7 @@ function inferCategory(description: string): string {
  * @param reviewBody - The review body text to check
  * @returns true if this review body should be filtered out entirely
  */
-function shouldFilterCodeRabbitReviewBody(reviewBody: string): boolean {
+export function shouldFilterCodeRabbitReviewBody(reviewBody: string): boolean {
   const bodyLower = reviewBody.toLowerCase();
 
   // Check for explicit indicators that this is a main review commit with internal state
@@ -1009,7 +1014,7 @@ function shouldFilterCodeRabbitIssueComment(issueCommentBody: string): boolean {
  * @param author - The author login name
  * @returns true if the author is CodeRabbit AI
  */
-function isCodeRabbitAuthor(author: string): boolean {
+export function isCodeRabbitAuthor(author: string): boolean {
   return (
     author.toLowerCase() === "coderabbitai" ||
     author.toLowerCase().includes("coderabbit")

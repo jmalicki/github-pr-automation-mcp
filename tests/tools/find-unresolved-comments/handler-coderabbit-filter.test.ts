@@ -83,6 +83,11 @@ describe("find-unresolved-comments handler: CodeRabbit review parsing integratio
       // keep defaults for CodeRabbit options
     } as any);
 
+    // Debug: log the result to see what we got
+    console.log("Result:", JSON.stringify(result, null, 2));
+    console.log("Comments length:", result.comments.length);
+    console.log("Unresolved in page:", result.unresolved_in_page);
+
     // Expect that actionable comments parsed from the review body are surfaced
     expect(result.comments.length).toBeGreaterThan(0);
 
