@@ -29,6 +29,8 @@ jobs:
   # Unit and Integration Tests
   test:
     uses: ./.github/workflows/test.yml
+    with:
+      run_integration_tests: true
     secrets:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
