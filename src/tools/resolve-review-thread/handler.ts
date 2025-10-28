@@ -47,8 +47,7 @@ export async function handleResolveReviewThread(
     const resp = await octokit.graphql(threadQuery, {
       commentId: commentNodeId,
     });
-    threadId = (resp as { node?: { pullRequestReviewThread?: { id: string } } })
-      ?.node?.pullRequestReviewThread?.id;
+    threadId = (resp as { node?: { pullRequestReviewThread?: { id: string } } })?.node?.pullRequestReviewThread?.id;
     if (!threadId) {
       throw new Error("Unable to resolve thread_id from comment_id");
     }
