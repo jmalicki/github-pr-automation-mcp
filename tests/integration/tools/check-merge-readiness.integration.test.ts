@@ -113,19 +113,22 @@ describe("check_merge_readiness integration", () => {
       pr: TEST_PR,
     });
 
-    // Should have CI-related checks
-    const ciChecks = result.checks.filter(
+    // Should have CI-related checks (iterate over object entries)
+    const checksArray = Object.entries(result.checks).map(([name, value]) => ({
+      name,
+      value,
+    }));
+    const ciChecks = checksArray.filter(
       (check) =>
         check.name.toLowerCase().includes("ci") ||
         check.name.toLowerCase().includes("test") ||
         check.name.toLowerCase().includes("build"),
     );
-
-    // Should have at least some CI-related information
+    // Should have at least some CI-related information (non-throwing)
     expect(ciChecks.length).toBeGreaterThanOrEqual(0);
 
     // Should have branch protection information
-    const protectionChecks = result.checks.filter(
+    const protectionChecks = checksArray.filter(
       (check) =>
         check.name.toLowerCase().includes("protection") ||
         check.name.toLowerCase().includes("branch") ||
