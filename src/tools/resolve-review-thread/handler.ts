@@ -44,12 +44,10 @@ export async function handleResolveReviewThread(
         }
       }
     `;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-    const resp = (await octokit.graphql(threadQuery, {
+    const resp = await octokit.graphql(threadQuery, {
       commentId: commentNodeId,
-    })) as any;
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-    threadId = resp?.node?.pullRequestReviewThread?.id;
+    });
+    threadId = (resp as { node?: { pullRequestReviewThread?: { id: string } } })?.node?.pullRequestReviewThread?.id;
     if (!threadId) {
       throw new Error("Unable to resolve thread_id from comment_id");
     }

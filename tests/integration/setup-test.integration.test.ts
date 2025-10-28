@@ -7,13 +7,17 @@ describe("Integration Test Setup", () => {
   });
 
   it("should load fixtures when available", async () => {
-    const fixture = await integrationManager.loadFixture("detect-merge-conflicts-basic-pr");
+    const fixture = await integrationManager.loadFixture(
+      "detect-merge-conflicts-basic-pr",
+    );
     expect(fixture).toBeDefined();
     expect(fixture.hasConflicts).toBe(false);
   });
 
   it("should return null for non-existent fixtures", async () => {
-    const fixture = await integrationManager.loadFixture("non-existent-fixture");
+    const fixture = await integrationManager.loadFixture(
+      "non-existent-fixture",
+    );
     expect(fixture).toBeNull();
   });
 });
