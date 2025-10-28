@@ -32,14 +32,14 @@ jobs:
       - name: License compliance check
         run: npm run license-check
         
-      - name: Run tests
-        run: npm run test:coverage
-        
       - name: Run linting
         run: npm run lint
         
       - name: Build package
         run: npm run build
+        
+      - name: Run tests
+        run: npm run test:coverage
         
       - name: Publish to npm
         run: npm publish
