@@ -1,16 +1,17 @@
-import { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods';
-import type { Comment } from '../schema.js';
-import { parseCodeRabbitReview, type CodeRabbitOptions } from './coderabbit.js';
+import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
+import type { Comment } from "../schema.js";
+import { parseCodeRabbitReview, type CodeRabbitOptions } from "./coderabbit.js";
 
 // Type aliases for better readability
-type ReviewList = RestEndpointMethodTypes['pulls']['listReviews']['response']['data'];
+type ReviewList =
+  RestEndpointMethodTypes["pulls"]["listReviews"]["response"]["data"];
 
 /**
  * Parse review bodies for actionable comments from AI review tools.
- * 
+ *
  * This function only parses reviews from specific AI tools (currently CodeRabbit AI only).
  * It checks the review author to determine if it should parse the review body.
- * 
+ *
  * @param reviews - Array of GitHub reviews
  * @param pr - Pull request information
  * @param coderabbitOptions - CodeRabbit-specific options
@@ -21,34 +22,37 @@ export function parseReviewBodiesForActionableComments(
   reviews: ReviewList,
   pr: { owner: string; repo: string; number: number },
   coderabbitOptions?: CodeRabbitOptions,
-  includeStatusIndicators?: boolean
+  includeStatusIndicators?: boolean,
 ): Comment[] {
   const actionableComments: Comment[] = [];
-  
+
   for (const review of reviews) {
-    if (!review.body || review.state === 'PENDING') {
+    if (!review.body || review.state === "PENDING") {
       continue;
     }
-    
-    const author = review.user?.login || 'unknown';
-    const authorAssociation = review.author_association || 'NONE';
-    const isBot = review.user?.type === 'Bot';
-    
+
+    const author = review.user?.login || "unknown";
+    const authorAssociation = review.author_association || "NONE";
+    const isBot = review.user?.type === "Bot";
+
     // ONLY parse CodeRabbit AI review bodies - check author is CodeRabbit
-    if (author.toLowerCase() === 'coderabbitai' || author.toLowerCase().includes('coderabbit')) {
+    if (
+      author.toLowerCase() === "coderabbitai" ||
+      author.toLowerCase().includes("coderabbit")
+    ) {
       const codeRabbitComments = parseCodeRabbitReview(
-        review.body, 
-        review, 
-        pr, 
-        author, 
-        authorAssociation, 
-        isBot, 
-        coderabbitOptions, 
-        includeStatusIndicators
+        review.body,
+        review,
+        pr,
+        author,
+        authorAssociation,
+        isBot,
+        coderabbitOptions,
+        includeStatusIndicators,
       );
       actionableComments.push(...codeRabbitComments);
     }
-    
+
     // Add support for other AI review tools here in the future
     // e.g., GitHub Copilot, SonarQube, etc.
     // Each tool should have its own author check and parser function
