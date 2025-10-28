@@ -59,7 +59,6 @@ jobs:
     if: (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && (inputs.run_integration_tests == true)
     env:
       ROLLUP_FORCE_JS: 1
-      GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
     
     steps:
       - name: Checkout code
@@ -78,10 +77,14 @@ jobs:
         run: npm run build
       
       - name: Run integration tests
-        if: env.GITHUB_TOKEN != ''
+        if: secrets.GH_TOKEN != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npm run test:integration
       
       - name: Run CLI integration tests
-        if: env.GITHUB_TOKEN != ''
+        if: secrets.GH_TOKEN != ''
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: npm run test:cli
 
