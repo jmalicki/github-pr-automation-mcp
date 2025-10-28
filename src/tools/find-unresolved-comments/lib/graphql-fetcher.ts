@@ -1,4 +1,4 @@
-import type { Octokit } from "@octokit/rest";
+import { Octokit } from "@octokit/rest";
 
 /**
  * Fetch GraphQL node IDs and thread resolution status for review comments.
@@ -59,7 +59,7 @@ import type { Octokit } from "@octokit/rest";
  * ```
  */
 export async function fetchReviewCommentNodeIds(
-  octokit: InstanceType<typeof Octokit>,
+  octokit: Octokit,
   pr: { owner: string; repo: string; number: number },
   commentIds: number[],
 ): Promise<{ nodeIdMap: Map<number, string>; resolvedThreadIds: Set<string> }> {
