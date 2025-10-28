@@ -25,7 +25,8 @@ jobs:
   # Unit and Integration Tests
   test:
     uses: ./.github/workflows/test.yml
-    secrets: inherit
+    secrets:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # CodeQL Security Analysis (only on main branch)
   codeql:

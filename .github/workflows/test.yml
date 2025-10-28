@@ -7,6 +7,10 @@ name: Test
 # No direct triggers - only invoked by ci.yml
 on:
   workflow_call:
+    secrets:
+      GITHUB_TOKEN:
+        description: Token to run integration tests against GitHub API
+        required: false
 
 jobs:
   test:
@@ -46,7 +50,7 @@ jobs:
     needs: test
     # Only run integration tests when explicitly requested or on main branch
     # Skip if no proper GitHub token is available
-    if: (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && secrets.GITHUB_TOKEN != ''
+    if: (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && (inputs.run_integration_tests == true || secrets.GITHUB_TOKEN != '')
     env:
       ROLLUP_FORCE_JS: 1
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
