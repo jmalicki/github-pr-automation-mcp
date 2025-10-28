@@ -1,3 +1,4 @@
+// Test setup and global configuration
 import { beforeAll, afterAll } from "vitest";
 import { Octokit } from "@octokit/rest";
 import { GitHubClient } from "../../src/github/client.js";
@@ -53,11 +54,6 @@ export class IntegrationTestManager {
   async loadFixture(scenario: string): Promise<any> {
     console.log(`✓ Loading fixture: ${scenario}`);
 
-    // Check if we're in playback mode
-    if (process.env.RUN_INTEGRATION_TESTS !== "true") {
-      return null;
-    }
-
     try {
       const fixturesDir = path.join(__dirname, "fixtures");
       const fixturePath = path.join(
@@ -83,7 +79,7 @@ export class IntegrationTestManager {
   async saveFixture(scenario: string, data: any): Promise<void> {
     console.log(`✓ Saving fixture: ${scenario}`);
 
-    // Only save fixtures in record mode
+    // Only save fixtures in record mode (when explicitly requested)
     if (process.env.RECORD_INTEGRATION_FIXTURES !== "true") {
       return;
     }
@@ -114,14 +110,6 @@ beforeAll(async () => {
     throw new Error(
       "Integration tests require GITHUB_TOKEN environment variable.\n" +
         "Set it with: export GITHUB_TOKEN=ghp_your_token_here",
-    );
-  }
-
-  if (process.env.RUN_INTEGRATION_TESTS !== "true") {
-    throw new Error(
-      "Integration tests require explicit opt-in.\n" +
-        "Set RUN_INTEGRATION_TESTS=true to run integration tests.\n" +
-        "These tests make real GitHub API calls and are slower.",
     );
   }
 

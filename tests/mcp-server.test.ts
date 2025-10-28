@@ -161,10 +161,12 @@ describe("MCP Server", () => {
     );
 
     // Extract CLI command names using regex
-    const cliCommandMatches = cliContent.match(/\.command\('([^']+)'\)/g);
+    const cliCommandMatches = cliContent.match(
+      /\.command\(['"]([^'"]+)['"]\)/g,
+    );
     const cliCommands =
       cliCommandMatches?.map((match) =>
-        match.replace(/\.command\('([^']+)'\)/, "$1"),
+        match.replace(/\.command\(['"]([^'"]+)['"]\)/, "$1"),
       ) || [];
 
     // Expected CLI commands based on the codebase

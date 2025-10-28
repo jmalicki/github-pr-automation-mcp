@@ -5,7 +5,7 @@ import { promisify } from "util";
 const execAsync = promisify(exec);
 
 /**
- * These tests verify that CLI respects Zod schema defaults.
+ * Integration tests verify that CLI respects Zod schema defaults with real GitHub API calls.
  *
  * CRITICAL: The CLI should NOT hardcode defaults. Instead, it should pass
  * undefined for unspecified options and let Zod schemas apply defaults.
@@ -17,17 +17,9 @@ const execAsync = promisify(exec);
  *
  * Requirements linked: Phase 3 CLI Integration acceptance criteria
  */
-describe("CLI: Schema Default Behavior", () => {
-  const hasToken = !!process.env.GITHUB_TOKEN;
-  const skipMessage = "Skipping CLI test - GITHUB_TOKEN not set";
-
+describe("CLI Integration: Schema Default Behavior", () => {
   describe("get-failing-tests defaults", () => {
     it("should use schema defaults when options not specified", async () => {
-      if (!hasToken) {
-        console.log(skipMessage);
-        return;
-      }
-
       try {
         // Run without specifying optional parameters
         const { stdout } = await execAsync(
@@ -53,11 +45,6 @@ describe("CLI: Schema Default Behavior", () => {
     }, 15000);
 
     it("should support cursor-based continuation", async () => {
-      if (!hasToken) {
-        console.log(skipMessage);
-        return;
-      }
-
       try {
         // Get first page
         const { stdout: page1Stdout } = await execAsync(
@@ -85,11 +72,6 @@ describe("CLI: Schema Default Behavior", () => {
 
   describe("find-unresolved-comments defaults", () => {
     it("should include bot comments by default (schema default: true)", async () => {
-      if (!hasToken) {
-        console.log(skipMessage);
-        return;
-      }
-
       try {
         // Run without --include-bots flag
         const { stdout } = await execAsync(
@@ -140,11 +122,6 @@ describe("CLI: Schema Default Behavior", () => {
     });
 
     it("should use schema default for sort (chronological)", async () => {
-      if (!hasToken) {
-        console.log(skipMessage);
-        return;
-      }
-
       try {
         // Run without --sort flag
         const { stdout } = await execAsync(
@@ -179,11 +156,6 @@ describe("CLI: Schema Default Behavior", () => {
 
   describe("manage-stacked-prs defaults", () => {
     it("should use cursor-based pagination", async () => {
-      if (!hasToken) {
-        console.log(skipMessage);
-        return;
-      }
-
       try {
         // Run without cursor
         const { stdout } = await execAsync(

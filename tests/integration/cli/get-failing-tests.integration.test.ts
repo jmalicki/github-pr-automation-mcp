@@ -4,13 +4,9 @@ import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
-// CLI tests verify the command-line interface works correctly
-// These test argument parsing, output formatting, and error handling
-describe("CLI: get-failing-tests", () => {
-  // Skip if GITHUB_TOKEN not set (CLI requires it)
-  const hasToken = !!process.env.GITHUB_TOKEN;
-  const skipMessage = "Skipping CLI test - GITHUB_TOKEN not set";
-
+// CLI Integration tests verify the command-line interface works correctly with real GitHub API calls
+// These test argument parsing, output formatting, error handling, and API integration
+describe("CLI Integration: get-failing-tests", () => {
   it("should show help when no arguments provided", async () => {
     const { stdout } = await execAsync(
       "node dist/cli.js get-failing-tests --help",
@@ -31,11 +27,6 @@ describe("CLI: get-failing-tests", () => {
   });
 
   it("should accept --pr in multiple formats", async () => {
-    if (!hasToken) {
-      console.log(skipMessage);
-      return;
-    }
-
     try {
       // Test owner/repo#123 format
       const { stdout: json1 } = await execAsync(
@@ -51,11 +42,6 @@ describe("CLI: get-failing-tests", () => {
   }, 15000);
 
   it("should output JSON when --json flag provided", async () => {
-    if (!hasToken) {
-      console.log(skipMessage);
-      return;
-    }
-
     try {
       const { stdout } = await execAsync(
         'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js get-failing-tests --pr "jmalicki/resolve-pr-mcp#2" --json',
@@ -76,11 +62,6 @@ describe("CLI: get-failing-tests", () => {
   }, 15000);
 
   it("should output human-readable format by default", async () => {
-    if (!hasToken) {
-      console.log(skipMessage);
-      return;
-    }
-
     try {
       const { stdout } = await execAsync(
         'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js get-failing-tests --pr "jmalicki/resolve-pr-mcp#2"',
@@ -97,11 +78,6 @@ describe("CLI: get-failing-tests", () => {
   }, 15000);
 
   it("should handle cursor-based pagination", async () => {
-    if (!hasToken) {
-      console.log(skipMessage);
-      return;
-    }
-
     try {
       // Get first page
       const { stdout } = await execAsync(
@@ -124,11 +100,6 @@ describe("CLI: get-failing-tests", () => {
   }, 15000);
 
   it("should handle invalid PR format", async () => {
-    if (!hasToken) {
-      console.log(skipMessage);
-      return;
-    }
-
     try {
       await execAsync(
         'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js get-failing-tests --pr "invalid" --json',
@@ -141,11 +112,6 @@ describe("CLI: get-failing-tests", () => {
   }, 10000);
 
   it("should exit with error code when GitHub API fails", async () => {
-    if (!hasToken) {
-      console.log(skipMessage);
-      return;
-    }
-
     try {
       await execAsync(
         'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js get-failing-tests --pr "nonexistent/repo#99999" --json',

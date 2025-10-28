@@ -1,0 +1,5 @@
+{
+  "conflicts": [],
+  "hasConflicts": false,
+  "guidance": "No merge conflicts detected. To resolve conflicts if they occur: 1) Pull latest changes from target branch, 2) Resolve conflicts manually, 3) Test changes, 4) Commit resolution."
+}

@@ -4,10 +4,9 @@ import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
-describe("CLI: manage-stacked-prs", () => {
-  const hasToken = !!process.env.GITHUB_TOKEN;
-  const skipMessage = "Skipping CLI test - GITHUB_TOKEN not set";
-
+// CLI Integration tests verify the command-line interface works correctly with real GitHub API calls
+// These test argument parsing, output formatting, error handling, and API integration
+describe("CLI Integration: manage-stacked-prs", () => {
   it("should show help", async () => {
     const { stdout } = await execAsync(
       "node dist/cli.js manage-stacked-prs --help",
@@ -29,11 +28,6 @@ describe("CLI: manage-stacked-prs", () => {
   });
 
   it("should output JSON format", async () => {
-    if (!hasToken) {
-      console.log(skipMessage);
-      return;
-    }
-
     try {
       const { stdout } = await execAsync(
         'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js manage-stacked-prs --base-pr "jmalicki/resolve-pr-mcp#2" --dependent-pr "jmalicki/resolve-pr-mcp#3" --json',
@@ -52,11 +46,6 @@ describe("CLI: manage-stacked-prs", () => {
   }, 15000);
 
   it("should output human-readable format", async () => {
-    if (!hasToken) {
-      console.log(skipMessage);
-      return;
-    }
-
     try {
       const { stdout } = await execAsync(
         'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js manage-stacked-prs --base-pr "jmalicki/resolve-pr-mcp#2" --dependent-pr "jmalicki/resolve-pr-mcp#3"',
