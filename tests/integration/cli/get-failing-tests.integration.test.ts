@@ -7,7 +7,6 @@ const execAsync = promisify(exec);
 // CLI Integration tests verify the command-line interface works correctly with real GitHub API calls
 // These test argument parsing, output formatting, error handling, and API integration
 describe("CLI Integration: get-failing-tests", () => {
-
   it("should show help when no arguments provided", async () => {
     const { stdout } = await execAsync(
       "node dist/cli.js get-failing-tests --help",

@@ -18,7 +18,6 @@ const execAsync = promisify(exec);
  * Requirements linked: Phase 3 CLI Integration acceptance criteria
  */
 describe("CLI Integration: Schema Default Behavior", () => {
-
   describe("get-failing-tests defaults", () => {
     it("should use schema defaults when options not specified", async () => {
       try {
