@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { mapReviewComments, mapIssueComments } from '../../../src/tools/find-unresolved-comments/lib/comment-mapper.js';
-import type { Comment } from '../../../src/tools/find-unresolved-comments/schema.js';
+import { mapReviewComments, mapIssueComments } from '../../../../src/tools/find-unresolved-comments/lib/comment-mapper.js';
+import type { Comment } from '../../../../src/tools/find-unresolved-comments/schema.js';
 
 /**
  * Unit tests for comment-mapper.ts
@@ -112,11 +112,11 @@ describe('comment-mapper', () => {
         author: 'unknown',
         author_association: 'NONE',
         is_bot: false,
-        file_path: undefined,
-        line_number: undefined,
-        body: '',
-        reactions: undefined
+        body: ''
       });
+      // GitHub API returns null for missing optional fields, not undefined
+      expect([null, undefined]).toContain(result[0].file_path);
+      expect([null, undefined]).toContain(result[0].line_number);
     });
 
     it('should handle reply comments', () => {
