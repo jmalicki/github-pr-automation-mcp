@@ -1,12 +1,13 @@
-import type { RestEndpointMethodTypes } from '@octokit/plugin-rest-endpoint-methods';
-import type { Comment } from '../schema.js';
-import { generateActionCommands } from '../command-generator.js';
-import { calculateStatusIndicators } from './status-indicators.js';
+import type { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
+import type { Comment } from "../schema.js";
+import { generateActionCommands } from "../command-generator.js";
+import { calculateStatusIndicators } from "./status-indicators.js";
 
 // Safe synthetic IDs for generated "review" comments (negative, monotonic across module)
 let __tempReviewCommentId = -1;
 
-type Review = RestEndpointMethodTypes['pulls']['listReviews']['response']['data'][number];
+type Review =
+  RestEndpointMethodTypes["pulls"]["listReviews"]["response"]["data"][number];
 
 export interface CodeRabbitOptions {
   include_nits?: boolean;
@@ -20,13 +21,13 @@ export interface CodeRabbitOptions {
 
 /**
  * Parse CodeRabbit AI review body for actionable comments.
- * 
+ *
  * This module handles all CodeRabbit-specific parsing logic:
  * - Parsing structured sections (nits, duplicates, additional, actionable)
  * - Extracting code suggestions from diff blocks
  * - Creating comments with CodeRabbit metadata
  * - Applying CodeRabbit-specific filtering and grouping
- * 
+ *
  * @param body - The review body text from CodeRabbit
  * @param review - The full review object from GitHub API
  * @param pr - Pull request information
@@ -45,36 +46,39 @@ export function parseCodeRabbitReview(
   authorAssociation: string,
   isBot: boolean,
   options?: CodeRabbitOptions,
-  includeStatusIndicators?: boolean
+  includeStatusIndicators?: boolean,
 ): Comment[] {
   const comments: Comment[] = [];
-  
+
   // Parse structured CodeRabbit sections
   const sections = parseCodeRabbitSections(body);
-  
+
   for (const section of sections) {
     // Apply filtering based on options
     if (options) {
-      if (options.suggestion_types && !options.suggestion_types.includes(section.type)) {
+      if (
+        options.suggestion_types &&
+        !options.suggestion_types.includes(section.type)
+      ) {
         continue;
       }
-      
+
       switch (section.type) {
-        case 'nit':
+        case "nit":
           if (options.include_nits === false) continue;
           break;
-        case 'duplicate':
+        case "duplicate":
           if (options.include_duplicates === false) continue;
           break;
-        case 'additional':
+        case "additional":
           if (options.include_additional === false) continue;
           break;
-        case 'actionable':
+        case "actionable":
           // Always include actionable items
           break;
       }
     }
-    
+
     // Parse individual items in this section
     for (const item of section.items) {
       const comment = createCodeRabbitComment(
@@ -86,23 +90,23 @@ export function parseCodeRabbitReview(
         authorAssociation,
         isBot,
         options,
-        includeStatusIndicators
+        includeStatusIndicators,
       );
       comments.push(comment);
     }
   }
-  
+
   // Apply final filtering based on options
   if (options) {
     return applyCodeRabbitFiltering(comments, options);
   }
-  
+
   return comments;
 }
 
 /**
  * Parse CodeRabbit structured sections from review body.
- * 
+ *
  * CodeRabbit reviews have sections like:
  * - 🧹 Nitpicks (minor style issues)
  * - ♻️ Duplicate code
@@ -110,7 +114,7 @@ export function parseCodeRabbitReview(
  * - Actionable items (must-fix issues)
  */
 function parseCodeRabbitSections(body: string): Array<{
-  type: 'nit' | 'duplicate' | 'additional' | 'actionable';
+  type: "nit" | "duplicate" | "additional" | "actionable";
   title: string;
   count: number;
   content: string;
@@ -124,11 +128,11 @@ function parseCodeRabbitSections(body: string): Array<{
       new_code: string;
       language: string;
     };
-    severity: 'low' | 'medium' | 'high';
+    severity: "low" | "medium" | "high";
   }>;
 }> {
   const sections: Array<{
-    type: 'nit' | 'duplicate' | 'additional' | 'actionable';
+    type: "nit" | "duplicate" | "additional" | "actionable";
     title: string;
     count: number;
     content: string;
@@ -142,138 +146,164 @@ function parseCodeRabbitSections(body: string): Array<{
         new_code: string;
         language: string;
       };
-      severity: 'low' | 'medium' | 'high';
+      severity: "low" | "medium" | "high";
     }>;
   }> = [];
-  
+
   /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
-  const lines = body.split('\n');
+  const lines = body.split("\n");
   let currentSection: any = null;
   let currentItem: any = null;
-  let currentFile = '';
-  
+  let currentFile = "";
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    
+
     // Detect section headers - handle multi-line format
-    if (line.includes('<details>') && i + 1 < lines.length) {
+    if (line.includes("<details>") && i + 1 < lines.length) {
       const nextLine = lines[i + 1];
-      const sectionMatch = nextLine.match(/<summary>\s*(🧹|♻️|♻|📜)\s*([^<]+)\s*\((\d+)\)\s*<\/summary>/u);
+      const sectionMatch = nextLine.match(
+        /<summary>\s*(🧹|♻️|♻|📜)\s*([^<]+)\s*\((\d+)\)\s*<\/summary>/u,
+      );
       if (sectionMatch) {
         const emoji = sectionMatch[1];
         const title = sectionMatch[2].trim();
         const count = parseInt(sectionMatch[3]);
-        
-        let type: 'nit' | 'duplicate' | 'additional' | 'actionable';
-        if (emoji.includes('🧹')) type = 'nit';
-        else if (emoji.includes('♻')) type = 'duplicate';
-        else if (emoji.includes('📜')) type = 'additional';
-        else type = 'actionable';
-        
+
+        let type: "nit" | "duplicate" | "additional" | "actionable";
+        if (emoji.includes("🧹")) type = "nit";
+        else if (emoji.includes("♻")) type = "duplicate";
+        else if (emoji.includes("📜")) type = "additional";
+        else type = "actionable";
+
         currentSection = {
           type,
           title,
           count,
-          content: '',
-          items: []
+          content: "",
+          items: [],
         };
         sections.push(currentSection);
         i++; // Skip the summary line
         continue;
       }
-      
+
       // Handle actionable comments without emoji
-      const actionableMatch = nextLine.match(/<summary>\s*([^<]+)\s*:\s*(\d+)\s*<\/summary>/u);
-      if (actionableMatch && nextLine.toLowerCase().includes('actionable')) {
+      const actionableMatch = nextLine.match(
+        /<summary>\s*([^<]+)\s*:\s*(\d+)\s*<\/summary>/u,
+      );
+      if (actionableMatch && nextLine.toLowerCase().includes("actionable")) {
         const title = actionableMatch[1].trim();
         const count = parseInt(actionableMatch[2]);
-        
+
         currentSection = {
-          type: 'actionable',
+          type: "actionable",
           title,
           count,
-          content: '',
-          items: []
+          content: "",
+          items: [],
         };
         sections.push(currentSection);
         i++; // Skip the summary line
         continue;
       }
     }
-    
+
     // Detect file context within sections
-    const fileMatch = line.match(/<summary>\s*`?([^<`]+?)`?\s*\((\d+)\)\s*<\/summary>/i);
+    const fileMatch = line.match(
+      /<summary>\s*`?([^<`]+?)`?\s*\((\d+)\)\s*<\/summary>/i,
+    );
     if (fileMatch && currentSection) {
       currentFile = fileMatch[1];
       continue;
     }
-    
+
     // Detect line range and suggestion
-    const lineRangeMatch = line.match(/^(?:`|\\`)?(\d+(?:-\d+)?)(?:`|\\`)?:\s*\*\*(.*?)\*\*/);
+    const lineRangeMatch = line.match(
+      /^(?:`|\\`)?(\d+(?:-\d+)?)(?:`|\\`)?:\s*\*\*(.*?)\*\*/,
+    );
     if (lineRangeMatch && currentSection) {
       const lineRange = lineRangeMatch[1];
       const title = lineRangeMatch[2];
-      
+
       // Extract description and code suggestion
       let description = title;
       let codeSuggestion: any = null;
       let inCodeBlock = false;
-      let codeBlockContent = '';
-      
+      let codeBlockContent = "";
+
       for (let j = i + 1; j < Math.min(i + 20, lines.length); j++) {
         const nextLine = lines[j];
-        
-        if (nextLine.startsWith('```diff') || nextLine.startsWith('\\`\\`\\`diff')) {
+
+        if (
+          nextLine.startsWith("```diff") ||
+          nextLine.startsWith("\\`\\`\\`diff")
+        ) {
           inCodeBlock = true;
-          codeBlockContent = nextLine + '\n';
-          description += '\n' + nextLine;
+          codeBlockContent = nextLine + "\n";
+          description += "\n" + nextLine;
         } else if (inCodeBlock) {
-          codeBlockContent += nextLine + '\n';
-          description += '\n' + nextLine;
-          if (nextLine.startsWith('```') || nextLine.startsWith('\\`\\`\\`')) {
+          codeBlockContent += nextLine + "\n";
+          description += "\n" + nextLine;
+          if (nextLine.startsWith("```") || nextLine.startsWith("\\`\\`\\`")) {
             inCodeBlock = false;
             // Parse code suggestion from diff
-            const diffMatch = codeBlockContent.match(/```diff\n([\s\S]*?)\n```/) || codeBlockContent.match(/\\`\\`\\`diff\n([\s\S]*?)\n\\`\\`\\`/);
+            const diffMatch =
+              codeBlockContent.match(/```diff\n([\s\S]*?)\n```/) ||
+              codeBlockContent.match(/\\`\\`\\`diff\n([\s\S]*?)\n\\`\\`\\`/);
             if (diffMatch) {
               const diffContent = diffMatch[1];
               const oldLines = diffContent
-                .split('\n')
-                .filter(l => l.startsWith('-') && !l.startsWith('---'))
-                .map(l => l.substring(1));
+                .split("\n")
+                .filter((l) => l.startsWith("-") && !l.startsWith("---"))
+                .map((l) => l.substring(1));
               const newLines = diffContent
-                .split('\n')
-                .filter(l => l.startsWith('+') && !l.startsWith('+++'))
-                .map(l => l.substring(1));
+                .split("\n")
+                .filter((l) => l.startsWith("+") && !l.startsWith("+++"))
+                .map((l) => l.substring(1));
               codeSuggestion = {
-                old_code: oldLines.join('\n'),
-                new_code: newLines.join('\n'),
-                language: 'typescript'
+                old_code: oldLines.join("\n"),
+                new_code: newLines.join("\n"),
+                language: "typescript",
               };
             }
             break;
           }
-        } else if (nextLine.trim() && !nextLine.startsWith('---') && !nextLine.startsWith('</blockquote>') && !nextLine.startsWith('<summary>')) {
-          description += '\n' + nextLine;
-        } else if (nextLine.startsWith('---') || nextLine.startsWith('</blockquote>')) {
+        } else if (
+          nextLine.trim() &&
+          !nextLine.startsWith("---") &&
+          !nextLine.startsWith("</blockquote>") &&
+          !nextLine.startsWith("<summary>")
+        ) {
+          description += "\n" + nextLine;
+        } else if (
+          nextLine.startsWith("---") ||
+          nextLine.startsWith("</blockquote>")
+        ) {
           break;
         }
       }
-      
+
       currentItem = {
-        file_path: currentFile || 'unknown-file',
+        file_path: currentFile || "unknown-file",
         line_range: lineRange,
         title,
         description,
         code_suggestion: codeSuggestion,
-        severity: currentSection.type === 'nit' ? 'low' : currentSection.type === 'actionable' ? 'high' : 'medium'
+        severity:
+          currentSection.type === "nit"
+            ? "low"
+            : currentSection.type === "actionable"
+              ? "high"
+              : "medium",
       };
-      
+
       if (currentSection) {
         currentSection.items.push(currentItem);
       }
     }
   }
-  
+
   return sections;
   /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
 }
@@ -291,26 +321,27 @@ function createCodeRabbitComment(
   authorAssociation: string,
   isBot: boolean,
   options?: any,
-  includeStatusIndicators?: boolean
+  includeStatusIndicators?: boolean,
 ): Comment {
   // Defensive parsing for line ranges; avoid NaN and validate bounds
-  const [startStr, endStr] = String(item.line_range || '').split('-');
+  const [startStr, endStr] = String(item.line_range || "").split("-");
   const parsedStart = Number.parseInt(startStr, 10);
   const parsedEnd = endStr ? Number.parseInt(endStr, 10) : parsedStart;
-  const s = Number.isFinite(parsedStart) && parsedStart > 0 ? parsedStart : undefined;
+  const s =
+    Number.isFinite(parsedStart) && parsedStart > 0 ? parsedStart : undefined;
   const e = Number.isFinite(parsedEnd) && parsedEnd > 0 ? parsedEnd : s;
   const lineStart = s && e && e >= s ? s : undefined;
   const lineEnd = s && e && e >= s ? e : undefined;
-  
+
   // Generate agent prompt if requested
   let agentPrompt: string | undefined;
   if (options?.extract_agent_prompts !== false) {
     agentPrompt = generateAgentPrompt(item, suggestionType);
   }
-  
+
   const comment: Comment = {
     id: __tempReviewCommentId--,
-    type: 'review',
+    type: "review",
     author,
     author_association: authorAssociation,
     is_bot: isBot,
@@ -323,34 +354,41 @@ function createCodeRabbitComment(
     action_commands: generateActionCommands(
       pr,
       review.id,
-      'review',
+      "review",
       item.description,
-      item.file_path
+      item.file_path,
     ),
     coderabbit_metadata: {
-      suggestion_type: suggestionType as 'nit' | 'duplicate' | 'additional' | 'actionable',
+      suggestion_type: suggestionType as
+        | "nit"
+        | "duplicate"
+        | "additional"
+        | "actionable",
       severity: item.severity,
       category: inferCategory(item.description),
       file_context: {
         path: item.file_path,
         line_start: lineStart,
-        line_end: lineEnd
+        line_end: lineEnd,
       },
       code_suggestion: item.code_suggestion,
       agent_prompt: agentPrompt,
       implementation_guidance: {
         priority: item.severity,
-        effort_estimate: suggestionType === 'nit' ? 'Quick fix (1-2 minutes)' : 'Medium effort (2-5 minutes)',
-        rationale: item.description
-      }
-    }
+        effort_estimate:
+          suggestionType === "nit"
+            ? "Quick fix (1-2 minutes)"
+            : "Medium effort (2-5 minutes)",
+        rationale: item.description,
+      },
+    },
   };
-  
+
   // Add status indicators if enabled
   if (includeStatusIndicators !== false) {
     comment.status_indicators = calculateStatusIndicators(comment);
   }
-  
+
   return comment;
   /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
 }
@@ -358,9 +396,17 @@ function createCodeRabbitComment(
 /**
  * Generate agent-friendly prompt from CodeRabbit suggestion
  */
-function generateAgentPrompt(item: { file_path: string; line_range: string; code_suggestion?: { old_code: string; new_code: string }; description: string }, suggestionType: string): string {
+function generateAgentPrompt(
+  item: {
+    file_path: string;
+    line_range: string;
+    code_suggestion?: { old_code: string; new_code: string };
+    description: string;
+  },
+  suggestionType: string,
+): string {
   const basePrompt = `CodeRabbit ${suggestionType} suggestion for ${item.file_path}:${item.line_range}`;
-  
+
   if (item.code_suggestion) {
     return `${basePrompt}
     
@@ -375,14 +421,14 @@ ${item.code_suggestion.new_code}
 \`\`\`
 
 Context: ${item.description}
-Priority: ${suggestionType === 'nit' ? 'Low' : 'Medium'}
+Priority: ${suggestionType === "nit" ? "Low" : "Medium"}
 Effort: Quick fix (1-2 minutes)`;
   }
-  
+
   return `${basePrompt}
   
 Description: ${item.description}
-Priority: ${suggestionType === 'nit' ? 'Low' : 'Medium'}`;
+Priority: ${suggestionType === "nit" ? "Low" : "Medium"}`;
 }
 
 /**
@@ -390,11 +436,27 @@ Priority: ${suggestionType === 'nit' ? 'Low' : 'Medium'}`;
  */
 function inferCategory(description: string): string {
   const lowerDesc = description.toLowerCase();
-  if (lowerDesc.includes('security') || lowerDesc.includes('vulnerability')) return 'security';
-  if (lowerDesc.includes('performance') || lowerDesc.includes('slow') || lowerDesc.includes('optimize')) return 'performance';
-  if (lowerDesc.includes('style') || lowerDesc.includes('format') || lowerDesc.includes('lint')) return 'style';
-  if (lowerDesc.includes('error') || lowerDesc.includes('exception') || lowerDesc.includes('bug')) return 'bug';
-  return 'general';
+  if (lowerDesc.includes("security") || lowerDesc.includes("vulnerability"))
+    return "security";
+  if (
+    lowerDesc.includes("performance") ||
+    lowerDesc.includes("slow") ||
+    lowerDesc.includes("optimize")
+  )
+    return "performance";
+  if (
+    lowerDesc.includes("style") ||
+    lowerDesc.includes("format") ||
+    lowerDesc.includes("lint")
+  )
+    return "style";
+  if (
+    lowerDesc.includes("error") ||
+    lowerDesc.includes("exception") ||
+    lowerDesc.includes("bug")
+  )
+    return "bug";
+  return "general";
 }
 
 /**
@@ -402,67 +464,78 @@ function inferCategory(description: string): string {
  */
 function applyCodeRabbitFiltering(
   comments: Comment[],
-  options: CodeRabbitOptions
+  options: CodeRabbitOptions,
 ): Comment[] {
   let filtered = comments;
-  
+
   // Filter CodeRabbit comments based on options
-  filtered = filtered.filter(comment => {
+  filtered = filtered.filter((comment) => {
     if (!comment.coderabbit_metadata) return true; // Keep non-CodeRabbit comments
-    
+
     const { suggestion_type } = comment.coderabbit_metadata;
-    
+
     // Apply type-based filtering
-    if (options.suggestion_types && !options.suggestion_types.includes(suggestion_type)) {
+    if (
+      options.suggestion_types &&
+      !options.suggestion_types.includes(suggestion_type)
+    ) {
       return false;
     }
-    
+
     // Apply boolean filters
     switch (suggestion_type) {
-      case 'nit':
+      case "nit":
         return options.include_nits !== false;
-      case 'duplicate':
+      case "duplicate":
         return options.include_duplicates !== false;
-      case 'additional':
+      case "additional":
         return options.include_additional !== false;
-      case 'actionable':
+      case "actionable":
         return true; // Always include actionable items
     }
-    
+
     return true;
   });
-  
+
   // Apply prioritization if requested
   if (options.prioritize_actionable) {
     filtered.sort((a, b) => {
-      const aIsActionable = a.coderabbit_metadata?.suggestion_type === 'actionable';
-      const bIsActionable = b.coderabbit_metadata?.suggestion_type === 'actionable';
-      
+      const aIsActionable =
+        a.coderabbit_metadata?.suggestion_type === "actionable";
+      const bIsActionable =
+        b.coderabbit_metadata?.suggestion_type === "actionable";
+
       if (aIsActionable && !bIsActionable) return -1;
       if (!aIsActionable && bIsActionable) return 1;
       return 0;
     });
   }
-  
+
   // Apply grouping if requested
   if (options.group_by_type) {
     filtered.sort((a, b) => {
-      const aType = a.coderabbit_metadata?.suggestion_type || 'other';
-      const bType = b.coderabbit_metadata?.suggestion_type || 'other';
-      
+      const aType = a.coderabbit_metadata?.suggestion_type || "other";
+      const bType = b.coderabbit_metadata?.suggestion_type || "other";
+
       // Group by type, with actionable first
-      const typeOrder: Record<string, number> = { actionable: 0, nit: 1, duplicate: 2, additional: 3, other: 4 };
+      const typeOrder: Record<string, number> = {
+        actionable: 0,
+        nit: 1,
+        duplicate: 2,
+        additional: 3,
+        other: 4,
+      };
       const aOrder = typeOrder[aType] ?? 4;
       const bOrder = typeOrder[bType] ?? 4;
-      
+
       if (aOrder !== bOrder) return aOrder - bOrder;
-      
+
       // Within same type, sort by file path
-      const aFile = a.file_path || '';
-      const bFile = b.file_path || '';
+      const aFile = a.file_path || "";
+      const bFile = b.file_path || "";
       return aFile.localeCompare(bFile);
     });
   }
-  
+
   return filtered;
 }
