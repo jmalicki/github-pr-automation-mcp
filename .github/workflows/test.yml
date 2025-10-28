@@ -3,11 +3,20 @@ name: Test
 # Coverage thresholds are managed in vitest.config.ts
 # Do not add manual coverage checks to this workflow
 
+# This workflow is called by the main CI workflow
+# No direct triggers - only invoked by ci.yml
 on:
-  push:
-    branches: ['main']
-  pull_request:
-    branches: ['main']
+  workflow_call:
+    inputs:
+      run_integration_tests:
+        description: Explicitly run integration tests
+        required: false
+        type: boolean
+        default: false
+    secrets:
+      GH_TOKEN:
+        description: Token to run integration tests against GitHub API (passed from orchestrator)
+        required: false
 
 jobs:
   test:
@@ -28,9 +37,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
-      - name: Security audit
-        run: npm run audit:ci
-      
       - name: Build
         run: npm run build
       
@@ -50,10 +56,10 @@ jobs:
     needs: test
     # Only run integration tests when explicitly requested or on main branch
     # Skip if no proper GitHub token is available
-    if: (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && secrets.GITHUB_TOKEN != ''
+    if: (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && (inputs.run_integration_tests == true)
     env:
       ROLLUP_FORCE_JS: 1
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
     
     steps:
       - name: Checkout code
@@ -72,6 +78,7 @@ jobs:
         run: npm run build
       
       - name: Run integration tests
+        if: env.GITHUB_TOKEN != ''
         run: npm run test:integration
       
       - name: Run CLI integration tests

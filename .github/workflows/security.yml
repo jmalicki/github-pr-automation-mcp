@@ -1,10 +1,9 @@
 name: Security Audit
 
+# This workflow is called by the main CI workflow
+# Also runs on schedule for regular security checks
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_call:
   schedule:
     # Run comprehensive security audit weekly on Sundays at 2 AM UTC
     - cron: '0 2 * * 0'

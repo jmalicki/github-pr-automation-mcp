@@ -1,10 +1,9 @@
 name: Code Quality
 
+# This workflow is called by the main CI workflow
+# No direct triggers - only invoked by ci.yml
 on:
-  push:
-    branches: ['main', 'develop']
-  pull_request:
-    branches: ['main', 'develop']
+  workflow_call:
 
 jobs:
   quality:
@@ -22,6 +21,9 @@ jobs:
       
       - name: Install dependencies
         run: npm ci
+      
+      - name: Validate version consistency
+        run: npm test -- tests/utils/version-validation.test.ts
       
       - name: Run ESLint
         run: npm run lint

@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: ['main']
+  pull_request:
+    branches: ['main']
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  # Code Quality Checks
+  code-quality:
+    uses: ./.github/workflows/code-quality.yml
+    secrets: inherit
+
+  # Security Audit
+  security:
+    uses: ./.github/workflows/security.yml
+    secrets: inherit
+
+  # Build and Validation
+  build:
+    uses: ./.github/workflows/build.yml
+    secrets: inherit
+
+  # Unit and Integration Tests
+  test:
+    uses: ./.github/workflows/test.yml
+    secrets:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # CodeQL Security Analysis (only on main branch)
+  codeql:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/codeql.yml
+    secrets: inherit

@@ -1,10 +1,9 @@
 name: Build
 
+# This workflow is called by the main CI workflow
+# No direct triggers - only invoked by ci.yml
 on:
-  push:
-    branches: ['main']
-  pull_request:
-    branches: ['main']
+  workflow_call:
 
 jobs:
   build:
@@ -24,12 +23,6 @@ jobs:
       
       - name: Install dependencies
         run: npm ci
-      
-      - name: Validate version consistency
-        run: npm test -- tests/utils/version-validation.test.ts
-      
-      - name: Security audit
-        run: npm run audit:ci
       
       - name: Build project
         run: npm run build
