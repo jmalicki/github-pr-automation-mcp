@@ -21,7 +21,7 @@ describe("find_unresolved_comments integration", () => {
     });
 
     expect(result.pr).toContain("#");
-    expect(result.total_unresolved).toBeGreaterThanOrEqual(0);
+    expect(result.unresolved_in_page).toBeGreaterThanOrEqual(0);
     expect(result.summary).toBeDefined();
     expect(result.nextCursor).toBeDefined();
   }, 10000);
@@ -44,8 +44,8 @@ describe("find_unresolved_comments integration", () => {
     });
 
     // Without bots should have fewer or equal comments
-    expect(withoutBots.total_unresolved).toBeLessThanOrEqual(
-      withBots.total_unresolved,
+    expect(withoutBots.unresolved_in_page).toBeLessThanOrEqual(
+      withBots.unresolved_in_page,
     );
   }, 15000);
 });

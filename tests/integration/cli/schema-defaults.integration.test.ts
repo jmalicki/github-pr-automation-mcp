@@ -18,6 +18,8 @@ const execAsync = promisify(exec);
  * Requirements linked: Phase 3 CLI Integration acceptance criteria
  */
 describe("CLI Integration: Schema Default Behavior", () => {
+  const hasToken = Boolean(process.env.GITHUB_TOKEN);
+  const skipMessage = "Skipping test due to missing GITHUB_TOKEN";
   describe("get-failing-tests defaults", () => {
     it("should use schema defaults when options not specified", async () => {
       try {

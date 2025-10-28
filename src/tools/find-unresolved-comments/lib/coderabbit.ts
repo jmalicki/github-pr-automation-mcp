@@ -166,6 +166,9 @@ function parseCodeRabbitReviewInternal(
 
   // Parse structured CodeRabbit sections
   const sections = parseCodeRabbitSections(body);
+  console.log(
+    `DEBUG: Parsed ${sections.length} sections from CodeRabbit review`,
+  );
 
   for (const section of sections) {
     // Apply filtering based on options
@@ -212,9 +215,16 @@ function parseCodeRabbitReviewInternal(
 
   // Apply final filtering based on options
   if (options) {
-    return applyCodeRabbitFiltering(comments, options);
+    const out = applyCodeRabbitFiltering(comments, options);
+    console.log(
+      `DEBUG: CodeRabbit comments after final filtering: ${out.length}`,
+    );
+    return out;
   }
 
+  console.log(
+    `DEBUG: CodeRabbit comments before filtering: ${comments.length}`,
+  );
   return comments;
 }
 
@@ -397,7 +407,7 @@ function parseCodeRabbitIssueCommentInternal(
  * @param body - Raw HTML review body from CodeRabbit
  * @returns Array of parsed sections with items and metadata
  */
-function parseCodeRabbitSections(body: string): Array<{
+export function parseCodeRabbitSections(body: string): Array<{
   type: "nit" | "duplicate" | "additional" | "actionable";
   title: string;
   count: number;
@@ -410,7 +420,7 @@ function parseCodeRabbitSections(body: string): Array<{
     code_suggestion?: {
       old_code: string;
       new_code: string;
-      language: string;
+      language?: string;
     };
     severity: "low" | "medium" | "high";
   }>;
@@ -428,7 +438,7 @@ function parseCodeRabbitSections(body: string): Array<{
       code_suggestion?: {
         old_code: string;
         new_code: string;
-        language: string;
+        language?: string;
       };
       severity: "low" | "medium" | "high";
     }>;
@@ -450,6 +460,39 @@ function parseCodeRabbitSections(body: string): Array<{
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
 
+    // Fallback: markdown-style section headers for malformed content
+    // Examples: "### 🧹 Nitpicks (3)", "### 🐛 Bugs (2)", "### 💡 Suggestions (2)"
+    const mdHeader =
+      line.match(/^#+\s*(🧹|♻️|♻|📜|🐛|💡)\s*([^<]+)\s*\((\d+)\)\s*$/u) ||
+      line.match(
+        /^#+\s*(Bugs|Suggestions|Nitpicks|Duplicates|Additional)\b.*$/i,
+      );
+    if (mdHeader) {
+      let type: "nit" | "duplicate" | "additional" | "actionable";
+      let title = "";
+      let count = 0;
+      if (mdHeader.length >= 4) {
+        const emoji = mdHeader[1];
+        title = (mdHeader[2] || "").trim();
+        count = Number.parseInt(mdHeader[3] || "0");
+        if (emoji.includes("🧹")) type = "nit";
+        else if (emoji.includes("♻")) type = "duplicate";
+        else if (emoji.includes("📜")) type = "additional";
+        else type = "actionable";
+      } else {
+        const word = (mdHeader[1] || "").toLowerCase();
+        title = word[0].toUpperCase() + word.slice(1);
+        if (word.startsWith("bug")) type = "actionable";
+        else if (word.startsWith("suggest")) type = "actionable";
+        else if (word.startsWith("nit")) type = "nit";
+        else if (word.startsWith("dup")) type = "duplicate";
+        else type = "additional";
+      }
+      currentSection = { type, title, count, content: "", items: [] } as any;
+      sections.push(currentSection);
+      continue;
+    }
+
     // Detect section headers - CodeRabbit uses <details><summary> structure
     // We need to check the next line for the actual summary content
     if (line.includes("<details>") && i + 1 < lines.length) {
@@ -458,7 +501,7 @@ function parseCodeRabbitSections(body: string): Array<{
       // Parse section headers with emoji indicators
       // Pattern: <summary>🧹 Nitpicks (3)</summary>
       const sectionMatch = nextLine.match(
-        /<summary>\s*(🧹|♻️|♻|📜)\s*([^<]+)\s*\((\d+)\)\s*<\/summary>/u,
+        /<summary>\s*(🧹|♻️|♻|📜|🐛|💡)\s*([^<]+)\s*\((\d+)\)\s*<\/summary>/u,
       );
       if (sectionMatch) {
         const emoji = sectionMatch[1];
@@ -473,6 +516,8 @@ function parseCodeRabbitSections(body: string): Array<{
           type = "duplicate"; // Recycling/duplicates
         else if (emoji.includes("📜"))
           type = "additional"; // Scroll/additional
+        else if (emoji.includes("🐛") || emoji.includes("💡"))
+          type = "actionable"; // Bugs and Suggestions are actionable
         else type = "actionable"; // Fallback
 
         // Create new section and add to results
@@ -524,9 +569,9 @@ function parseCodeRabbitSections(body: string): Array<{
 
     // Detect line range and suggestion content
     // Pattern: `42: **Issue description**` or `42-45: **Issue description**`
-    const lineRangeMatch = line.match(
-      /^(?:`|\\`)?(\d+(?:-\d+)?)(?:`|\\`)?:\s*\*\*(.*?)\*\*/,
-    );
+    const lineRangeMatch =
+      line.match(/^(?:`|\\`)?(\d+(?:-\d+)?)(?:`|\\`)?:\s*\*\*(.*?)\*\*/) ||
+      line.match(/^(?:`|\\`)?(\d+(?:-\d+)?)(?:`|\\`)?:\s*(.+)$/);
     if (lineRangeMatch && currentSection) {
       const lineRange = lineRangeMatch[1];
       const title = lineRangeMatch[2];
@@ -582,7 +627,6 @@ function parseCodeRabbitSections(body: string): Array<{
               codeSuggestion = {
                 old_code: oldLines.join("\n"),
                 new_code: newLines.join("\n"),
-                language: "typescript", // Assume TypeScript for now
               };
             }
             break;
@@ -691,7 +735,7 @@ function parseCodeRabbitSections(body: string): Array<{
  * @param includeStatusIndicators - Whether to include status indicators
  * @returns Standardized Comment object with CodeRabbit metadata
  */
-function createCodeRabbitComment(
+export function createCodeRabbitComment(
   item: any,
   suggestionType: string,
   review: any,
@@ -734,7 +778,7 @@ function createCodeRabbitComment(
     updated_at: review.submitted_at || review.created_at, // Same as created for reviews
     file_path: item.file_path, // File path from parsing
     line_number: lineStart, // Validated start line
-    body: item.description, // Full description with code blocks
+    body: `${item.title}\n\n${item.description}`, // Title + full description
     html_url: review.html_url, // Link to original review
     action_commands: generateActionCommands(
       // Generate CLI/MCP commands
@@ -821,12 +865,12 @@ function generateAgentPrompt(
     return `${basePrompt}
     
 Current code:
-\`\`\`typescript
+\`\`\`
 ${item.code_suggestion.old_code}
 \`\`\`
 
 Suggested change:
-\`\`\`typescript
+\`\`\`
 ${item.code_suggestion.new_code}
 \`\`\`
 
@@ -891,7 +935,7 @@ function inferCategory(description: string): string {
  * @param reviewBody - The review body text to check
  * @returns true if this review body should be filtered out entirely
  */
-function shouldFilterCodeRabbitReviewBody(reviewBody: string): boolean {
+export function shouldFilterCodeRabbitReviewBody(reviewBody: string): boolean {
   const bodyLower = reviewBody.toLowerCase();
 
   // Check for explicit indicators that this is a main review commit with internal state
@@ -911,9 +955,25 @@ function shouldFilterCodeRabbitReviewBody(reviewBody: string): boolean {
     "no suggestions",
     "review complete",
     "analysis complete",
+    "processing your request",
+    "analyzing code changes",
   ];
 
   const indicatorCount = mainReviewIndicators.filter((indicator) =>
+    bodyLower.includes(indicator),
+  ).length;
+
+  // Rate-limit or system messages should be filtered as well
+  const rateLimitIndicators = [
+    "rate limit exceeded",
+    "rate limited",
+    "reached my rate limit",
+    "please try again later",
+    "before requesting another review",
+    "rate limit reached",
+    "due to rate limiting",
+  ];
+  const rateLimitCount = rateLimitIndicators.filter((indicator) =>
     bodyLower.includes(indicator),
   ).length;
 
@@ -952,10 +1012,11 @@ function shouldFilterCodeRabbitReviewBody(reviewBody: string): boolean {
     return false;
   }
 
+  // Also filter if we find any internal-state indicators and no actionable content
+  if (indicatorCount >= 1 || rateLimitCount >= 1) return true;
+
   // Only filter out if it's very large with no actionable content
-  if (reviewBody.length > 10000 && actionableCount === 0) {
-    return true;
-  }
+  if (reviewBody.length > 10000) return true;
 
   return false;
 }
@@ -1009,7 +1070,7 @@ function shouldFilterCodeRabbitIssueComment(issueCommentBody: string): boolean {
  * @param author - The author login name
  * @returns true if the author is CodeRabbit AI
  */
-function isCodeRabbitAuthor(author: string): boolean {
+export function isCodeRabbitAuthor(author: string): boolean {
   return (
     author.toLowerCase() === "coderabbitai" ||
     author.toLowerCase().includes("coderabbit")
