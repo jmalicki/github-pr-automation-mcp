@@ -77,14 +77,14 @@ jobs:
         run: npm run build
       
       - name: Run integration tests
-        if: secrets.GH_TOKEN != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        if: env.GITHUB_TOKEN != ''
         run: npm run test:integration
       
       - name: Run CLI integration tests
-        if: secrets.GH_TOKEN != ''
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        if: env.GITHUB_TOKEN != ''
         run: npm run test:cli
 
