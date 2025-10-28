@@ -253,8 +253,10 @@ function parseCodeRabbitSections(body: string): Array<{
 
   /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
 
+  // Normalize EOLs (CRLF → LF) to keep regexes stable across platforms
+  const normalizedBody = body.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
   // Split the HTML body into lines for line-by-line parsing
-  const lines = body.split("\n");
+  const lines = normalizedBody.split("\n");
 
   // State variables for the parsing state machine
   let currentSection: any = null; // Currently active section being parsed
@@ -352,8 +354,8 @@ function parseCodeRabbitSections(body: string): Array<{
       let inCodeBlock = false;
       let codeBlockContent = "";
 
-      // Look ahead up to 20 lines to find code blocks and descriptions
-      for (let j = i + 1; j < Math.min(i + 20, lines.length); j++) {
+      // Look ahead until we reach end-of-item markers or file/section boundaries
+      for (let j = i + 1; j < lines.length; j++) {
         const nextLine = lines[j];
 
         // Detect start of code diff blocks (handle escaped backticks)
@@ -376,8 +378,10 @@ function parseCodeRabbitSections(body: string): Array<{
             // Parse code suggestion from diff content
             // Extract old and new code from diff format
             const diffMatch =
-              codeBlockContent.match(/```diff\n([\s\S]*?)\n```/) ||
-              codeBlockContent.match(/\\`\\`\\`diff\n([\s\S]*?)\n\\`\\`\\`/);
+              codeBlockContent.match(/```diff\r?\n([\s\S]*?)\r?\n```/) ||
+              codeBlockContent.match(
+                /\\`\\`\\`diff\r?\n([\s\S]*?)\r?\n\\`\\`\\`/,
+              );
             if (diffMatch) {
               const diffContent = diffMatch[1];
 

@@ -138,12 +138,15 @@ export function calculateStatusIndicators(
     | "in_progress"
     | "resolved";
 
-  if (hasManualResponse && isActionable) {
-    // Actionable comments with responses are in progress
+  if (isOutdated) {
+    // Outdated comments are considered resolved
+    resolutionStatus = "resolved";
+  } else if (hasMcpAction) {
+    // Comments with MCP actions are in progress (automated resolution)
     resolutionStatus = "in_progress";
   } else if (hasManualResponse) {
-    // Comments with responses are acknowledged
-    resolutionStatus = "acknowledged";
+    // Comments with manual responses are acknowledged (unless actionable)
+    resolutionStatus = isActionable ? "in_progress" : "acknowledged";
   } else {
     // All other comments are unresolved
     resolutionStatus = "unresolved";
