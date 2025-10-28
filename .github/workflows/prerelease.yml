@@ -41,12 +41,10 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           
       - name: Create GitHub Pre-release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
-          release_name: Pre-release ${{ github.ref_name }}
+          name: Pre-release ${{ github.ref_name }}
           draft: false
           prerelease: true
           body: |
@@ -63,3 +61,5 @@ jobs:
             ## Testing
             
             Please test this pre-release and report any issues in the [Issues](https://github.com/jmalicki/github-pr-automation-mcp/issues) section.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
