@@ -37,7 +37,7 @@ export function parseReviewBodiesForActionableComments(
       continue;
     }
 
-    const author = review.user?.login ?? null;
+    const author = review.user?.login || "unknown";
     const authorAssociation = review.author_association || "NONE";
     const isBot = review.user?.type === "Bot";
 
