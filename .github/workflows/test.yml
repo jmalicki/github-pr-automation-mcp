@@ -82,5 +82,6 @@ jobs:
         run: npm run test:integration
       
       - name: Run CLI integration tests
+        if: env.GITHUB_TOKEN != ''
         run: npm run test:cli
 
