@@ -1,0 +1,21 @@
+{
+  "data": {
+    "node": {
+      "author": {
+        "login": "coderabbitai"
+      },
+      "body": "_⚠️ Potential issue_ | _🟠 Major_\n\n**Use the which crate instead of shelling out**\n\nSpawning the external which binary is non‑portable (Windows) and slower. You already depend on the which crate.\n\n\n\n```diff\n+use which::which;\n@@\n     async fn is_available(&self) -> Result<bool> {\n-        let result = TokioCommand::new(\"which\")\n-            .arg(\"cursor-agent\")\n-            .output()\n-            .await\n-            .context(\"Failed to execute 'which cursor-agent' command\")?;\n-\n-        Ok(result.status.success())\n+        Ok(which(\"cursor-agent\").is_ok())\n     }\n```\n\n<!-- suggestion_start -->\n\n<details>\n<summary>📝 Committable suggestion</summary>\n\n> ‼️ **IMPORTANT**\n> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.\n\n```suggestion\n        Ok(which(\"cursor-agent\").is_ok())\n```\n\n</details>\n\n<!-- suggestion_end -->\n\n<details>\n<summary>🤖 Prompt for AI Agents</summary>\n\n```\nIn src/subagent_spawner.rs around lines 67 to 73, replace the async spawn+which\nsubprocess call with the which crate API: call which::which(\"cursor-agent\")\nsynchronously and return Ok(true) if it succeeds or Ok(false) if it fails (or\npropagate a contextual error only if you need a failure context); remove the\nTokioCommand usage and the shelling out (which is non‑portable and slower) and\nuse which::which which already exists as a dependency to check for the binary’s\npresence.\n```\n\n</details>\n\n<!-- fingerprinting:phantom:medusa:chinchilla -->\n\n<!-- This is an auto-generated comment by CodeRabbit -->",
+      "createdAt": "2025-10-28T05:01:03Z",
+      "databaseId": 2467915804,
+      "diffHunk": "@@ -64,24 +65,24 @@ pub struct CursorCliAgent;\n impl AgentSpawner for CursorCliAgent {\n     async fn is_available(&self) -> Result<bool> {\n         let result = TokioCommand::new(\"which\")\n-            .arg(\"cursor-cli\")\n+            .arg(\"cursor-agent\")\n             .output()\n             .await\n-            .context(\"Failed to execute 'which cursor-cli' command\")?;\n+            .context(\"Failed to execute 'which cursor-agent' command\")?;\n \n         Ok(result.status.success())",
+      "id": "PRRC_kwDOQKdW-c6TGWgc",
+      "originalPosition": 45,
+      "path": "src/subagent_spawner.rs",
+      "pullRequestReview": {
+        "databaseId": 3386631280,
+        "id": "PRR_kwDOQKdW-c7J2-Rw"
+      },
+      "updatedAt": "2025-10-28T05:01:04Z"
+    }
+  }
+}

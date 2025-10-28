@@ -842,7 +842,7 @@ function isMainCodeRabbitReviewCommit(comment: Comment): boolean {
  * @param options - CodeRabbit filtering and sorting options
  * @returns Filtered and sorted array of comments
  */
-function applyCodeRabbitFiltering(
+export function applyCodeRabbitFiltering(
   comments: Comment[],
   options: CodeRabbitOptions,
 ): Comment[] {

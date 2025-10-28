@@ -159,7 +159,8 @@ program
             priority_ordering: options.priorityOrdering,
           }),
         });
-        const result: FindUnresolvedCommentsOutput = await handleFindUnresolvedComments(client, input);
+        const result: FindUnresolvedCommentsOutput =
+          await handleFindUnresolvedComments(client, input);
 
         if (options.json) {
           // eslint-disable-next-line no-console
