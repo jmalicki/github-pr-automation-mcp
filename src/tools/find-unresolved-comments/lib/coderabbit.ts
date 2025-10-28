@@ -705,6 +705,114 @@ function inferCategory(description: string): string {
 }
 
 /**
+ * Check if a CodeRabbit comment is a main review commit with internal state.
+ *
+ * Main CodeRabbit review commits typically contain:
+ * - Large base64 encoded strings (internal state/maps)
+ * - Very long encoded data that's not user-facing
+ * - System-generated content rather than actionable suggestions
+ *
+ * We keep normal GitHub hashes (short, alphanumeric) but filter out
+ * large encoded strings that represent internal state.
+ *
+ * @param comment - Comment to check
+ * @returns true if this is a main review commit that should be excluded
+ */
+function isMainCodeRabbitReviewCommit(comment: Comment): boolean {
+  if (!comment.coderabbit_metadata) return false;
+
+  const body = comment.body;
+
+  // Check for large base64-like encoded strings (internal state)
+  // These are typically much longer than normal GitHub hashes
+  const base64Pattern = /[A-Za-z0-9+/]{100,}={0,2}/g;
+  const base64Matches = body.match(base64Pattern) || [];
+
+  // Count very long encoded strings (likely internal state)
+  const longEncodedStrings = base64Matches.filter(
+    (match) => match.length > 100,
+  );
+
+  // If we find multiple very long encoded strings, it's likely internal state
+  if (longEncodedStrings.length >= 2) {
+    return true;
+  }
+
+  // Check for extremely long single encoded strings (500+ chars)
+  const veryLongStrings = base64Matches.filter((match) => match.length > 500);
+  if (veryLongStrings.length >= 1) {
+    return true;
+  }
+
+  // Check for other indicators of main review commits
+  const mainReviewIndicators = [
+    // Internal state patterns (but not short hashes)
+    "internal state",
+    "state map",
+    "internal map",
+    "review state",
+
+    // Large metadata patterns
+    "internal metadata",
+    "review metadata",
+    "commit metadata",
+
+    // System-generated patterns
+    "system generated",
+    "auto generated",
+    "internal review",
+    "review summary",
+
+    // Large content without actionable items
+    "no actionable items",
+    "no suggestions",
+    "review complete",
+    "analysis complete",
+  ];
+
+  const bodyLower = body.toLowerCase();
+  const indicatorCount = mainReviewIndicators.filter((indicator) =>
+    bodyLower.includes(indicator),
+  ).length;
+
+  // If we find multiple indicators, it's likely a main review commit
+  if (indicatorCount >= 2) {
+    return true;
+  }
+
+  // Check for very large comments with minimal actionable content
+  if (comment.body.length > 5000) {
+    // Look for actionable patterns that would indicate this is NOT a main commit
+    const actionablePatterns = [
+      "suggestion:",
+      "recommendation:",
+      "consider:",
+      "improve:",
+      "refactor:",
+      "fix:",
+      "change:",
+      "update:",
+      "modify:",
+      "replace:",
+      "add:",
+      "remove:",
+      "delete:",
+    ];
+
+    const actionableCount = actionablePatterns.filter((pattern) =>
+      bodyLower.includes(pattern),
+    ).length;
+
+    // If it's very large but has few actionable patterns, it's likely a main commit
+    if (actionableCount < 3) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Apply CodeRabbit-specific filtering and sorting to comments.
  *
  * This function implements the final processing pipeline for CodeRabbit
@@ -743,6 +851,11 @@ function applyCodeRabbitFiltering(
   // Filter CodeRabbit comments based on options
   filtered = filtered.filter((comment) => {
     if (!comment.coderabbit_metadata) return true; // Keep non-CodeRabbit comments
+
+    // Always exclude main CodeRabbit review commits with internal state
+    if (isMainCodeRabbitReviewCommit(comment)) {
+      return false;
+    }
 
     const { suggestion_type } = comment.coderabbit_metadata;
 
