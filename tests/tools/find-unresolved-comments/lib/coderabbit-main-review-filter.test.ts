@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
-  parseCodeRabbitReview,
+  processCodeRabbitReview,
+  processCodeRabbitIssueComment,
   applyCodeRabbitFiltering,
 } from "../../../../src/tools/find-unresolved-comments/lib/coderabbit.js";
 import type { Comment } from "../../../../src/tools/find-unresolved-comments/schema.js";
@@ -8,7 +9,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 
 describe("CodeRabbit Main Review Filter", () => {
-  const testDataDir = path.join(__dirname, "test-data", "coderabbit-filter");
+  const testDataDir = path.join(__dirname, "test-data", "coderabbit-filter", "prs");
   const expectationsPath = path.join(testDataDir, "file-expected.json");
 
   it("should load and process review data from test files", async () => {
@@ -60,7 +61,7 @@ describe("CodeRabbit Main Review Filter", () => {
         updated_at: reviewData.data.node.updatedAt,
       };
 
-      const reviewComments = parseCodeRabbitReview(
+      const reviewComments = processCodeRabbitReview(
         reviewData.data.node.body,
         mockReview as any,
         mockPR,
@@ -83,6 +84,46 @@ describe("CodeRabbit Main Review Filter", () => {
       console.log(
         `Issue comment body length: ${issueCommentData.data.node.body.length}`,
       );
+      
+      const mockIssueComment = {
+        id: issueCommentData.data.node.databaseId,
+        user: { login: issueCommentData.data.node.author?.login || "coderabbitai", type: "Bot" },
+        body: issueCommentData.data.node.body,
+        author_association: "NONE",
+        created_at: issueCommentData.data.node.createdAt,
+        updated_at: issueCommentData.data.node.updatedAt,
+        html_url: `https://github.com/jmalicki/subagent-worktree-mcp/issues/1#issuecomment-${issueCommentData.data.node.databaseId}`,
+      };
+
+      // First, show what happens without pre-filtering (1 comment)
+      const issueCommentsWithoutPreFilter = processCodeRabbitIssueComment(
+        issueCommentData.data.node.body,
+        mockIssueComment,
+        mockPR,
+        issueCommentData.data.node.author?.login || "coderabbitai",
+        "NONE",
+        true, // isBot
+        {}, // options
+        true, // includeStatusIndicators
+      );
+      console.log(`Issue comment generated ${issueCommentsWithoutPreFilter.length} comments (without pre-filter)`);
+
+      // Then show what happens with pre-filtering (0 comments)
+      const issueComments = processCodeRabbitIssueComment(
+        issueCommentData.data.node.body,
+        mockIssueComment,
+        mockPR,
+        issueCommentData.data.node.author?.login || "coderabbitai",
+        "NONE",
+        true, // isBot
+        {}, // options
+        true, // includeStatusIndicators
+      );
+      console.log(`Issue comment generated ${issueComments.length} comments (with pre-filter)`);
+
+      // Apply filtering
+      const filteredIssueComments = applyCodeRabbitFiltering(issueComments, {});
+      console.log(`After filtering: ${filteredIssueComments.length} comments`);
     }
 
     // Process review comments
@@ -162,7 +203,7 @@ describe("CodeRabbit Main Review Filter", () => {
 
       if (mockReview) {
         // Parse CodeRabbit content
-        const comments = parseCodeRabbitReview(
+        const comments = processCodeRabbitReview(
           fileData.data.node.body,
           mockReview,
           mockPR,

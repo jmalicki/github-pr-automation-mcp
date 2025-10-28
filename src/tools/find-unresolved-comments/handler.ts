@@ -12,7 +12,6 @@ import type {
 
 // Import library functions
 import { fetchReviewCommentNodeIds } from "./lib/graphql-fetcher.js";
-import { parseReviewBodiesForActionableComments } from "./lib/review-parser.js";
 import { mapReviewComments, mapIssueComments } from "./lib/comment-mapper.js";
 import { calculateStatusIndicators } from "./lib/status-indicators.js";
 import {
@@ -21,6 +20,10 @@ import {
   sortComments,
 } from "./lib/filtering.js";
 import { generateSummary } from "./lib/summary-generator.js";
+import { 
+  processCodeRabbitReview,
+  processCodeRabbitIssueComment
+} from "./lib/coderabbit.js";
 
 /**
  * Find unresolved comments in a GitHub pull request
@@ -75,19 +78,60 @@ export async function handleFindUnresolvedComments(
       per_page: githubPagination.per_page,
     });
 
-    reviewBodiesComments = parseReviewBodiesForActionableComments(
-      reviewsResponse.data,
-      pr,
-      input.coderabbit_options,
-      input.include_status_indicators,
-    );
+    // Process CodeRabbit reviews with higher-level function
+    for (const review of reviewsResponse.data) {
+      if (!review.body || review.state === "PENDING") {
+        continue;
+      }
+
+      const author = review.user?.login || "unknown";
+      const authorAssociation = review.author_association || "NONE";
+      const isBot = review.user?.type === "Bot";
+
+      const codeRabbitComments = processCodeRabbitReview(
+        review.body,
+        review,
+        pr,
+        author,
+        authorAssociation,
+        isBot,
+        input.coderabbit_options,
+        input.include_status_indicators,
+      );
+      reviewBodiesComments.push(...codeRabbitComments);
+    }
     hasMoreReviews =
       reviewsResponse.headers.link?.includes('rel="next"') ?? false;
+  }
+
+  // Process CodeRabbit content from issue comments with higher-level function
+  let issueCommentBodiesComments: Comment[] = [];
+  if (input.parse_review_bodies !== false) {
+    for (const issueComment of issueCommentsResponse.data) {
+      if (!issueComment.body) continue;
+      
+      const author = issueComment.user?.login || "unknown";
+      const authorAssociation = issueComment.author_association || "NONE";
+      const isBot = issueComment.user?.type === "Bot";
+
+      const codeRabbitComments = processCodeRabbitIssueComment(
+        issueComment.body,
+        issueComment,
+        pr,
+        author,
+        authorAssociation,
+        isBot,
+        input.coderabbit_options,
+        input.include_status_indicators,
+      );
+      issueCommentBodiesComments.push(...codeRabbitComments);
+    }
   }
 
   // Convert to our Comment type with action commands and hints
   const allComments: Comment[] = [
     ...reviewBodiesComments, // Add parsed actionable comments from review bodies
+    ...issueCommentBodiesComments, // Add parsed actionable comments from issue comment bodies
     ...mapReviewComments(reviewCommentsResponse.data, pr, nodeIdMap),
     ...mapIssueComments(issueCommentsResponse.data, pr),
   ];
