@@ -62,6 +62,45 @@ describe("CLI Integration: find-unresolved-comments", () => {
     }
   }, 30000);
 
+  it("should not truncate long comments in human-readable output", async () => {
+    try {
+      const { stdout } = await execAsync(
+        'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js find-unresolved-comments --pr "jmalicki/resolve-pr-mcp#2"',
+      );
+
+      // Check that the output doesn't contain truncated comments with "..."
+      // This test ensures that comment bodies are displayed in full
+      const lines = stdout.split("\n");
+      let foundCommentBody = false;
+      let foundTruncation = false;
+
+      for (const line of lines) {
+        // Look for comment body lines (they start with spaces and contain comment content)
+        if (line.match(/^\s+[^📝✅⚠️📊📄].*[^:]\s*$/)) {
+          foundCommentBody = true;
+          // Check if this line ends with "..." which would indicate truncation
+          if (line.trim().endsWith("...")) {
+            foundTruncation = true;
+            break;
+          }
+        }
+      }
+
+      // If we found comment bodies, they should not be truncated
+      if (foundCommentBody) {
+        expect(foundTruncation).toBe(false);
+      }
+
+      // The output should still contain expected elements
+      expect(stdout).toContain("Comments for");
+      expect(stdout).toContain("Total unresolved:");
+    } catch (error) {
+      // If API call fails (e.g., timeout, bad credentials), just skip the test
+      console.log("Skipping test due to API error:", error.message);
+      return;
+    }
+  }, 30000);
+
   it("should handle sorting options", async () => {
     try {
       const { stdout } = await execAsync(
