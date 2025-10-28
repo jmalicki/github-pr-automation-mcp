@@ -7,6 +7,7 @@ import { handleFindUnresolvedComments } from "./tools/find-unresolved-comments/h
 import { handleManageStackedPRs } from "./tools/manage-stacked-prs/handler.js";
 import { GetFailingTestsSchema } from "./tools/get-failing-tests/schema.js";
 import { FindUnresolvedCommentsSchema } from "./tools/find-unresolved-comments/schema.js";
+import type { FindUnresolvedCommentsOutput } from "./tools/find-unresolved-comments/schema.js";
 import { ManageStackedPRsSchema } from "./tools/manage-stacked-prs/schema.js";
 import { handleResolveReviewThread } from "./tools/resolve-review-thread/handler.js";
 import { ResolveReviewThreadInputSchema } from "./tools/resolve-review-thread/schema.js";
@@ -158,7 +159,8 @@ program
             priority_ordering: options.priorityOrdering,
           }),
         });
-        const result = await handleFindUnresolvedComments(client, input);
+        const result: FindUnresolvedCommentsOutput =
+          await handleFindUnresolvedComments(client, input);
 
         if (options.json) {
           // eslint-disable-next-line no-console

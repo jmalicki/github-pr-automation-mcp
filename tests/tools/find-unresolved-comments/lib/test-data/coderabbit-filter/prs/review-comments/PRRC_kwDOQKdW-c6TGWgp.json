@@ -1,0 +1,21 @@
+{
+  "data": {
+    "node": {
+      "author": {
+        "login": "coderabbitai"
+      },
+      "body": "_⚠️ Potential issue_ | _🟡 Minor_\n\n**Assert on the actual outcome instead of `assert!(true)`.**\n\nInvalid paths should yield an error.\n\n\n```diff\n-    // Should fail gracefully (cursor-agent might not be available, but path should be handled)\n-    assert!(true, \"Should handle invalid path gracefully\");\n+    assert!(result.is_err(), \"Should fail gracefully for invalid worktree path\");\n```\n\n<!-- suggestion_start -->\n\n<details>\n<summary>📝 Committable suggestion</summary>\n\n> ‼️ **IMPORTANT**\n> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.\n\n```suggestion\n    let result = spawner.spawn_agent(\"cursor-agent\", &invalid_path, \"test prompt\", &options).await;\n    \n    assert!(result.is_err(), \"Should fail gracefully for invalid worktree path\");\n    \n```\n\n</details>\n\n<!-- suggestion_end -->\n\n<details>\n<summary>🤖 Prompt for AI Agents</summary>\n\n```\nIn tests/subagent_spawner_tests.rs around lines 78 to 82, the test currently\nuses assert!(true) which does not verify behavior; replace that with an\nassertion that the spawn_agent call returned an error for an invalid path, e.g.\nawait the result and assert result.is_err() (or use matches!(result, Err(_))) so\nthe test fails if an invalid path is not handled as an error.\n```\n\n</details>\n\n<!-- fingerprinting:phantom:medusa:chinchilla -->\n\n<!-- This is an auto-generated comment by CodeRabbit -->",
+      "createdAt": "2025-10-28T05:01:03Z",
+      "databaseId": 2467915817,
+      "diffHunk": "@@ -67,17 +67,17 @@ async fn test_subagent_spawner_spawn_with_invalid_path() -> Result<()> {\n     // Test: Verify SubagentSpawner handles invalid paths gracefully\n     // This test ensures proper error handling for invalid worktree paths\n     \n-    let mut spawner = SubagentSpawner::new();\n-    let agent = CursorCliAgent::new();\n+    let mut spawner = SubagentSpawner::new()?;\n+    let agent = CursorCliAgent;\n     spawner.register_agent(Box::new(agent));\n     \n     let invalid_path = PathBuf::from(\"/nonexistent/path/that/does/not/exist\");\n     let options = AgentOptions::default();\n     \n     // Try to spawn with invalid path\n-    let result = spawner.spawn_agent(\"cursor-cli\", &invalid_path, \"test prompt\", &options).await;\n+    let result = spawner.spawn_agent(\"cursor-agent\", &invalid_path, \"test prompt\", &options).await;\n     \n-    // Should fail gracefully (cursor-cli might not be available, but path should be handled)\n+    // Should fail gracefully (cursor-agent might not be available, but path should be handled)\n     assert!(true, \"Should handle invalid path gracefully\");\n     ",
+      "id": "PRRC_kwDOQKdW-c6TGWgp",
+      "originalPosition": 55,
+      "path": "tests/subagent_spawner_tests.rs",
+      "pullRequestReview": {
+        "databaseId": 3386631280,
+        "id": "PRR_kwDOQKdW-c7J2-Rw"
+      },
+      "updatedAt": "2025-10-28T05:01:05Z"
+    }
+  }
+}

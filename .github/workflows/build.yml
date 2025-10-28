@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
       
+      - name: Validate version consistency
+        run: npm test -- tests/utils/version-validation.test.ts
+      
       - name: Security audit
         run: npm run audit:ci
       

@@ -1,0 +1,21 @@
+{
+  "data": {
+    "node": {
+      "author": {
+        "login": "coderabbitai"
+      },
+      "body": "_🛠️ Refactor suggestion_ | _🟠 Major_\n\n<details>\n<summary>🧩 Analysis chain</summary>\n\n**rmcp macros: confirm if both crates are needed**\n\nYou enable rmcp with feature \"macros\" and also depend on rmcp-macros. One may be redundant; ensure they’re not double-defining macros and versions stay in lockstep.\n\n\nIf rmcp already re-exports the macros with its \"macros\" feature, you can drop the extra crate:\n\n```diff\n rmcp = { version = \"0.8\", features = [\"client\", \"server\", \"macros\"] }\n-rmcp-macros = \"0.8\"\n```\n\nTo verify using public docs, please run:\n\n---\n\n🌐 Web query:\n\n```web\nDoes the rmcp crate (version 0.8) re-export its procedural macros when the \"macros\" feature is enabled, or is the separate rmcp-macros crate required?\n```\n\n💡 Result:\n\nShort answer: You don't need to depend on rmcp-macros directly — enabling rmcp's \"macros\" feature pulls in and exposes the procedural macros so you can use e.g. rmcp::tool / #[tool]. [1][2]\n\nSources:\n- rmcp crate docs showing the #[tool] attribute and examples using rmcp::{tool, tool_router}. [1]\n- rmcp Cargo feature listing: the \"macros\" feature enables the rmcp-macros dependency. [2]\n\n---\n\n\n\n</details>\n\n---\n\n**Remove redundant rmcp-macros direct dependency**\n\nVerified: rmcp's \"macros\" feature re-exports the procedural macros and pulls in rmcp-macros as a transitive dependency. You don't need rmcp-macros as a direct dependency.\n\n```diff\n rmcp = { version = \"0.8\", features = [\"client\", \"server\", \"macros\"] }\n-rmcp-macros = \"0.8\"\n serde = { version = \"1.0\", features = [\"derive\"] }\n```\n\n<!-- suggestion_start -->\n\n<details>\n<summary>📝 Committable suggestion</summary>\n\n> ‼️ **IMPORTANT**\n> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.\n\n```suggestion\nrmcp = { version = \"0.8\", features = [\"client\", \"server\", \"macros\"] }\nserde = { version = \"1.0\", features = [\"derive\"] }\nserde_json = \"1.0\"\nschemars = \"1.0\"\ntokio = { version = \"1.0\", features = [\"full\"] }\nanyhow = \"1.0\"\nthiserror = \"1.0\"\nfutures = \"0.3\"\n```\n\n</details>\n\n<!-- suggestion_end -->\n\n<details>\n<summary>🤖 Prompt for AI Agents</summary>\n\n```\nIn Cargo.toml around lines 53 to 61, the direct dependency rmcp-macros is\nredundant because rmcp with the \"macros\" feature already re-exports it; remove\nthe rmcp-macros = \"0.8\" line from the dependencies, keep rmcp = { version =\n\"0.8\", features = [\"client\", \"server\", \"macros\"] }, and then run cargo update\n(or cargo build) to refresh the lockfile and verify the build still succeeds.\n```\n\n</details>\n\n<!-- fingerprinting:phantom:medusa:chinchilla -->\n\n<!-- This is an auto-generated comment by CodeRabbit -->\n\n✅ Addressed in commits 3d01933 to 15b8c7c",
+      "createdAt": "2025-10-28T05:01:02Z",
+      "databaseId": 2467915771,
+      "diffHunk": "@@ -49,23 +49,23 @@ missing-panics-doc = \"warn\"\n workspace = true\n \n [dependencies]\n-# MCP (Model Context Protocol) dependencies\n-mcp = \"0.1.1\"\n+# MCP (Model Context Protocol) dependencies - official SDK\n+rmcp = { version = \"0.8\", features = [\"client\", \"server\", \"macros\"] }\n+rmcp-macros = \"0.8\"\n serde = { version = \"1.0\", features = [\"derive\"] }\n serde_json = \"1.0\"\n+schemars = \"1.0\"\n tokio = { version = \"1.0\", features = [\"full\"] }\n anyhow = \"1.0\"\n thiserror = \"1.0\"\n+futures = \"0.3\"",
+      "id": "PRRC_kwDOQKdW-c6TGWf7",
+      "originalPosition": 15,
+      "path": "Cargo.toml",
+      "pullRequestReview": {
+        "databaseId": 3386631280,
+        "id": "PRR_kwDOQKdW-c7J2-Rw"
+      },
+      "updatedAt": "2025-10-28T05:14:31Z"
+    }
+  }
+}

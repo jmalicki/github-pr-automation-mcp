@@ -41,11 +41,64 @@ export interface CodeRabbitOptions {
 }
 
 /**
+ * Process a CodeRabbit review with authorship checking and pre-filtering.
+ *
+ * This is the main entry point for CodeRabbit review processing. It handles:
+ * 1. Authorship checking (only processes CodeRabbit AI reviews)
+ * 2. Pre-filtering (filters out internal state/main review commits)
+ * 3. Delegates to parsing if both checks pass
+ *
+ * @param body - The review body text
+ * @param review - The GitHub review object
+ * @param pr - Pull request information
+ * @param pr.owner - Repository owner
+ * @param pr.repo - Repository name
+ * @param pr.number - Pull request number
+ * @param author - The review author login
+ * @param authorAssociation - The author's association with the repo
+ * @param isBot - Whether the author is a bot
+ * @param options - CodeRabbit-specific options
+ * @param includeStatusIndicators - Whether to include status indicators
+ * @returns Array of parsed actionable comments
+ */
+export function processCodeRabbitReview(
+  body: string,
+  review: Review,
+  pr: { owner: string; repo: string; number: number },
+  author: string,
+  authorAssociation: string,
+  isBot: boolean,
+  options?: CodeRabbitOptions,
+  includeStatusIndicators?: boolean,
+): Comment[] {
+  // Step 1: Check authorship
+  if (!isCodeRabbitAuthor(author)) {
+    return [];
+  }
+
+  // Step 2: Pre-filter
+  if (shouldFilterCodeRabbitReviewBody(body)) {
+    return [];
+  }
+
+  // Step 3: Parse (only if authorship and pre-filter pass)
+  return parseCodeRabbitReviewInternal(
+    body,
+    review,
+    pr,
+    author,
+    authorAssociation,
+    isBot,
+    options,
+    includeStatusIndicators,
+  );
+}
+
+/**
  * Parse CodeRabbit AI review body for actionable comments.
  *
- * This is the main entry point for CodeRabbit review processing. It handles
- * the complex task of parsing CodeRabbit's structured review format and
- * converting it into standardized Comment objects.
+ * This is the internal parsing function that handles the complex task of parsing
+ * CodeRabbit's structured review format and converting it into standardized Comment objects.
  *
  * ## CodeRabbit Review Format
  *
@@ -76,6 +129,9 @@ export interface CodeRabbitOptions {
  * @param pr.owner - Repository owner
  * @param pr.repo - Repository name
  * @param pr.number - Pull request number
+ * @param pr.owner - Repository owner
+ * @param pr.repo - Repository name
+ * @param pr.number - Pull request number
  * @param author - Review author username (should be 'coderabbitai')
  * @param authorAssociation - GitHub author association (e.g., 'NONE', 'MEMBER')
  * @param isBot - Whether the author is marked as a bot account
@@ -96,7 +152,7 @@ export interface CodeRabbitOptions {
  * );
  * ```
  */
-export function parseCodeRabbitReview(
+function parseCodeRabbitReviewInternal(
   body: string,
   review: Review,
   pr: { owner: string; repo: string; number: number },
@@ -160,6 +216,130 @@ export function parseCodeRabbitReview(
   }
 
   return comments;
+}
+
+/**
+ * Process a CodeRabbit issue comment with authorship checking and pre-filtering.
+ *
+ * This is the main entry point for CodeRabbit issue comment processing. It handles:
+ * 1. Authorship checking (only processes CodeRabbit AI comments)
+ * 2. Pre-filtering (filters out rate limit messages and internal state)
+ * 3. Delegates to parsing if both checks pass
+ *
+ * @param body - The issue comment body text
+ * @param issueComment - The GitHub issue comment object
+ * @param pr - Pull request information
+ * @param author - The comment author login
+ * @param authorAssociation - The author's association with the repo
+ * @param isBot - Whether the author is a bot
+ * @param options - CodeRabbit-specific options
+ * @param includeStatusIndicators - Whether to include status indicators
+ * @returns Array of parsed actionable comments
+ */
+type IssueCommentShape = {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  html_url: string;
+};
+
+export function processCodeRabbitIssueComment(
+  body: string,
+  issueComment: IssueCommentShape,
+  pr: { owner: string; repo: string; number: number },
+  author: string,
+  authorAssociation: string,
+  isBot: boolean,
+  options?: CodeRabbitOptions,
+  includeStatusIndicators?: boolean,
+): Comment[] {
+  // Step 1: Check authorship
+  if (!isCodeRabbitAuthor(author)) {
+    return [];
+  }
+
+  // Step 2: Pre-filter
+  if (shouldFilterCodeRabbitIssueComment(body)) {
+    return [];
+  }
+
+  // Step 3: Parse (only if authorship and pre-filter pass)
+  return parseCodeRabbitIssueCommentInternal(
+    body,
+    issueComment,
+    pr,
+    author,
+    authorAssociation,
+    isBot,
+    options,
+    includeStatusIndicators,
+  );
+}
+
+/**
+ * Parse CodeRabbit content from issue comments (internal function)
+ * @param body - Issue comment body text
+ * @param issueComment - GitHub issue comment object
+ * @param pr - Pull request information
+ * @param author - Comment author
+ * @param authorAssociation - GitHub author association
+ * @param isBot - Whether author is a bot
+ * @param options - CodeRabbit-specific options
+ * @param includeStatusIndicators - Whether to include status indicators
+ * @returns Array of parsed actionable comments
+ */
+function parseCodeRabbitIssueCommentInternal(
+  body: string,
+  issueComment: IssueCommentShape,
+  pr: { owner: string; repo: string; number: number },
+  author: string,
+  authorAssociation: string,
+  isBot: boolean,
+  options?: CodeRabbitOptions,
+  includeStatusIndicators?: boolean,
+): Comment[] {
+  // For now, just return the issue comment as a single actionable comment
+  // In the future, we could parse structured content from issue comments too
+  const comment: Comment = {
+    id: issueComment.id,
+    type: "issue_comment" as const,
+    author,
+    author_association: authorAssociation,
+    is_bot: isBot,
+    created_at: issueComment.created_at,
+    updated_at: issueComment.updated_at,
+    body,
+    html_url: issueComment.html_url,
+    action_commands: generateActionCommands(
+      pr,
+      issueComment.id,
+      "issue_comment",
+      body,
+    ),
+    coderabbit_metadata: {
+      suggestion_type: "actionable",
+      category: "general",
+      severity: "medium",
+      file_context: {
+        path: "unknown", // Issue comments don't have specific file context
+      },
+      agent_prompt: `Review this CodeRabbit issue comment: ${body.substring(0, 200)}...`,
+    },
+  };
+
+  if (includeStatusIndicators) {
+    comment.status_indicators = {
+      resolution_status: "unresolved",
+      priority_score: 5,
+      is_actionable: true,
+      has_manual_response: false,
+      is_outdated: false,
+      needs_mcp_resolution: false,
+      suggested_action: "reply",
+    };
+  }
+
+  return [comment];
 }
 
 /**
@@ -705,6 +885,246 @@ function inferCategory(description: string): string {
 }
 
 /**
+ * Pre-filter function to check if a CodeRabbit review body should be filtered out entirely.
+ * This checks for main review commits with internal state before parsing into individual suggestions.
+ *
+ * @param reviewBody - The review body text to check
+ * @returns true if this review body should be filtered out entirely
+ */
+function shouldFilterCodeRabbitReviewBody(reviewBody: string): boolean {
+  const bodyLower = reviewBody.toLowerCase();
+
+  // Check for explicit indicators that this is a main review commit with internal state
+  const mainReviewIndicators = [
+    "internal state",
+    "state map",
+    "internal map",
+    "review state",
+    "internal metadata",
+    "review metadata",
+    "commit metadata",
+    "system generated",
+    "auto generated",
+    "internal review",
+    "review summary",
+    "no actionable items",
+    "no suggestions",
+    "review complete",
+    "analysis complete",
+  ];
+
+  const indicatorCount = mainReviewIndicators.filter((indicator) =>
+    bodyLower.includes(indicator),
+  ).length;
+
+  // If we find multiple indicators, it's likely a main review commit
+  if (indicatorCount >= 2) {
+    return true;
+  }
+
+  // Check for actionable content patterns that indicate this should be kept
+  const actionablePatterns = [
+    "actionable comments posted",
+    "nitpick comments",
+    "outside diff range comments",
+    "additional comments",
+    "suggestion:",
+    "recommendation:",
+    "consider:",
+    "improve:",
+    "refactor:",
+    "fix:",
+    "change:",
+    "update:",
+    "modify:",
+    "replace:",
+    "add:",
+    "remove:",
+    "delete:",
+  ];
+
+  const actionableCount = actionablePatterns.filter((pattern) =>
+    bodyLower.includes(pattern),
+  ).length;
+
+  // If we find actionable patterns, keep the review even if it has some internal state
+  if (actionableCount >= 1) {
+    return false;
+  }
+
+  // Only filter out if it's very large with no actionable content
+  if (reviewBody.length > 10000 && actionableCount === 0) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Pre-filter function to check if a CodeRabbit issue comment should be filtered out entirely.
+ * This checks for system messages like rate limits before parsing into individual suggestions.
+ *
+ * @param issueCommentBody - The issue comment body text to check
+ * @returns true if this issue comment should be filtered out entirely
+ */
+function shouldFilterCodeRabbitIssueComment(issueCommentBody: string): boolean {
+  // Check for rate limit messages
+  const rateLimitIndicators = [
+    "rate limit exceeded",
+    "rate limited by coderabbit.ai",
+    "please wait",
+    "before requesting another review",
+    "exceeded the limit",
+  ];
+
+  const bodyLower = issueCommentBody.toLowerCase();
+  const rateLimitCount = rateLimitIndicators.filter((indicator) =>
+    bodyLower.includes(indicator),
+  ).length;
+
+  // If we find rate limit indicators, filter it out
+  if (rateLimitCount >= 2) {
+    return true;
+  }
+
+  // Check for internal state in issue comments
+  const base64Pattern = /[A-Za-z0-9+/]{100,}={0,2}/g;
+  const base64Matches = issueCommentBody.match(base64Pattern) || [];
+
+  // Count very long encoded strings (likely internal state)
+  const longEncodedStrings = base64Matches.filter(
+    (match) => match.length > 100,
+  );
+
+  // If we find multiple very long encoded strings, it's likely internal state
+  if (longEncodedStrings.length >= 2) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Check if the author is CodeRabbit AI.
+ * @param author - The author login name
+ * @returns true if the author is CodeRabbit AI
+ */
+function isCodeRabbitAuthor(author: string): boolean {
+  return (
+    author.toLowerCase() === "coderabbitai" ||
+    author.toLowerCase().includes("coderabbit")
+  );
+}
+
+/**
+ * Check if a CodeRabbit comment is a main review commit with internal state.
+ *
+ * Main CodeRabbit review commits typically contain:
+ * - Large base64 encoded strings (internal state/maps)
+ * - Very long encoded data that's not user-facing
+ * - System-generated content rather than actionable suggestions
+ *
+ * We keep normal GitHub hashes (short, alphanumeric) but filter out
+ * large encoded strings that represent internal state.
+ *
+ * @param comment - Comment to check
+ * @returns true if this is a main review commit that should be excluded
+ */
+function isMainCodeRabbitReviewCommit(comment: Comment): boolean {
+  if (!comment.coderabbit_metadata) return false;
+
+  const body = comment.body;
+
+  // Check for large base64-like encoded strings (internal state)
+  // These are typically much longer than normal GitHub hashes
+  const base64Pattern = /[A-Za-z0-9+/]{100,}={0,2}/g;
+  const base64Matches = body.match(base64Pattern) || [];
+
+  // Count very long encoded strings (likely internal state)
+  const longEncodedStrings = base64Matches.filter(
+    (match) => match.length > 100,
+  );
+
+  // If we find multiple very long encoded strings, it's likely internal state
+  if (longEncodedStrings.length >= 2) {
+    return true;
+  }
+
+  // Check for extremely long single encoded strings (500+ chars)
+  const veryLongStrings = base64Matches.filter((match) => match.length > 500);
+  if (veryLongStrings.length >= 1) {
+    return true;
+  }
+
+  // Check for other indicators of main review commits
+  const mainReviewIndicators = [
+    // Internal state patterns (but not short hashes)
+    "internal state",
+    "state map",
+    "internal map",
+    "review state",
+
+    // Large metadata patterns
+    "internal metadata",
+    "review metadata",
+    "commit metadata",
+
+    // System-generated patterns
+    "system generated",
+    "auto generated",
+    "internal review",
+    "review summary",
+
+    // Large content without actionable items
+    "no actionable items",
+    "no suggestions",
+    "review complete",
+    "analysis complete",
+  ];
+
+  const bodyLower = body.toLowerCase();
+  const indicatorCount = mainReviewIndicators.filter((indicator) =>
+    bodyLower.includes(indicator),
+  ).length;
+
+  // If we find multiple indicators, it's likely a main review commit
+  if (indicatorCount >= 2) {
+    return true;
+  }
+
+  // Check for very large comments with minimal actionable content
+  if (comment.body.length > 5000) {
+    // Look for actionable patterns that would indicate this is NOT a main commit
+    const actionablePatterns = [
+      "suggestion:",
+      "recommendation:",
+      "consider:",
+      "improve:",
+      "refactor:",
+      "fix:",
+      "change:",
+      "update:",
+      "modify:",
+      "replace:",
+      "add:",
+      "remove:",
+      "delete:",
+    ];
+
+    const actionableCount = actionablePatterns.filter((pattern) =>
+      bodyLower.includes(pattern),
+    ).length;
+
+    // If it's very large but has few actionable patterns, it's likely a main commit
+    if (actionableCount < 3) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Apply CodeRabbit-specific filtering and sorting to comments.
  *
  * This function implements the final processing pipeline for CodeRabbit
@@ -734,7 +1154,7 @@ function inferCategory(description: string): string {
  * @param options - CodeRabbit filtering and sorting options
  * @returns Filtered and sorted array of comments
  */
-function applyCodeRabbitFiltering(
+export function applyCodeRabbitFiltering(
   comments: Comment[],
   options: CodeRabbitOptions,
 ): Comment[] {
@@ -743,6 +1163,11 @@ function applyCodeRabbitFiltering(
   // Filter CodeRabbit comments based on options
   filtered = filtered.filter((comment) => {
     if (!comment.coderabbit_metadata) return true; // Keep non-CodeRabbit comments
+
+    // Always exclude main CodeRabbit review commits with internal state
+    if (isMainCodeRabbitReviewCommit(comment)) {
+      return false;
+    }
 
     const { suggestion_type } = comment.coderabbit_metadata;
 

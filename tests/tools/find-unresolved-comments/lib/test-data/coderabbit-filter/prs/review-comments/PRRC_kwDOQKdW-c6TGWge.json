@@ -1,0 +1,21 @@
+{
+  "data": {
+    "node": {
+      "author": {
+        "login": "coderabbitai"
+      },
+      "body": "_⚠️ Potential issue_ | _🟠 Major_\n\n**Avoid `unwrap()` on `Result<Option<_>>`; assert the shape.**\n\nThis can panic on platforms where an error is returned.\n\n\n```diff\n-    assert!(result.unwrap().is_none(), \"Should return None for non-existent PID\");\n+    assert!(matches!(result, Ok(None)), \"Should return Ok(None) for non-existent PID\");\n```\n\n<!-- suggestion_start -->\n\n<details>\n<summary>📝 Committable suggestion</summary>\n\n> ‼️ **IMPORTANT**\n> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.\n\n```suggestion\n    assert!(matches!(result, Ok(None)), \"Should return Ok(None) for non-existent PID\");\n    \n```\n\n</details>\n\n<!-- suggestion_end -->\n\n<details>\n<summary>🤖 Prompt for AI Agents</summary>\n\n```\nIn tests/agent_monitor_tests.rs around lines 140 to 141, avoid calling unwrap()\non a Result<Option<_>> which can panic on some platforms; instead assert the\nResult's shape by matching or using assert_eq! to check it is Ok(None) (e.g.,\nreplace assert!(result.unwrap().is_none(), ...) with an assertion that result ==\nOk(None) or use match to assert Ok(None) and handle Err by failing the test with\na clear message).\n```\n\n</details>\n\n<!-- fingerprinting:phantom:medusa:chinchilla -->\n\n<!-- This is an auto-generated comment by CodeRabbit -->",
+      "createdAt": "2025-10-28T05:01:03Z",
+      "databaseId": 2467915806,
+      "diffHunk": "@@ -134,7 +137,7 @@ async fn test_agent_monitor_get_agent_details() -> Result<()> {\n     let result = monitor.get_agent_details(99999).await;\n     \n     // Should return None for non-existent PID\n-    assert_eq!(result.unwrap(), None, \"Should return None for non-existent PID\");\n+    assert!(result.unwrap().is_none(), \"Should return None for non-existent PID\");\n     ",
+      "id": "PRRC_kwDOQKdW-c6TGWge",
+      "originalPosition": 16,
+      "path": "tests/agent_monitor_tests.rs",
+      "pullRequestReview": {
+        "databaseId": 3386631280,
+        "id": "PRR_kwDOQKdW-c7J2-Rw"
+      },
+      "updatedAt": "2025-10-28T05:01:05Z"
+    }
+  }
+}

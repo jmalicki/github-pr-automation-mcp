@@ -1,0 +1,21 @@
+{
+  "data": {
+    "node": {
+      "author": {
+        "login": "coderabbitai"
+      },
+      "body": "_⚠️ Potential issue_ | _🟠 Major_\n\n**Fix test isolation to enable parallel execution.**\n\nEight tests (44% of the integration test suite) are marked `#[ignore]` due to branch name conflicts during parallel execution. This significantly reduces test coverage and could mask regressions.\n\nTests should be properly isolated to run in parallel. Consider:\n- Using unique branch names per test (e.g., include test name + timestamp/UUID)\n- Implementing proper test cleanup in teardown\n- Using test fixtures that guarantee unique resource names\n\n\n\nExample approach for unique branch names:\n\n```rust\n#[tokio::test]\nasync fn test_create_worktree_basic() -> Result<()> {\n    let test_id = uuid::Uuid::new_v4();\n    let branch_name = format!(\"test-branch-{}\", test_id);\n    \n    let (_temp_dir, repo_path) = create_temp_git_repo()?;\n    let manager = GitWorktreeManager::new(repo_path)?;\n    \n    let worktree_path = manager.create_worktree(&branch_name, None, None).await?;\n    // ... rest of test\n}\n```\n\n\nAlso applies to: 115-115, 168-168, 187-187, 214-214, 247-247, 331-331, 389-389\n\n<details>\n<summary>🤖 Prompt for AI Agents</summary>\n\n```\nIn tests/integration_tests.rs around lines 84, 115, 168, 187, 214, 247, 331 and\n389, several integration tests are ignored due to branch name conflicts when\nrunning tests in parallel; fix each test to generate and use unique branch names\n(e.g., append a UUID or timestamp derived test id), ensure each test creates its\nown temporary repo/worktree fixture and performs proper teardown/cleanup, and\nupdate test signatures to return Result where needed so setup/teardown errors\npropagate; this will allow the tests to run in parallel safely without shared\nbranch name collisions.\n```\n\n</details>\n\n<!-- This is an auto-generated comment by CodeRabbit -->",
+      "createdAt": "2025-10-28T05:01:03Z",
+      "databaseId": 2467915811,
+      "diffHunk": "@@ -81,6 +81,7 @@ async fn test_is_git_repo() -> Result<()> {\n }\n \n #[tokio::test]\n+#[ignore = \"Test has issues with branch name conflicts in parallel execution\"]",
+      "id": "PRRC_kwDOQKdW-c6TGWgj",
+      "originalPosition": 13,
+      "path": "tests/integration_tests.rs",
+      "pullRequestReview": {
+        "databaseId": 3386631280,
+        "id": "PRR_kwDOQKdW-c7J2-Rw"
+      },
+      "updatedAt": "2025-10-28T05:01:05Z"
+    }
+  }
+}
