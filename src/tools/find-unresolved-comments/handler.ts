@@ -156,7 +156,7 @@ export async function handleFindUnresolvedComments(
   // Apply basic filtering
   filtered = applyBasicFiltering(
     filtered,
-    input.include_bots,
+    input.include_bots ?? true,
     input.exclude_authors,
   );
 

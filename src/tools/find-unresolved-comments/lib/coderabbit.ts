@@ -215,9 +215,16 @@ function parseCodeRabbitReviewInternal(
 
   // Apply final filtering based on options
   if (options) {
-    return applyCodeRabbitFiltering(comments, options);
+    const out = applyCodeRabbitFiltering(comments, options);
+    console.log(
+      `DEBUG: CodeRabbit comments after final filtering: ${out.length}`,
+    );
+    return out;
   }
 
+  console.log(
+    `DEBUG: CodeRabbit comments before filtering: ${comments.length}`,
+  );
   return comments;
 }
 
@@ -413,7 +420,7 @@ export function parseCodeRabbitSections(body: string): Array<{
     code_suggestion?: {
       old_code: string;
       new_code: string;
-      language: string;
+      language?: string;
     };
     severity: "low" | "medium" | "high";
   }>;
@@ -431,7 +438,7 @@ export function parseCodeRabbitSections(body: string): Array<{
       code_suggestion?: {
         old_code: string;
         new_code: string;
-        language: string;
+        language?: string;
       };
       severity: "low" | "medium" | "high";
     }>;
@@ -587,7 +594,6 @@ export function parseCodeRabbitSections(body: string): Array<{
               codeSuggestion = {
                 old_code: oldLines.join("\n"),
                 new_code: newLines.join("\n"),
-                language: "typescript", // Assume TypeScript for now
               };
             }
             break;
@@ -826,12 +832,12 @@ function generateAgentPrompt(
     return `${basePrompt}
     
 Current code:
-\`\`\`typescript
+\`\`\`
 ${item.code_suggestion.old_code}
 \`\`\`
 
 Suggested change:
-\`\`\`typescript
+\`\`\`
 ${item.code_suggestion.new_code}
 \`\`\`
 
