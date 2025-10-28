@@ -48,8 +48,9 @@ jobs:
   integration-tests:
     runs-on: ubuntu-latest
     needs: test
-    # Only run integration tests on main branch or when explicitly requested
-    if: github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    # Only run integration tests when explicitly requested or on main branch
+    # Skip if no proper GitHub token is available
+    if: (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && secrets.GITHUB_TOKEN != ''
     env:
       ROLLUP_FORCE_JS: 1
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
