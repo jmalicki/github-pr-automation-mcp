@@ -56,7 +56,7 @@ jobs:
     needs: test
     # Only run integration tests when explicitly requested or on main branch
     # Skip if no proper GitHub token is available
-    if: (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && (inputs.run_integration_tests == true || env.GITHUB_TOKEN != '')
+    if: (github.ref == 'refs/heads/main' || github.event_name == 'pull_request') && (inputs.run_integration_tests == true)
     env:
       ROLLUP_FORCE_JS: 1
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -78,6 +78,7 @@ jobs:
         run: npm run build
       
       - name: Run integration tests
+        if: env.GITHUB_TOKEN != ''
         run: npm run test:integration
       
       - name: Run CLI integration tests
