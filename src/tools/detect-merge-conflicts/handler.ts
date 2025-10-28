@@ -14,6 +14,12 @@ export interface DetectMergeConflictsOutput {
   target_branch?: string;
 }
 
+/**
+ * Detect merge conflicts in a pull request
+ * @param client - GitHub client instance
+ * @param input - Input containing PR identifier and optional target branch
+ * @returns Promise resolving to merge conflict status
+ */
 export async function handleDetectMergeConflicts(
   client: GitHubClient,
   input: DetectMergeConflictsInput,

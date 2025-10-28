@@ -16,6 +16,11 @@ const program = new Command();
 
 // Lazy initialization of GitHub client
 let clientInstance: GitHubClient | null = null;
+
+/**
+ * Get or create GitHub client instance
+ * @returns GitHub client instance
+ */
 function getClient(): GitHubClient {
   if (!clientInstance) {
     clientInstance = new GitHubClient();

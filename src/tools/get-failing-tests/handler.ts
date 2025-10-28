@@ -171,6 +171,9 @@ export async function handleGetFailingTests(
  * Extract detailed error message with workflow run logs
  * @param octokit - GitHub API client
  * @param pr - Parsed PR identifier
+ * @param pr.owner - Repository owner
+ * @param pr.repo - Repository name
+ * @param pr.number - Pull request number
  * @param checkRun - Detailed check run data from GitHub API
  * @returns Formatted error message with specific test failures from logs
  */

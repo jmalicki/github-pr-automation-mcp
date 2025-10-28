@@ -41,7 +41,10 @@ import { Octokit } from "@octokit/rest";
  * reduced functionality (no thread resolution status).
  *
  * @param octokit - GitHub API client instance
- * @param pr - Pull request information (owner, repo, number)
+ * @param pr - Pull request information
+ * @param pr.owner - Repository owner
+ * @param pr.repo - Repository name
+ * @param pr.number - Pull request number
  * @param commentIds - Array of REST comment IDs to fetch node IDs for
  * @returns Promise resolving to node ID map and resolved thread IDs
  *

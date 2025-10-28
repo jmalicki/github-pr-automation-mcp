@@ -25,6 +25,12 @@ export interface CheckMergeReadinessOutput {
   }>;
 }
 
+/**
+ * Check if a pull request is ready to merge
+ * @param client - GitHub client instance
+ * @param input - Input containing PR identifier
+ * @returns Promise resolving to merge readiness status
+ */
 export async function handleCheckMergeReadiness(
   client: GitHubClient,
   input: CheckMergeReadinessInput,
