@@ -184,9 +184,7 @@ program
               console.log(
                 `   File: ${comment.file_path}${comment.line_number ? `:${comment.line_number}` : ""}`,
               );
-            console.log(
-              `   ${comment.body.substring(0, 150)}${comment.body.length > 150 ? "..." : ""}`,
-            );
+            console.log(`   ${comment.body}`);
             console.log(`   Created: ${comment.created_at}`);
 
             // Show action commands
