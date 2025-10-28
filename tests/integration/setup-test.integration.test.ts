@@ -10,7 +10,7 @@ describe("Integration Test Setup", () => {
     const fixture = await integrationManager.loadFixture(
       "detect-merge-conflicts-basic-pr",
     );
-    expect(fixture).toBeDefined();
+    expect(fixture).not.toBeNull();
     expect(fixture.hasConflicts).toBe(false);
   });
 
