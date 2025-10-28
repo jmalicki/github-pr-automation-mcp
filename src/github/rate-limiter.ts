@@ -1,6 +1,6 @@
 /**
  * GitHub API rate limiting and backoff
- * 
+ *
  * Implements exponential backoff and request queuing to respect
  * GitHub's rate limits and avoid 429 errors.
  */
@@ -17,7 +17,7 @@ export interface QueuedRequest {
   fn: () => Promise<unknown>;
   resolve: (value: unknown) => void;
   reject: (error: Error) => void;
-  priority: 'high' | 'normal' | 'low';
+  priority: "high" | "normal" | "low";
   timestamp: number;
 }
 
@@ -31,17 +31,17 @@ export class RateLimiter {
    * Update rate limit info from GitHub API response headers
    */
   updateRateLimit(headers: Record<string, string>): void {
-    const limit = headers['x-ratelimit-limit'];
-    const remaining = headers['x-ratelimit-remaining'];
-    const reset = headers['x-ratelimit-reset'];
-    const used = headers['x-ratelimit-used'];
+    const limit = headers["x-ratelimit-limit"];
+    const remaining = headers["x-ratelimit-remaining"];
+    const reset = headers["x-ratelimit-reset"];
+    const used = headers["x-ratelimit-used"];
 
     if (limit && remaining && reset && used) {
       this.currentLimit = {
         limit: parseInt(limit, 10),
         remaining: parseInt(remaining, 10),
         reset: parseInt(reset, 10),
-        used: parseInt(used, 10)
+        used: parseInt(used, 10),
       };
     }
   }
@@ -51,7 +51,7 @@ export class RateLimiter {
    */
   canMakeRequest(): boolean {
     const now = Date.now() / 1000;
-    
+
     // Check if we're in backoff period
     if (now < this.backoffUntil) {
       return false;
@@ -60,8 +60,9 @@ export class RateLimiter {
     // Check rate limit
     if (this.currentLimit) {
       const timeUntilReset = this.currentLimit.reset - now;
-      const requestsPerSecond = this.currentLimit.remaining / Math.max(timeUntilReset, 1);
-      
+      const requestsPerSecond =
+        this.currentLimit.remaining / Math.max(timeUntilReset, 1);
+
       // If we have less than 1 request per second available, wait
       if (requestsPerSecond < 1) {
         return false;
@@ -81,7 +82,7 @@ export class RateLimiter {
 
     const now = Date.now() / 1000;
     const timeUntilReset = this.currentLimit.reset - now;
-    
+
     if (this.currentLimit.remaining === 0) {
       // No requests left, wait until reset
       return Math.max(timeUntilReset * 1000, 1000);
@@ -91,7 +92,7 @@ export class RateLimiter {
     const usageRatio = this.currentLimit.used / this.currentLimit.limit;
     const baseDelay = 1000;
     const maxDelay = 30000; // 30 seconds max
-    
+
     return Math.min(baseDelay * Math.pow(2, usageRatio * 5), maxDelay);
   }
 
@@ -100,7 +101,7 @@ export class RateLimiter {
    */
   async queueRequest<T>(
     fn: () => Promise<T>,
-    priority: 'high' | 'normal' | 'low' = 'normal'
+    priority: "high" | "normal" | "low" = "normal",
   ): Promise<T> {
     return new Promise((resolve, reject) => {
       const request: QueuedRequest = {
@@ -109,7 +110,7 @@ export class RateLimiter {
         resolve: resolve as (value: unknown) => void,
         reject: reject as (error: Error) => void,
         priority,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
 
       // Insert based on priority
@@ -167,7 +168,9 @@ export class RateLimiter {
         const result = await request.fn();
         request.resolve(result);
       } catch (error) {
-        request.reject(error instanceof Error ? error : new Error(String(error)));
+        request.reject(
+          error instanceof Error ? error : new Error(String(error)),
+        );
       }
 
       // Small delay between requests to be respectful
@@ -181,21 +184,24 @@ export class RateLimiter {
    * Sleep for specified milliseconds
    */
   private sleep(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**
    * Get current queue status
    */
   getQueueStatus(): { length: number; priorities: Record<string, number> } {
-    const priorities = this.queue.reduce((acc, req) => {
-      acc[req.priority] = (acc[req.priority] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const priorities = this.queue.reduce(
+      (acc, req) => {
+        acc[req.priority] = (acc[req.priority] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
 
     return {
       length: this.queue.length,
-      priorities
+      priorities,
     };
   }
 
@@ -203,8 +209,8 @@ export class RateLimiter {
    * Clear all queued requests
    */
   clearQueue(): void {
-    this.queue.forEach(request => {
-      request.reject(new Error('Queue cleared'));
+    this.queue.forEach((request) => {
+      request.reject(new Error("Queue cleared"));
     });
     this.queue = [];
   }

@@ -1,4 +1,4 @@
-import type { Octokit } from '@octokit/rest';
+import type { Octokit } from "@octokit/rest";
 
 /**
  * Fetch GraphQL node IDs and thread IDs for review comments
@@ -11,15 +11,15 @@ import type { Octokit } from '@octokit/rest';
 export async function fetchReviewCommentNodeIds(
   octokit: InstanceType<typeof Octokit>,
   pr: { owner: string; repo: string; number: number },
-  commentIds: number[]
+  commentIds: number[],
 ): Promise<{ nodeIdMap: Map<number, string>; resolvedThreadIds: Set<string> }> {
   const nodeIdMap = new Map<number, string>();
   const resolvedThreadIds = new Set<string>();
-  
+
   if (commentIds.length === 0) {
     return { nodeIdMap, resolvedThreadIds };
   }
-  
+
   // Fetch review threads with comments and resolved status via GraphQL
   const query = `
     query($owner: String!, $repo: String!, $pr: Int!, $after: String) {
@@ -44,7 +44,7 @@ export async function fetchReviewCommentNodeIds(
       }
     }
   `;
-  
+
   // Type the GraphQL response
   interface GraphQLResponse {
     repository?: {
@@ -71,14 +71,17 @@ export async function fetchReviewCommentNodeIds(
   try {
     const needed = new Set(commentIds);
     let after: string | null = null;
-    
+
     do {
-      const response: GraphQLResponse = await octokit.graphql<GraphQLResponse>(query, {
-        owner: pr.owner,
-        repo: pr.repo,
-        pr: pr.number,
-        after
-      });
+      const response: GraphQLResponse = await octokit.graphql<GraphQLResponse>(
+        query,
+        {
+          owner: pr.owner,
+          repo: pr.repo,
+          pr: pr.number,
+          after,
+        },
+      );
 
       const rt = response?.repository?.pullRequest?.reviewThreads;
       const threads = rt?.nodes || [];
@@ -99,15 +102,17 @@ export async function fetchReviewCommentNodeIds(
       }
 
       const pageInfo = rt?.pageInfo;
-      after = pageInfo?.hasNextPage ? pageInfo.endCursor ?? null : null;
+      after = pageInfo?.hasNextPage ? (pageInfo.endCursor ?? null) : null;
 
       // Early exit when all IDs are mapped
       if (needed.size === 0) break;
     } while (after);
   } catch (error) {
     // If GraphQL fails, return empty map - comments will still work via resolve_command
-    console.warn(`Failed to fetch GraphQL node IDs: ${error instanceof Error ? error.message : String(error)}`);
+    console.warn(
+      `Failed to fetch GraphQL node IDs: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
-  
+
   return { nodeIdMap, resolvedThreadIds };
 }

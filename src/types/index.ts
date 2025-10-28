@@ -15,16 +15,16 @@ export interface PRIdentifier {
  */
 export interface PaginatedResult<T> {
   items: T[];
-  nextCursor?: string;  // Opaque cursor, only present if more results exist
+  nextCursor?: string; // Opaque cursor, only present if more results exist
 }
 
-export type ErrorCategory = 
+export type ErrorCategory =
   | "user"
   | "api"
   | "logical"
   | "network"
   | "authentication"
-  | "authorization"  // 403 permission errors (not rate limiting)
+  | "authorization" // 403 permission errors (not rate limiting)
   | "rate_limit"
   | "timeout"
   | "unknown";
@@ -41,7 +41,6 @@ export interface ToolError {
   documentation_url?: string;
 }
 
-export type Result<T, E = ToolError> = 
+export type Result<T, E = ToolError> =
   | { success: true; data: T }
   | { success: false; error: E };
-
