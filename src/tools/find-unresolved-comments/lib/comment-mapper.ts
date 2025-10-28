@@ -12,6 +12,9 @@ type IssueComment =
  * Map GitHub review comments to our Comment type
  * @param reviewComments - Array of GitHub review comments
  * @param pr - Pull request information
+ * @param pr.owner - Repository owner
+ * @param pr.repo - Repository name
+ * @param pr.number - Pull request number
  * @param nodeIdMap - Map of comment IDs to thread IDs
  * @returns Array of mapped Comment objects
  */
@@ -74,6 +77,9 @@ export function mapReviewComments(
  * Map GitHub issue comments to our Comment type
  * @param issueComments - Array of GitHub issue comments
  * @param pr - Pull request information
+ * @param pr.owner - Repository owner
+ * @param pr.repo - Repository name
+ * @param pr.number - Pull request number
  * @returns Array of mapped Comment objects
  */
 export function mapIssueComments(

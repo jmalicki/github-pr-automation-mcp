@@ -20,10 +20,21 @@ export interface BatchResult<T> {
   error?: Error;
 }
 
+/**
+ * Handles parallel GitHub API requests with concurrency control
+ *
+ * Manages batching and parallel execution of GitHub API calls
+ * to improve performance while respecting rate limits.
+ */
 export class ParallelRequestHandler {
   private client: GitHubClient;
   private maxConcurrency: number;
 
+  /**
+   * Create a new parallel request handler
+   * @param client - GitHub client instance
+   * @param maxConcurrency - Maximum concurrent requests (default: 5)
+   */
   constructor(client: GitHubClient, maxConcurrency = 5) {
     this.client = client;
     this.maxConcurrency = maxConcurrency;
@@ -31,6 +42,8 @@ export class ParallelRequestHandler {
 
   /**
    * Execute multiple requests in parallel with concurrency control
+   * @param requests - Array of batch requests to execute
+   * @returns Promise resolving to array of batch results
    */
   async executeBatch<T>(
     requests: BatchRequest<T>[],
@@ -58,6 +71,8 @@ export class ParallelRequestHandler {
 
   /**
    * Execute a single request
+   * @param request - Batch request to execute
+   * @returns Promise resolving to batch result
    */
   private async executeRequest<T>(
     request: BatchRequest<T>,
@@ -75,6 +90,8 @@ export class ParallelRequestHandler {
 
   /**
    * Batch PR metadata requests
+   * @param prs - Array of PR identifiers
+   * @returns Promise resolving to array of batch results
    */
   async batchPRMetadata(prs: string[]): Promise<BatchResult<unknown>[]> {
     const requests: BatchRequest<unknown>[] = prs.map((pr) => ({
@@ -91,6 +108,8 @@ export class ParallelRequestHandler {
 
   /**
    * Batch check runs requests
+   * @param commits - Array of commit objects with owner, repo, and sha
+   * @returns Promise resolving to array of batch results
    */
   async batchCheckRuns(
     commits: Array<{ owner: string; repo: string; sha: string }>,
@@ -111,6 +130,8 @@ export class ParallelRequestHandler {
 
   /**
    * Batch comment requests
+   * @param prs - Array of PR objects with owner, repo, and number
+   * @returns Promise resolving to array of batch results
    */
   async batchComments(
     prs: Array<{ owner: string; repo: string; number: number }>,
@@ -132,6 +153,9 @@ export class ParallelRequestHandler {
 
 /**
  * Create a parallel request handler for a GitHub client
+ * @param client - GitHub client instance
+ * @param maxConcurrency - Maximum concurrent requests (default: 5)
+ * @returns New parallel request handler instance
  */
 export function createParallelHandler(
   client: GitHubClient,

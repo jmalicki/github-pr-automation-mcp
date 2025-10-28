@@ -38,18 +38,26 @@ export default [
       'no-console': ['warn', { allow: ['error', 'warn'] }],
       
       // Documentation enforcement rules using JSDoc plugin
-      // Disabled for now to allow code quality checks to pass
-      'jsdoc/require-jsdoc': 'off',
-      'jsdoc/valid-types': 'off',
-      'jsdoc/require-description': 'off',
-      'jsdoc/require-param-description': 'off',
-      'jsdoc/require-returns-description': 'off',
-      'jsdoc/check-param-names': 'off',
-      'jsdoc/check-tag-names': 'off',
-      'jsdoc/check-types': 'off',
-      'jsdoc/no-undefined-types': 'off',
-      'jsdoc/require-example': 'off',
-      'jsdoc/require-returns': 'off'
+      // Re-enabled with reasonable defaults for good documentation standards
+      'jsdoc/require-jsdoc': ['warn', {
+        require: {
+          FunctionDeclaration: true,
+          MethodDefinition: true,
+          ClassDeclaration: true,
+          ArrowFunctionExpression: false,
+          FunctionExpression: false
+        }
+      }],
+      'jsdoc/valid-types': 'warn',
+      'jsdoc/require-description': 'warn',
+      'jsdoc/require-param-description': 'warn',
+      'jsdoc/require-returns-description': 'warn',
+      'jsdoc/check-param-names': 'warn',
+      'jsdoc/check-tag-names': 'warn',
+      'jsdoc/check-types': 'warn',
+      'jsdoc/no-undefined-types': 'warn',
+      'jsdoc/require-example': 'off', // Too strict for most code
+      'jsdoc/require-returns': 'warn'
     }
   },
   {

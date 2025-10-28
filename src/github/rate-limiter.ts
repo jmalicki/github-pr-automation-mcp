@@ -21,6 +21,12 @@ export interface QueuedRequest {
   timestamp: number;
 }
 
+/**
+ * GitHub API rate limiter with exponential backoff
+ *
+ * Manages request queuing and rate limiting to respect GitHub's
+ * API limits and implement proper backoff strategies.
+ */
 export class RateLimiter {
   private queue: QueuedRequest[] = [];
   private isProcessing = false;
@@ -48,6 +54,7 @@ export class RateLimiter {
 
   /**
    * Check if we can make a request now
+   * @returns true if request can be made immediately, false otherwise
    */
   canMakeRequest(): boolean {
     const now = Date.now() / 1000;
@@ -74,6 +81,7 @@ export class RateLimiter {
 
   /**
    * Calculate backoff delay based on remaining requests
+   * @returns Backoff delay in milliseconds
    */
   private calculateBackoff(): number {
     if (!this.currentLimit) {
@@ -126,6 +134,8 @@ export class RateLimiter {
 
   /**
    * Find the correct position to insert request based on priority
+   * @param request - Request to find insertion point for
+   * @returns Index where request should be inserted
    */
   private findInsertIndex(request: QueuedRequest): number {
     const priorityOrder = { high: 0, normal: 1, low: 2 };
@@ -182,6 +192,8 @@ export class RateLimiter {
 
   /**
    * Sleep for specified milliseconds
+   * @param ms - Milliseconds to sleep
+   * @returns Promise that resolves after the specified time
    */
   private sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -189,6 +201,7 @@ export class RateLimiter {
 
   /**
    * Get current queue status
+   * @returns Object containing queue length and priority distribution
    */
   getQueueStatus(): { length: number; priorities: Record<string, number> } {
     const priorities = this.queue.reduce(

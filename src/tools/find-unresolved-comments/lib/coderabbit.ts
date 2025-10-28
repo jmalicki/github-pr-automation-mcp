@@ -72,7 +72,10 @@ export interface CodeRabbitOptions {
  *
  * @param body - The raw review body text from CodeRabbit (HTML format)
  * @param review - The full GitHub review object containing metadata
- * @param pr - Pull request information (owner, repo, number)
+ * @param pr - Pull request information
+ * @param pr.owner - Repository owner
+ * @param pr.repo - Repository name
+ * @param pr.number - Pull request number
  * @param author - Review author username (should be 'coderabbitai')
  * @param authorAssociation - GitHub author association (e.g., 'NONE', 'MEMBER')
  * @param isBot - Whether the author is marked as a bot account
@@ -492,6 +495,22 @@ function parseCodeRabbitSections(body: string): Array<{
  * @returns Standardized Comment object with CodeRabbit metadata
  */
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
+/**
+ * Create a standardized Comment object from CodeRabbit suggestion item
+ * @param item - Parsed CodeRabbit suggestion item
+ * @param suggestionType - Type of suggestion (nit, duplicate, etc.)
+ * @param review - GitHub review object
+ * @param pr - Pull request information
+ * @param pr.owner - Repository owner
+ * @param pr.repo - Repository name
+ * @param pr.number - Pull request number
+ * @param author - Review author
+ * @param authorAssociation - GitHub author association
+ * @param isBot - Whether author is a bot
+ * @param options - Optional CodeRabbit parsing options
+ * @param includeStatusIndicators - Whether to include status indicators
+ * @returns Standardized Comment object with CodeRabbit metadata
+ */
 function createCodeRabbitComment(
   item: any,
   suggestionType: string,
@@ -598,6 +617,12 @@ function createCodeRabbitComment(
  * 4. **Guidance**: Implementation rationale and context
  *
  * @param item - Parsed suggestion item with file and code information
+ * @param item.file_path - File path where the suggestion applies
+ * @param item.line_range - Line range for the suggestion
+ * @param item.code_suggestion - Code suggestion details
+ * @param item.code_suggestion.old_code - Current code to be replaced
+ * @param item.code_suggestion.new_code - Suggested new code
+ * @param item.description - Description of the suggestion
  * @param suggestionType - Type of suggestion (nit, duplicate, etc.)
  * @returns Formatted prompt string for AI agents
  */

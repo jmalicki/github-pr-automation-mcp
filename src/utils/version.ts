@@ -18,6 +18,10 @@ export interface VersionInfo {
 
 let versionInfo: VersionInfo | null = null;
 
+/**
+ * Load version information from version-info.json file
+ * @returns Version information object
+ */
 function loadVersionInfo(): VersionInfo {
   if (versionInfo) {
     return versionInfo;
@@ -54,16 +58,28 @@ function loadVersionInfo(): VersionInfo {
   }
 }
 
+/**
+ * Get version information
+ * @returns Version information object
+ */
 export function getVersionInfo(): VersionInfo {
   return loadVersionInfo();
 }
 
+/**
+ * Get short version string
+ * @returns Version string in format "version+revision" or "version+revision-dirty"
+ */
 export function getVersionString(): string {
   const info = getVersionInfo();
   const dirtySuffix = info.isDirty ? "-dirty" : "";
   return `${info.version}+${info.gitRevision}${dirtySuffix}`;
 }
 
+/**
+ * Get full version string with complete git revision
+ * @returns Full version string in format "version+fullrevision" or "version+fullrevision-dirty"
+ */
 export function getFullVersionString(): string {
   const info = getVersionInfo();
   const dirtySuffix = info.isDirty ? "-dirty" : "";

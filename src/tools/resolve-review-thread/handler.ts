@@ -6,6 +6,12 @@ import {
 } from "./schema.js";
 import { parsePRIdentifier } from "../../utils/parser.js";
 
+/**
+ * Resolve a GitHub review thread
+ * @param client - GitHub client instance
+ * @param input - Input containing PR identifier and thread/comment ID
+ * @returns Promise resolving to resolution status
+ */
 export async function handleResolveReviewThread(
   client: GitHubClient,
   input: ResolveReviewThreadInput,

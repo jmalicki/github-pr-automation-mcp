@@ -24,6 +24,12 @@ export interface RebaseAfterSquashMergeOutput {
   };
 }
 
+/**
+ * Generate rebase commands after upstream PR was squash-merged
+ * @param client - GitHub client instance
+ * @param input - Input containing PR identifier and optional target branch
+ * @returns Promise resolving to rebase command output
+ */
 export async function handleRebaseAfterSquashMerge(
   client: GitHubClient,
   input: RebaseAfterSquashMergeInput,

@@ -9,6 +9,21 @@ import type { PRIdentifier } from "../../types/index.js";
  * - ONLY runs resolve_command AFTER verifying fix is complete
  */
 
+/**
+ * Generate GitHub CLI action commands for a comment
+ *
+ * IMPORTANT: These commands are templates. The AI agent:
+ * - Fills in "YOUR_RESPONSE_HERE" with actual response text
+ * - Decides when to execute reply vs resolve
+ * - ONLY runs resolve_command AFTER verifying fix is complete
+ * @param pr - Pull request identifier
+ * @param commentId - Comment ID
+ * @param commentType - Type of comment (review_comment, issue_comment, review)
+ * @param body - Comment body text
+ * @param filePath - Optional file path for review comments
+ * @param threadId - Optional thread ID for review comments
+ * @returns Object containing reply and resolve commands
+ */
 export function generateActionCommands(
   pr: PRIdentifier,
   commentId: number,

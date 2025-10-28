@@ -14,6 +14,9 @@ type ReviewList =
  *
  * @param reviews - Array of GitHub reviews
  * @param pr - Pull request information
+ * @param pr.owner - Repository owner
+ * @param pr.repo - Repository name
+ * @param pr.number - Pull request number
  * @param coderabbitOptions - CodeRabbit-specific options
  * @param includeStatusIndicators - Whether to include status indicators
  * @returns Array of parsed actionable comments
