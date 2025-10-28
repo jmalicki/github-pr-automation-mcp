@@ -1,21 +1,23 @@
-import { describe, it, expect } from 'vitest';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { describe, it, expect } from "vitest";
+import { exec } from "child_process";
+import { promisify } from "util";
 
 const execAsync = promisify(exec);
 
-describe('CLI: find-unresolved-comments', () => {
+describe("CLI: find-unresolved-comments", () => {
   const hasToken = !!process.env.GITHUB_TOKEN;
-  const skipMessage = 'Skipping CLI test - GITHUB_TOKEN not set';
+  const skipMessage = "Skipping CLI test - GITHUB_TOKEN not set";
 
-  it('should show help', async () => {
-    const { stdout } = await execAsync('node dist/cli.js find-unresolved-comments --help');
-    expect(stdout).toContain('Find unresolved PR comments');
-    expect(stdout).toContain('--pr');
-    expect(stdout).toContain('--include-bots');
+  it("should show help", async () => {
+    const { stdout } = await execAsync(
+      "node dist/cli.js find-unresolved-comments --help",
+    );
+    expect(stdout).toContain("Find unresolved PR comments");
+    expect(stdout).toContain("--pr");
+    expect(stdout).toContain("--include-bots");
   });
 
-  it('should output JSON format', async () => {
+  it("should output JSON format", async () => {
     if (!hasToken) {
       console.log(skipMessage);
       return;
@@ -23,9 +25,9 @@ describe('CLI: find-unresolved-comments', () => {
 
     try {
       const { stdout } = await execAsync(
-        'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js find-unresolved-comments --pr "jmalicki/resolve-pr-mcp#2" --json'
+        'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js find-unresolved-comments --pr "jmalicki/resolve-pr-mcp#2" --json',
       );
-      
+
       // Check if output is valid JSON (may be truncated for large outputs)
       let result;
       try {
@@ -35,22 +37,22 @@ describe('CLI: find-unresolved-comments', () => {
         expect(stdout.trim()).toMatch(/^\{.*$/);
         expect(stdout).toContain('"pr":');
         expect(stdout).toContain('"unresolved_in_page":');
-        expect(stdout).toContain('⚠️  Large output detected');
+        expect(stdout).toContain("⚠️  Large output detected");
         return; // Skip further assertions for truncated output
       }
-      
-      expect(result).toHaveProperty('pr');
-      expect(result).toHaveProperty('unresolved_in_page');
-      expect(result).toHaveProperty('comments');
-      expect(result).toHaveProperty('summary');
+
+      expect(result).toHaveProperty("pr");
+      expect(result).toHaveProperty("unresolved_in_page");
+      expect(result).toHaveProperty("comments");
+      expect(result).toHaveProperty("summary");
     } catch (error) {
       // If API call fails (e.g., timeout, bad credentials), just skip the test
-      console.log('Skipping test due to API error:', error.message);
+      console.log("Skipping test due to API error:", error.message);
       return;
     }
   }, 30000);
 
-  it('should output human-readable format', async () => {
+  it("should output human-readable format", async () => {
     if (!hasToken) {
       console.log(skipMessage);
       return;
@@ -58,20 +60,20 @@ describe('CLI: find-unresolved-comments', () => {
 
     try {
       const { stdout } = await execAsync(
-        'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js find-unresolved-comments --pr "jmalicki/resolve-pr-mcp#2"'
+        'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js find-unresolved-comments --pr "jmalicki/resolve-pr-mcp#2"',
       );
-      
-      expect(stdout).toContain('Comments for');
-      expect(stdout).toContain('Total unresolved:');
-      expect(stdout).toContain('Summary:');
+
+      expect(stdout).toContain("Comments for");
+      expect(stdout).toContain("Total unresolved:");
+      expect(stdout).toContain("Summary:");
     } catch (error) {
       // If API call fails (e.g., timeout, bad credentials), just skip the test
-      console.log('Skipping test due to API error:', error.message);
+      console.log("Skipping test due to API error:", error.message);
       return;
     }
   }, 30000);
 
-  it('should handle sorting options', async () => {
+  it("should handle sorting options", async () => {
     if (!hasToken) {
       console.log(skipMessage);
       return;
@@ -79,9 +81,9 @@ describe('CLI: find-unresolved-comments', () => {
 
     try {
       const { stdout } = await execAsync(
-        'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js find-unresolved-comments --pr "jmalicki/resolve-pr-mcp#2" --sort by_file --json'
+        'GITHUB_TOKEN=$GITHUB_TOKEN node dist/cli.js find-unresolved-comments --pr "jmalicki/resolve-pr-mcp#2" --sort by_file --json',
       );
-      
+
       // Check if output is valid JSON (may be truncated for large outputs)
       let result;
       try {
@@ -91,15 +93,13 @@ describe('CLI: find-unresolved-comments', () => {
         // If JSON parsing fails due to truncation, check if it starts with valid JSON
         expect(stdout.trim()).toMatch(/^\{.*$/);
         expect(stdout).toContain('"comments":');
-        expect(stdout).toContain('⚠️  Large output detected');
+        expect(stdout).toContain("⚠️  Large output detected");
         return; // Skip further assertions for truncated output
       }
     } catch (error) {
       // If API call fails (e.g., timeout, bad credentials), just skip the test
-      console.log('Skipping test due to API error:', error.message);
+      console.log("Skipping test due to API error:", error.message);
       return;
     }
   }, 30000);
 });
-
-

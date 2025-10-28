@@ -1,8 +1,15 @@
-import { GitHubClient } from '../../github/client.js';
-import { ResolveReviewThreadInput, ResolveReviewThreadInputSchema, ResolveReviewThreadOutput } from './schema.js';
-import { parsePRIdentifier } from '../../utils/parser.js';
+import { GitHubClient } from "../../github/client.js";
+import {
+  ResolveReviewThreadInput,
+  ResolveReviewThreadInputSchema,
+  ResolveReviewThreadOutput,
+} from "./schema.js";
+import { parsePRIdentifier } from "../../utils/parser.js";
 
-export async function handleResolveReviewThread(client: GitHubClient, input: ResolveReviewThreadInput): Promise<ResolveReviewThreadOutput> {
+export async function handleResolveReviewThread(
+  client: GitHubClient,
+  input: ResolveReviewThreadInput,
+): Promise<ResolveReviewThreadOutput> {
   const parsed = ResolveReviewThreadInputSchema.parse(input);
   // Parse PR (needed for REST API calls to convert numeric comment IDs)
   const pr = parsePRIdentifier(parsed.pr);
@@ -19,15 +26,15 @@ export async function handleResolveReviewThread(client: GitHubClient, input: Res
       const { data } = await octokit.rest.pulls.getReviewComment({
         owner: pr.owner,
         repo: pr.repo,
-        comment_id: Number(parsed.comment_id)
+        comment_id: Number(parsed.comment_id),
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       commentNodeId = (data as any).node_id as string;
       if (!commentNodeId) {
-        throw new Error('Unable to get GraphQL node_id from REST comment');
+        throw new Error("Unable to get GraphQL node_id from REST comment");
       }
     }
-    
+
     const threadQuery = `
       query($commentId: ID!) {
         node(id: $commentId) {
@@ -38,11 +45,13 @@ export async function handleResolveReviewThread(client: GitHubClient, input: Res
       }
     `;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-    const resp = await octokit.graphql(threadQuery, { commentId: commentNodeId }) as any;
+    const resp = (await octokit.graphql(threadQuery, {
+      commentId: commentNodeId,
+    })) as any;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     threadId = resp?.node?.pullRequestReviewThread?.id;
     if (!threadId) {
-      throw new Error('Unable to resolve thread_id from comment_id');
+      throw new Error("Unable to resolve thread_id from comment_id");
     }
   }
 
@@ -58,11 +67,18 @@ export async function handleResolveReviewThread(client: GitHubClient, input: Res
     }
   `;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-  const statusResp = await octokit.graphql(statusQuery, { threadId }) as any;
+  const statusResp = (await octokit.graphql(statusQuery, { threadId })) as any;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  const threadNode = statusResp?.node as { id?: string; isResolved?: boolean } | undefined;
+  const threadNode = statusResp?.node as
+    | { id?: string; isResolved?: boolean }
+    | undefined;
   if (threadNode && threadNode.isResolved) {
-    return { ok: true, thread_id: threadId!, alreadyResolved: true, message: 'Thread already resolved' };
+    return {
+      ok: true,
+      thread_id: threadId!,
+      alreadyResolved: true,
+      message: "Thread already resolved",
+    };
   }
 
   const mutation = `
@@ -73,10 +89,8 @@ export async function handleResolveReviewThread(client: GitHubClient, input: Res
     }
   `;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment
-  const mutResp = await octokit.graphql(mutation, { threadId }) as any;
+  const mutResp = (await octokit.graphql(mutation, { threadId })) as any;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   const isResolved = Boolean(mutResp?.resolveReviewThread?.thread?.isResolved);
   return { ok: isResolved, thread_id: threadId!, alreadyResolved: false };
 }
-
-
