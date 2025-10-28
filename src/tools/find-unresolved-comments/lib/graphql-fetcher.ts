@@ -44,7 +44,7 @@ import type { Octokit } from "@octokit/rest";
  * @param pr - Pull request information (owner, repo, number)
  * @param commentIds - Array of REST comment IDs to fetch node IDs for
  * @returns Promise resolving to node ID map and resolved thread IDs
- * 
+ *
  * @example
  * ```typescript
  * const { nodeIdMap, resolvedThreadIds } = await fetchReviewCommentNodeIds(
@@ -52,7 +52,7 @@ import type { Octokit } from "@octokit/rest";
  *   { owner: 'owner', repo: 'repo', number: 123 },
  *   [12345, 12346]
  * );
- * 
+ *
  * // Check if a comment's thread is resolved
  * const threadId = nodeIdMap.get(12345);
  * const isResolved = resolvedThreadIds.has(threadId);
@@ -64,8 +64,8 @@ export async function fetchReviewCommentNodeIds(
   commentIds: number[],
 ): Promise<{ nodeIdMap: Map<number, string>; resolvedThreadIds: Set<string> }> {
   // Initialize result containers
-  const nodeIdMap = new Map<number, string>();      // Maps REST ID → GraphQL thread ID
-  const resolvedThreadIds = new Set<string>();      // Set of resolved thread IDs
+  const nodeIdMap = new Map<number, string>(); // Maps REST ID → GraphQL thread ID
+  const resolvedThreadIds = new Set<string>(); // Set of resolved thread IDs
 
   // Early return if no comment IDs to process
   if (commentIds.length === 0) {
@@ -105,17 +105,17 @@ export async function fetchReviewCommentNodeIds(
       pullRequest?: {
         reviewThreads?: {
           nodes?: Array<{
-            id: string;                    // GraphQL thread node ID
-            isResolved: boolean;          // Thread resolution status
+            id: string; // GraphQL thread node ID
+            isResolved: boolean; // Thread resolution status
             comments?: {
               nodes?: Array<{
-                databaseId: number;       // REST API comment ID
+                databaseId: number; // REST API comment ID
               }>;
             };
           }>;
           pageInfo?: {
-            hasNextPage: boolean;        // Pagination indicator
-            endCursor: string | null;    // Cursor for next page
+            hasNextPage: boolean; // Pagination indicator
+            endCursor: string | null; // Cursor for next page
           };
         };
       };
@@ -125,7 +125,7 @@ export async function fetchReviewCommentNodeIds(
   try {
     // Track which comment IDs we still need to find
     const needed = new Set(commentIds);
-    let after: string | null = null;  // Pagination cursor
+    let after: string | null = null; // Pagination cursor
 
     // Paginate through all review threads until we find all needed IDs
     do {
@@ -147,7 +147,7 @@ export async function fetchReviewCommentNodeIds(
       // Process each thread
       for (const thread of threads) {
         const threadId = thread.id;
-        
+
         // Track resolved threads
         if (thread.isResolved) {
           resolvedThreadIds.add(threadId);
@@ -157,8 +157,8 @@ export async function fetchReviewCommentNodeIds(
         for (const comment of thread.comments?.nodes || []) {
           const dbId = comment.databaseId;
           if (dbId && needed.has(dbId)) {
-            nodeIdMap.set(dbId, threadId);  // Map REST ID → GraphQL thread ID
-            needed.delete(dbId);            // Mark this ID as found
+            nodeIdMap.set(dbId, threadId); // Map REST ID → GraphQL thread ID
+            needed.delete(dbId); // Mark this ID as found
           }
         }
       }

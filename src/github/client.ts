@@ -34,10 +34,10 @@ import type { PRIdentifier } from "../types/index.js";
  * ```typescript
  * // Initialize with environment token
  * const client = new GitHubClient();
- * 
+ *
  * // Initialize with explicit token
  * const client = new GitHubClient('ghp_your_token_here');
- * 
+ *
  * // Initialize for testing
  * const client = new GitHubClient(undefined, mockOctokit);
  * ```
@@ -117,7 +117,7 @@ export class GitHubClient {
    * 4. **Fine-grained Handling**: Skip scope check for fine-grained tokens
    *
    * @returns Promise resolving to validation result with user info and scopes
-   * 
+   *
    * @example
    * ```typescript
    * const validation = await client.validateToken();
@@ -181,7 +181,7 @@ export class GitHubClient {
    * @param pr - PR identifier containing owner, repo, and number
    * @returns Promise resolving to complete PR data from GitHub API
    * @throws Error with normalized GitHub API errors and operation context
-   * 
+   *
    * @example
    * ```typescript
    * const pr = await client.getPullRequest({ owner: 'microsoft', repo: 'vscode', number: 12345 });
@@ -218,7 +218,7 @@ export class GitHubClient {
    *
    * @returns Promise resolving to rate limit information
    * @throws Error with normalized GitHub API errors
-   * 
+   *
    * @example
    * ```typescript
    * const rateLimit = await client.getRateLimit();
@@ -247,7 +247,7 @@ export class GitHubClient {
    * when you need direct access to GitHub API endpoints.
    *
    * @returns Octokit instance for advanced GitHub API operations
-   * 
+   *
    * @example
    * ```typescript
    * const octokit = client.getOctokit();

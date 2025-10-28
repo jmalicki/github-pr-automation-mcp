@@ -15,7 +15,7 @@ import type { Comment } from "../schema.js";
  * - **resolved**: Outdated or explicitly resolved
  *
  * ### Priority Scoring (0-100)
- * 
+ *
  * Priority is calculated based on multiple factors:
  * - **CodeRabbit Severity**: high=40, medium=25, low=10 points
  * - **Suggestion Type**: actionable=30, additional=20, nit=5 points
@@ -38,7 +38,7 @@ import type { Comment } from "../schema.js";
  * @param comment - The comment to analyze
  * @param allComments - Optional array of all comments for context analysis
  * @returns Status indicators object with resolution status and priority
- * 
+ *
  * @example
  * ```typescript
  * const indicators = calculateStatusIndicators(comment, allComments);
@@ -52,24 +52,24 @@ export function calculateStatusIndicators(
 ): Comment["status_indicators"] {
   // Check if this comment has MCP action commands available
   const hasMcpAction = !!comment.action_commands.mcp_action;
-  
+
   // Check if this comment has replies by looking for other comments that reply to it
   // Only consider human responses from different authors (avoid self-acks)
   const hasManualResponse = allComments
     ? allComments.some(
         (c) =>
-          c.in_reply_to_id === comment.id &&  // This comment replies to our comment
-          !c.is_bot &&                        // Only humans count as responses
-          c.author !== comment.author,        // Avoid self-acknowledgments
+          c.in_reply_to_id === comment.id && // This comment replies to our comment
+          !c.is_bot && // Only humans count as responses
+          c.author !== comment.author, // Avoid self-acknowledgments
       )
     : false;
-  
+
   // Determine if this comment is actionable based on content or metadata
   const isActionable =
-    comment.coderabbit_metadata?.suggestion_type === "actionable" ||  // CodeRabbit actionable
-    comment.body.toLowerCase().includes("fix") ||                     // Contains "fix"
-    comment.body.toLowerCase().includes("suggest") ||                 // Contains "suggest"
-    comment.body.toLowerCase().includes("change");                    // Contains "change"
+    comment.coderabbit_metadata?.suggestion_type === "actionable" || // CodeRabbit actionable
+    comment.body.toLowerCase().includes("fix") || // Contains "fix"
+    comment.body.toLowerCase().includes("suggest") || // Contains "suggest"
+    comment.body.toLowerCase().includes("change"); // Contains "change"
 
   // Use GitHub API's outdated field (available for review comments)
   const isOutdated = comment.outdated || false;
@@ -81,29 +81,29 @@ export function calculateStatusIndicators(
   if (comment.coderabbit_metadata) {
     switch (comment.coderabbit_metadata.severity) {
       case "high":
-        priorityScore += 40;    // High severity gets highest base score
+        priorityScore += 40; // High severity gets highest base score
         break;
       case "medium":
-        priorityScore += 25;    // Medium severity gets moderate score
+        priorityScore += 25; // Medium severity gets moderate score
         break;
       case "low":
-        priorityScore += 10;    // Low severity gets minimal score
+        priorityScore += 10; // Low severity gets minimal score
         break;
     }
 
     // Additional priority based on suggestion type
     switch (comment.coderabbit_metadata.suggestion_type) {
       case "actionable":
-        priorityScore += 30;    // Actionable items are high priority
+        priorityScore += 30; // Actionable items are high priority
         break;
       case "additional":
-        priorityScore += 20;    // Additional suggestions are medium priority
+        priorityScore += 20; // Additional suggestions are medium priority
         break;
       case "nit":
-        priorityScore += 5;     // Nitpicks are low priority
+        priorityScore += 5; // Nitpicks are low priority
         break;
       case "duplicate":
-        priorityScore += 0;     // Duplicates get no additional priority
+        priorityScore += 0; // Duplicates get no additional priority
         break;
     }
   }
@@ -137,7 +137,7 @@ export function calculateStatusIndicators(
     | "acknowledged"
     | "in_progress"
     | "resolved";
-    
+
   if (hasManualResponse && isActionable) {
     // Actionable comments with responses are in progress
     resolutionStatus = "in_progress";
@@ -151,7 +151,7 @@ export function calculateStatusIndicators(
 
   // Determine suggested action based on priority and context
   let suggestedAction: "reply" | "resolve" | "investigate" | "ignore";
-  
+
   if (hasMcpAction && !hasManualResponse) {
     // Comments with MCP actions should be resolved automatically
     suggestedAction = "resolve";

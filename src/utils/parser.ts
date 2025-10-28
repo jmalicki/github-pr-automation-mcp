@@ -35,14 +35,14 @@ import type { PRIdentifier } from "../types/index.js";
  * @param input - PR identifier string in any supported format
  * @returns Parsed PR identifier with owner, repo, and number
  * @throws Error if input format is invalid
- * 
+ *
  * @example
  * ```typescript
  * // All of these work:
  * parsePRIdentifier("owner/repo#123")
  * parsePRIdentifier("owner/repo/pull/123")
  * parsePRIdentifier("https://github.com/owner/repo/pull/123")
- * 
+ *
  * // This throws an error:
  * parsePRIdentifier("invalid-format")
  * ```
@@ -54,19 +54,19 @@ export function parsePRIdentifier(input: string): PRIdentifier {
     // Regex explanation: owner (word chars + hyphens), repo (word chars + hyphens + dots), number
     {
       regex: /^([\w-]+)\/([\w.-]+)#(\d+)$/,
-      groups: [1, 2, 3],  // owner=group1, repo=group2, number=group3
+      groups: [1, 2, 3], // owner=group1, repo=group2, number=group3
     },
     // Format 2: owner/repo/pull/123 or owner/repo/pulls/123
     // Handles both singular and plural "pull" paths
     {
       regex: /^([\w-]+)\/([\w.-]+)\/pulls?\/(\d+)$/,
-      groups: [1, 2, 3],  // owner=group1, repo=group2, number=group3
+      groups: [1, 2, 3], // owner=group1, repo=group2, number=group3
     },
     // Format 3: https://github.com/owner/repo/pull/123
     // Full GitHub URL format (supports both http and https)
     {
       regex: /^https?:\/\/github\.com\/([\w-]+)\/([\w.-]+)\/pull\/(\d+)$/,
-      groups: [1, 2, 3],  // owner=group1, repo=group2, number=group3
+      groups: [1, 2, 3], // owner=group1, repo=group2, number=group3
     },
   ];
 
@@ -76,8 +76,8 @@ export function parsePRIdentifier(input: string): PRIdentifier {
     if (match) {
       // Extract components using group indices
       return {
-        owner: match[format.groups[0]],           // Extract owner from regex group
-        repo: match[format.groups[1]],           // Extract repo from regex group
+        owner: match[format.groups[0]], // Extract owner from regex group
+        repo: match[format.groups[1]], // Extract repo from regex group
         number: parseInt(match[format.groups[2]], 10), // Parse number as integer
       };
     }
@@ -101,7 +101,7 @@ export function parsePRIdentifier(input: string): PRIdentifier {
  *
  * @param pr - PR identifier object with owner, repo, and number
  * @returns Formatted string in owner/repo#number format
- * 
+ *
  * @example
  * ```typescript
  * const pr = { owner: 'microsoft', repo: 'vscode', number: 12345 };
@@ -136,12 +136,12 @@ export function formatPRIdentifier(pr: PRIdentifier): string {
  *
  * @param sha - Full or partial commit SHA string
  * @returns Shortened SHA string (7 characters maximum)
- * 
+ *
  * @example
  * ```typescript
  * normalizeCommitSHA("a1b2c3d4e5f6789012345678901234567890abcd")
  * // Returns: "a1b2c3d"
- * 
+ *
  * normalizeCommitSHA("abc123")
  * // Returns: "abc123"
  * ```

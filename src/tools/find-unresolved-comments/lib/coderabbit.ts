@@ -5,11 +5,11 @@ import { calculateStatusIndicators } from "./status-indicators.js";
 
 /**
  * Safe synthetic IDs for generated "review" comments.
- * 
+ *
  * CodeRabbit reviews don't have individual comment IDs in the GitHub API,
  * so we generate negative, monotonic IDs to distinguish them from real
  * GitHub comment IDs (which are always positive).
- * 
+ *
  * Starting at -1 and decrementing ensures no collision with real IDs.
  */
 let __tempReviewCommentId = -1;
@@ -19,7 +19,7 @@ type Review =
 
 /**
  * Configuration options for CodeRabbit review parsing and filtering.
- * 
+ *
  * These options control which types of CodeRabbit suggestions are included
  * and how they are processed and prioritized.
  */
@@ -48,10 +48,10 @@ export interface CodeRabbitOptions {
  * converting it into standardized Comment objects.
  *
  * ## CodeRabbit Review Format
- * 
+ *
  * CodeRabbit reviews use a structured HTML format with collapsible sections:
  * - 🧹 Nitpicks: Minor style/formatting issues
- * - ♻️ Duplicate code: Code duplication suggestions  
+ * - ♻️ Duplicate code: Code duplication suggestions
  * - 📜 Additional suggestions: Enhancement recommendations
  * - Actionable items: Must-fix issues (no emoji, just "Actionable items: N")
  *
@@ -62,7 +62,7 @@ export interface CodeRabbitOptions {
  * - Severity level (inferred from section type)
  *
  * ## Processing Pipeline
- * 
+ *
  * 1. **Section Parsing**: Extract structured sections from HTML
  * 2. **Item Extraction**: Parse individual suggestions within sections
  * 3. **Code Diff Parsing**: Extract code suggestions from diff blocks
@@ -79,7 +79,7 @@ export interface CodeRabbitOptions {
  * @param options - CodeRabbit-specific parsing and filtering options
  * @param includeStatusIndicators - Whether to calculate status indicators
  * @returns Array of parsed Comment objects representing CodeRabbit suggestions
- * 
+ *
  * @example
  * ```typescript
  * const comments = parseCodeRabbitReview(
@@ -170,7 +170,7 @@ export function parseCodeRabbitReview(
  *
  * CodeRabbit reviews contain these section types:
  * - 🧹 Nitpicks: Minor style/formatting issues (low severity)
- * - ♻️ Duplicate code: Code duplication suggestions (medium severity)  
+ * - ♻️ Duplicate code: Code duplication suggestions (medium severity)
  * - 📜 Additional suggestions: Enhancement recommendations (medium severity)
  * - Actionable items: Must-fix issues (high severity, no emoji)
  *
@@ -190,7 +190,7 @@ export function parseCodeRabbitReview(
  * `42: **Issue description**`
  * ```diff
  * - old code
- * + new code  
+ * + new code
  * ```
  * ```
  *
@@ -252,14 +252,14 @@ function parseCodeRabbitSections(body: string): Array<{
   }> = [];
 
   /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
-  
+
   // Split the HTML body into lines for line-by-line parsing
   const lines = body.split("\n");
-  
+
   // State variables for the parsing state machine
-  let currentSection: any = null;  // Currently active section being parsed
-  let currentItem: any = null;     // Currently active item being parsed
-  let currentFile = "";            // Current file context from nested summaries
+  let currentSection: any = null; // Currently active section being parsed
+  let currentItem: any = null; // Currently active item being parsed
+  let currentFile = ""; // Current file context from nested summaries
 
   // Main parsing loop - process each line sequentially
   for (let i = 0; i < lines.length; i++) {
@@ -269,7 +269,7 @@ function parseCodeRabbitSections(body: string): Array<{
     // We need to check the next line for the actual summary content
     if (line.includes("<details>") && i + 1 < lines.length) {
       const nextLine = lines[i + 1];
-      
+
       // Parse section headers with emoji indicators
       // Pattern: <summary>🧹 Nitpicks (3)</summary>
       const sectionMatch = nextLine.match(
@@ -282,10 +282,13 @@ function parseCodeRabbitSections(body: string): Array<{
 
         // Map emoji to section type for consistent processing
         let type: "nit" | "duplicate" | "additional" | "actionable";
-        if (emoji.includes("🧹")) type = "nit";           // Cleaning/nitpicks
-        else if (emoji.includes("♻")) type = "duplicate";  // Recycling/duplicates
-        else if (emoji.includes("📜")) type = "additional"; // Scroll/additional
-        else type = "actionable";                         // Fallback
+        if (emoji.includes("🧹"))
+          type = "nit"; // Cleaning/nitpicks
+        else if (emoji.includes("♻"))
+          type = "duplicate"; // Recycling/duplicates
+        else if (emoji.includes("📜"))
+          type = "additional"; // Scroll/additional
+        else type = "actionable"; // Fallback
 
         // Create new section and add to results
         currentSection = {
@@ -365,11 +368,11 @@ function parseCodeRabbitSections(body: string): Array<{
           // Inside code block - accumulate content
           codeBlockContent += nextLine + "\n";
           description += "\n" + nextLine;
-          
+
           // Detect end of code block (handle escaped backticks)
           if (nextLine.startsWith("```") || nextLine.startsWith("\\`\\`\\`")) {
             inCodeBlock = false;
-            
+
             // Parse code suggestion from diff content
             // Extract old and new code from diff format
             const diffMatch =
@@ -377,7 +380,7 @@ function parseCodeRabbitSections(body: string): Array<{
               codeBlockContent.match(/\\`\\`\\`diff\n([\s\S]*?)\n\\`\\`\\`/);
             if (diffMatch) {
               const diffContent = diffMatch[1];
-              
+
               // Parse diff lines: - for old code, + for new code
               const oldLines = diffContent
                 .split("\n")
@@ -387,7 +390,7 @@ function parseCodeRabbitSections(body: string): Array<{
                 .split("\n")
                 .filter((l) => l.startsWith("+") && !l.startsWith("+++"))
                 .map((l) => l.substring(1)); // Remove the + prefix
-              
+
               // Create code suggestion object
               codeSuggestion = {
                 old_code: oldLines.join("\n"),
@@ -417,16 +420,17 @@ function parseCodeRabbitSections(body: string): Array<{
       // Create the parsed suggestion item
       currentItem = {
         file_path: currentFile || "unknown-file", // Use current file context or fallback
-        line_range: lineRange,                   // Line number or range (e.g., "42" or "42-45")
-        title,                                   // Main issue description
-        description,                             // Full description including code blocks
-        code_suggestion: codeSuggestion,        // Parsed code diff if present
-        severity:                                // Infer severity from section type
+        line_range: lineRange, // Line number or range (e.g., "42" or "42-45")
+        title, // Main issue description
+        description, // Full description including code blocks
+        code_suggestion: codeSuggestion, // Parsed code diff if present
+        // Infer severity from section type
+        severity:
           currentSection.type === "nit"
-            ? "low"                              // Nitpicks are low severity
+            ? "low" // Nitpicks are low severity
             : currentSection.type === "actionable"
-              ? "high"                           // Actionable items are high severity
-              : "medium",                        // Duplicates and additional are medium
+              ? "high" // Actionable items are high severity
+              : "medium", // Duplicates and additional are medium
       };
 
       // Add the item to the current section
@@ -500,11 +504,12 @@ function createCodeRabbitComment(
   const [startStr, endStr] = String(item.line_range || "").split("-");
   const parsedStart = Number.parseInt(startStr, 10);
   const parsedEnd = endStr ? Number.parseInt(endStr, 10) : parsedStart;
-  
+
   // Validate parsed numbers - must be finite and positive
-  const s = Number.isFinite(parsedStart) && parsedStart > 0 ? parsedStart : undefined;
+  const s =
+    Number.isFinite(parsedStart) && parsedStart > 0 ? parsedStart : undefined;
   const e = Number.isFinite(parsedEnd) && parsedEnd > 0 ? parsedEnd : s;
-  
+
   // Ensure valid range (end >= start)
   const lineStart = s && e && e >= s ? s : undefined;
   const lineEnd = s && e && e >= s ? e : undefined;
@@ -517,46 +522,50 @@ function createCodeRabbitComment(
 
   // Create the standardized Comment object
   const comment: Comment = {
-    id: __tempReviewCommentId--,                    // Generate unique negative ID
-    type: "review",                                  // CodeRabbit suggestions are review type
-    author,                                         // Review author (coderabbitai)
-    author_association: authorAssociation,          // GitHub association
-    is_bot: isBot,                                  // Bot flag
+    id: __tempReviewCommentId--, // Generate unique negative ID
+    type: "review", // CodeRabbit suggestions are review type
+    author, // Review author (coderabbitai)
+    author_association: authorAssociation, // GitHub association
+    is_bot: isBot, // Bot flag
     created_at: review.submitted_at || review.created_at, // Use submission time if available
     updated_at: review.submitted_at || review.created_at, // Same as created for reviews
-    file_path: item.file_path,                      // File path from parsing
-    line_number: lineStart,                          // Validated start line
-    body: item.description,                         // Full description with code blocks
-    html_url: review.html_url,                      // Link to original review
-    action_commands: generateActionCommands(        // Generate CLI/MCP commands
+    file_path: item.file_path, // File path from parsing
+    line_number: lineStart, // Validated start line
+    body: item.description, // Full description with code blocks
+    html_url: review.html_url, // Link to original review
+    action_commands: generateActionCommands(
+      // Generate CLI/MCP commands
       pr,
       review.id,
       "review",
       item.description,
       item.file_path,
     ),
-    coderabbit_metadata: {                          // Rich CodeRabbit-specific metadata
+    coderabbit_metadata: {
+      // Rich CodeRabbit-specific metadata
       suggestion_type: suggestionType as
         | "nit"
         | "duplicate"
         | "additional"
         | "actionable",
-      severity: item.severity,                      // Parsed severity level
-      category: inferCategory(item.description),    // Inferred category
-      file_context: {                              // File and line context
+      severity: item.severity, // Parsed severity level
+      category: inferCategory(item.description), // Inferred category
+      file_context: {
+        // File and line context
         path: item.file_path,
         line_start: lineStart,
         line_end: lineEnd,
       },
-      code_suggestion: item.code_suggestion,        // Parsed diff if available
-      agent_prompt: agentPrompt,                    // AI-friendly prompt
-      implementation_guidance: {                    // Resolution guidance
+      code_suggestion: item.code_suggestion, // Parsed diff if available
+      agent_prompt: agentPrompt, // AI-friendly prompt
+      implementation_guidance: {
+        // Resolution guidance
         priority: item.severity,
         effort_estimate:
           suggestionType === "nit"
-            ? "Quick fix (1-2 minutes)"            // Nitpicks are quick
-            : "Medium effort (2-5 minutes)",       // Others take more time
-        rationale: item.description,                // Why this change is needed
+            ? "Quick fix (1-2 minutes)" // Nitpicks are quick
+            : "Medium effort (2-5 minutes)", // Others take more time
+        rationale: item.description, // Why this change is needed
       },
     },
   };
