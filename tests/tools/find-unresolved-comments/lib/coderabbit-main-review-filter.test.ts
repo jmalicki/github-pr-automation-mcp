@@ -9,7 +9,12 @@ import * as fs from "fs/promises";
 import * as path from "path";
 
 describe("CodeRabbit Main Review Filter", () => {
-  const testDataDir = path.join(__dirname, "test-data", "coderabbit-filter", "prs");
+  const testDataDir = path.join(
+    __dirname,
+    "test-data",
+    "coderabbit-filter",
+    "prs",
+  );
   const expectationsPath = path.join(testDataDir, "file-expected.json");
 
   it("should load and process review data from test files", async () => {
@@ -84,10 +89,13 @@ describe("CodeRabbit Main Review Filter", () => {
       console.log(
         `Issue comment body length: ${issueCommentData.data.node.body.length}`,
       );
-      
+
       const mockIssueComment = {
         id: issueCommentData.data.node.databaseId,
-        user: { login: issueCommentData.data.node.author?.login || "coderabbitai", type: "Bot" },
+        user: {
+          login: issueCommentData.data.node.author?.login || "coderabbitai",
+          type: "Bot",
+        },
         body: issueCommentData.data.node.body,
         author_association: "NONE",
         created_at: issueCommentData.data.node.createdAt,
@@ -106,7 +114,9 @@ describe("CodeRabbit Main Review Filter", () => {
         {}, // options
         true, // includeStatusIndicators
       );
-      console.log(`Issue comment generated ${issueCommentsWithoutPreFilter.length} comments (without pre-filter)`);
+      console.log(
+        `Issue comment generated ${issueCommentsWithoutPreFilter.length} comments (without pre-filter)`,
+      );
 
       // Then show what happens with pre-filtering (0 comments)
       const issueComments = processCodeRabbitIssueComment(
@@ -119,7 +129,9 @@ describe("CodeRabbit Main Review Filter", () => {
         {}, // options
         true, // includeStatusIndicators
       );
-      console.log(`Issue comment generated ${issueComments.length} comments (with pre-filter)`);
+      console.log(
+        `Issue comment generated ${issueComments.length} comments (with pre-filter)`,
+      );
 
       // Apply filtering
       const filteredIssueComments = applyCodeRabbitFiltering(issueComments, {});

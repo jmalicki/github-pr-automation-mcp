@@ -51,6 +51,9 @@ export interface CodeRabbitOptions {
  * @param body - The review body text
  * @param review - The GitHub review object
  * @param pr - Pull request information
+ * @param pr.owner - Repository owner
+ * @param pr.repo - Repository name
+ * @param pr.number - Pull request number
  * @param author - The review author login
  * @param authorAssociation - The author's association with the repo
  * @param isBot - Whether the author is a bot
@@ -123,6 +126,9 @@ export function processCodeRabbitReview(
  * @param body - The raw review body text from CodeRabbit (HTML format)
  * @param review - The full GitHub review object containing metadata
  * @param pr - Pull request information
+ * @param pr.owner - Repository owner
+ * @param pr.repo - Repository name
+ * @param pr.number - Pull request number
  * @param pr.owner - Repository owner
  * @param pr.repo - Repository name
  * @param pr.number - Pull request number
@@ -230,9 +236,16 @@ function parseCodeRabbitReviewInternal(
  * @param includeStatusIndicators - Whether to include status indicators
  * @returns Array of parsed actionable comments
  */
+type IssueCommentShape = {
+  id: number;
+  created_at: string;
+  updated_at: string;
+  html_url: string;
+};
+
 export function processCodeRabbitIssueComment(
   body: string,
-  issueComment: any,
+  issueComment: IssueCommentShape,
   pr: { owner: string; repo: string; number: number },
   author: string,
   authorAssociation: string,
@@ -277,7 +290,7 @@ export function processCodeRabbitIssueComment(
  */
 function parseCodeRabbitIssueCommentInternal(
   body: string,
-  issueComment: any,
+  issueComment: IssueCommentShape,
   pr: { owner: string; repo: string; number: number },
   author: string,
   authorAssociation: string,
@@ -303,15 +316,15 @@ function parseCodeRabbitIssueCommentInternal(
       "issue_comment",
       body,
     ),
-        coderabbit_metadata: {
-          suggestion_type: "actionable",
-          category: "general",
-          severity: "medium",
-          file_context: {
-            path: "unknown", // Issue comments don't have specific file context
-          },
-          agent_prompt: `Review this CodeRabbit issue comment: ${body.substring(0, 200)}...`,
-        },
+    coderabbit_metadata: {
+      suggestion_type: "actionable",
+      category: "general",
+      severity: "medium",
+      file_context: {
+        path: "unknown", // Issue comments don't have specific file context
+      },
+      agent_prompt: `Review this CodeRabbit issue comment: ${body.substring(0, 200)}...`,
+    },
   };
 
   if (includeStatusIndicators) {
@@ -880,11 +893,11 @@ function inferCategory(description: string): string {
  */
 function shouldFilterCodeRabbitReviewBody(reviewBody: string): boolean {
   const bodyLower = reviewBody.toLowerCase();
-  
+
   // Check for explicit indicators that this is a main review commit with internal state
   const mainReviewIndicators = [
     "internal state",
-    "state map", 
+    "state map",
     "internal map",
     "review state",
     "internal metadata",
@@ -977,12 +990,12 @@ function shouldFilterCodeRabbitIssueComment(issueCommentBody: string): boolean {
   // Check for internal state in issue comments
   const base64Pattern = /[A-Za-z0-9+/]{100,}={0,2}/g;
   const base64Matches = issueCommentBody.match(base64Pattern) || [];
-  
+
   // Count very long encoded strings (likely internal state)
   const longEncodedStrings = base64Matches.filter(
     (match) => match.length > 100,
   );
-  
+
   // If we find multiple very long encoded strings, it's likely internal state
   if (longEncodedStrings.length >= 2) {
     return true;

@@ -1,6 +1,9 @@
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods";
 import type { Comment } from "../schema.js";
-import { parseCodeRabbitReview, type CodeRabbitOptions } from "./coderabbit.js";
+import {
+  processCodeRabbitReview,
+  type CodeRabbitOptions,
+} from "./coderabbit.js";
 
 // Type aliases for better readability
 type ReviewList =
@@ -34,16 +37,13 @@ export function parseReviewBodiesForActionableComments(
       continue;
     }
 
-    const author = review.user?.login || "unknown";
+    const author = review.user?.login ?? null;
     const authorAssociation = review.author_association || "NONE";
     const isBot = review.user?.type === "Bot";
 
     // ONLY parse CodeRabbit AI review bodies - check author is CodeRabbit
-    if (
-      author.toLowerCase() === "coderabbitai" ||
-      author.toLowerCase().includes("coderabbit")
-    ) {
-      const codeRabbitComments = parseCodeRabbitReview(
+    if (author) {
+      const codeRabbitComments = processCodeRabbitReview(
         review.body,
         review,
         pr,

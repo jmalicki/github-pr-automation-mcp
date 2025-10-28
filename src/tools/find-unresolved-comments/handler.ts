@@ -20,9 +20,9 @@ import {
   sortComments,
 } from "./lib/filtering.js";
 import { generateSummary } from "./lib/summary-generator.js";
-import { 
+import {
   processCodeRabbitReview,
-  processCodeRabbitIssueComment
+  processCodeRabbitIssueComment,
 } from "./lib/coderabbit.js";
 
 /**
@@ -109,7 +109,7 @@ export async function handleFindUnresolvedComments(
   if (input.parse_review_bodies !== false) {
     for (const issueComment of issueCommentsResponse.data) {
       if (!issueComment.body) continue;
-      
+
       const author = issueComment.user?.login || "unknown";
       const authorAssociation = issueComment.author_association || "NONE";
       const isBot = issueComment.user?.type === "Bot";

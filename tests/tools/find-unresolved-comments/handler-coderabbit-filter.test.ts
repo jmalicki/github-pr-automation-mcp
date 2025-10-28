@@ -25,10 +25,7 @@ describe("find-unresolved-comments handler: CodeRabbit review parsing integratio
     "prs",
   );
 
-  const reviewFile = path.join(
-    testDataDir,
-    "review-PRR_kwDOQKdW-c7J2-Rw.json",
-  );
+  const reviewFile = path.join(testDataDir, "review-PRR_kwDOQKdW-c7J2-Rw.json");
 
   // Minimal GitHub client mock that provides octokit with required endpoints
   function createClientMock(reviewBody: string) {
@@ -95,5 +92,3 @@ describe("find-unresolved-comments handler: CodeRabbit review parsing integratio
     expect(result.unresolved_in_page).toBe(result.comments.length);
   });
 });
-
-
