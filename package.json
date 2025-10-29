@@ -80,7 +80,12 @@
     "url": "https://github.com/jmalicki/github-pr-automation-mcp/issues"
   },
   "homepage": "https://github.com/jmalicki/github-pr-automation-mcp#readme",
+  "_dependencies_notes": {
+    "@alcyone-labs/zod-to-json-schema": "Zod v4 compatible JSON Schema generator. Required because Zod v4's built-in z.toJSONSchema() has a bug where it incorrectly marks optional fields with defaults as required. This library correctly handles optional fields with defaults, which is essential for MCP schemas.",
+    "zod": "Schema validation library. We use v4 for modern features, but need the separate zod-to-json-schema library for correct JSON Schema generation."
+  },
   "dependencies": {
+    "@alcyone-labs/zod-to-json-schema": "^4.0.10",
     "@modelcontextprotocol/sdk": "^1.20.1",
     "@octokit/auth-app": "^8.1.1",
     "@octokit/rest": "^22.0.0",
