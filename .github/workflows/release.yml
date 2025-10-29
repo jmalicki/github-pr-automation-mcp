@@ -5,12 +5,13 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+  packages: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
     env:
       ROLLUP_FORCE_JS: 1
     steps:
