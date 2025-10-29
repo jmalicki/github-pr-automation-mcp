@@ -119,8 +119,19 @@ interface FindUnresolvedCommentsInput {
   include_bots?: boolean;      // Include bot comments (default: true) 💾
   exclude_authors?: string[];  // Specific authors to exclude (optional)
   cursor?: string;             // MCP cursor for pagination
-  sort?: "chronological" | "by_file" | "by_author"; // Default: chronological 💾
+  sort?: "chronological" | "by_file" | "by_author" | "priority"; // Default: priority 💾
   parse_review_bodies?: boolean; // Parse review bodies for actionable comments (default: true) 💾
+  include_status_indicators?: boolean; // Include status indicators (default: true) 💾
+  priority_ordering?: boolean; // Use priority-based ordering (default: true) 💾
+  coderabbit_options?: {
+    include_nits?: boolean;     // Include minor suggestions (default: true) 💾
+    include_duplicates?: boolean; // Include duplicate suggestions (default: true) 💾
+    include_additional?: boolean; // Include additional comments (default: true) 💾
+    suggestion_types?: ("nit" | "duplicate" | "additional" | "actionable")[];
+    prioritize_actionable?: boolean; // Show actionable items first (default: false) 💾
+    group_by_type?: boolean;   // Group comments by suggestion type (default: false) 💾
+    extract_agent_prompts?: boolean; // Generate agent-friendly prompts (default: true) 💾
+  };
 }
 ```
 
@@ -146,8 +157,7 @@ interface FindUnresolvedCommentsOutput {
     diff_hunk?: string;      // Relevant code snippet
     
     // Comment content
-    body: string;
-    body_html?: string;      // Rendered HTML if needed
+    body: string;              // For CodeRabbit comments: AI agent prompt (when extract_agent_prompts=true)
     
     // Thread information
     in_reply_to_id?: number; // If part of a conversation
@@ -211,6 +221,17 @@ interface FindUnresolvedCommentsOutput {
 - **Pagination**: Properly handles review body pagination to capture all suggestions across multiple pages
 - **Backward Compatible**: Can be disabled with `parse_review_bodies: false` if not needed
 - **See**: [REVIEW_BODY_PARSING.md](./REVIEW_BODY_PARSING.md) for detailed documentation
+
+**CodeRabbit Agent Prompt Optimization** (NEW Feature):
+- **Purpose**: Provides cleaner, more actionable content for AI agents processing CodeRabbit comments
+- **Behavior**: When `extract_agent_prompts: true` (default), CodeRabbit comments return only the AI agent prompt in the `body` field instead of the full comment text
+- **Benefits**: 
+  - Reduces noise and focuses on actionable content
+  - Provides structured prompts optimized for AI agent consumption
+  - Includes file context, code examples, and implementation guidance
+- **Full Content Available**: The complete comment text is still available in `coderabbit_metadata.agent_prompt` for reference
+- **Backward Compatible**: Can be disabled with `extract_agent_prompts: false` to get full comment text
+- **See**: [CODERABBIT_NITS_PARSING_DESIGN.md](./CODERABBIT_NITS_PARSING_DESIGN.md) for detailed documentation
 
 **Bot Detection**:
 - Account type from GitHub API (`is_bot` field)

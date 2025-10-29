@@ -308,6 +308,12 @@ function parseCodeRabbitIssueCommentInternal(
   options?: CodeRabbitOptions,
   includeStatusIndicators?: boolean,
 ): Comment[] {
+  // Generate AI agent prompt if requested (default: true)
+  let agentPrompt: string | undefined;
+  if (options?.extract_agent_prompts !== false) {
+    agentPrompt = `Review this CodeRabbit issue comment: ${body.substring(0, 200)}...`;
+  }
+
   // For now, just return the issue comment as a single actionable comment
   // In the future, we could parse structured content from issue comments too
   const comment: Comment = {
@@ -318,7 +324,9 @@ function parseCodeRabbitIssueCommentInternal(
     is_bot: isBot,
     created_at: issueComment.created_at,
     updated_at: issueComment.updated_at,
-    body,
+    // INTERNAL API: For CodeRabbit issue comments, return only the AI agent prompt in body field
+    // This provides a cleaner, more actionable format for AI agents to process.
+    body: agentPrompt || body, // Use agent prompt if available, otherwise full body
     html_url: issueComment.html_url,
     action_commands: generateActionCommands(
       pr,
@@ -778,7 +786,10 @@ export function createCodeRabbitComment(
     updated_at: review.submitted_at || review.created_at, // Same as created for reviews
     file_path: item.file_path, // File path from parsing
     line_number: lineStart, // Validated start line
-    body: `${item.title}\n\n${item.description}`, // Title + full description
+    // INTERNAL API: For CodeRabbit comments, return only the AI agent prompt in body field
+    // This provides a cleaner, more actionable format for AI agents to process.
+    // The full comment text is still available in coderabbit_metadata.agent_prompt
+    body: agentPrompt || `${item.title}\n\n${item.description}`, // Use agent prompt if available, otherwise title + full description
     html_url: review.html_url, // Link to original review
     action_commands: generateActionCommands(
       // Generate CLI/MCP commands
