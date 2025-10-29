@@ -102,9 +102,78 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             sort: {
               type: "string",
               description:
-                "💾 Sort order: chronological, by_file, by_author (default: chronological). User preference",
-              enum: ["chronological", "by_file", "by_author"],
-              default: "chronological",
+                "💾 Sort order: chronological, by_file, by_author, priority (default: priority). User preference",
+              enum: ["chronological", "by_file", "by_author", "priority"],
+              default: "priority",
+            },
+            parse_review_bodies: {
+              type: "boolean",
+              description:
+                "Parse review bodies for actionable comments (default: true)",
+              default: true,
+            },
+            include_status_indicators: {
+              type: "boolean",
+              description:
+                "💾 Include status indicators (default: true). User preference: workflow management",
+              default: true,
+            },
+            priority_ordering: {
+              type: "boolean",
+              description:
+                "💾 Use priority-based ordering (default: true). User preference: task prioritization",
+              default: true,
+            },
+            coderabbit_options: {
+              type: "object",
+              description: "CodeRabbit-specific parsing and filtering options",
+              properties: {
+                include_nits: {
+                  type: "boolean",
+                  description:
+                    "💾 Include minor suggestions (default: true). User preference: noise tolerance",
+                  default: true,
+                },
+                include_duplicates: {
+                  type: "boolean",
+                  description:
+                    "💾 Include duplicate suggestions (default: true). User preference: code quality focus",
+                  default: true,
+                },
+                include_additional: {
+                  type: "boolean",
+                  description:
+                    "💾 Include additional comments (default: true). User preference: enhancement suggestions",
+                  default: true,
+                },
+                suggestion_types: {
+                  type: "array",
+                  description:
+                    "Specific suggestion types to include (optional)",
+                  items: {
+                    type: "string",
+                    enum: ["nit", "duplicate", "additional", "actionable"],
+                  },
+                },
+                prioritize_actionable: {
+                  type: "boolean",
+                  description:
+                    "💾 Show actionable items first (default: false). User preference: priority focus",
+                  default: false,
+                },
+                group_by_type: {
+                  type: "boolean",
+                  description:
+                    "💾 Group comments by suggestion type (default: false). User preference: organization",
+                  default: false,
+                },
+                extract_agent_prompts: {
+                  type: "boolean",
+                  description:
+                    "💾 Generate agent-friendly prompts (default: true). User preference: AI agent optimization",
+                  default: true,
+                },
+              },
             },
           },
           required: ["pr"],
