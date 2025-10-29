@@ -1,0 +1,2535 @@
+{
+  "pr": "jmalicki/github-pr-automation-mcp#65",
+  "unresolved_in_page": 14,
+  "comments": [
+    {
+      "id": 2471424834,
+      "type": "review_comment",
+      "author": "coderabbitai[bot]",
+      "author_association": "CONTRIBUTOR",
+      "is_bot": true,
+      "created_at": "2025-10-29T00:26:31Z",
+      "updated_at": "2025-10-29T00:26:31Z",
+      "file_path": ".husky/pre-commit",
+      "line_number": 6,
+      "diff_hunk": [
+        "@@ -1,3 +1,12 @@",
+        "-npm run lint",
+        "-npm run format:check",
+        "-npm run type-check",
+        "+#!/usr/bin/env sh",
+        "+. \"$(dirname -- \"$0\")/_/husky.sh\"",
+        "+",
+        "+# Run markdownlint on staged markdown files (only new/modified files)",
+        "+echo \"🔍 Running markdownlint on staged files...\"",
+        "+git diff --cached --name-only --diff-filter=ACM | grep '\\.md$' | xargs -r npx markdownlint --config .markdownlint.json"
+      ],
+      "body": [
+        "_⚠️ Potential issue_ | _🟠 Major_",
+        "",
+        "**Fix portability issue with xargs -r.**",
+        "",
+        "The `-r` flag for xargs is a GNU extension not available on macOS/BSD systems. This will cause the pre-commit hook to fail on macOS.",
+        "",
+        "",
+        "",
+        "Apply this diff to fix the portability issue:",
+        "",
+        "```diff",
+        "-git diff --cached --name-only --diff-filter=ACM | grep '\\.md$' | xargs -r npx markdownlint --config .markdownlint.json",
+        "+git diff --cached --name-only --diff-filter=ACM | grep '\\.md$' | xargs npx markdownlint --config .markdownlint.json || true",
+        "```",
+        "",
+        "Alternatively, you can use the pattern from line 10 with command substitution, though the xargs approach is cleaner when fixed for portability.",
+        "",
+        "<!-- suggestion_start -->",
+        "",
+        "<details>",
+        "<summary>📝 Committable suggestion</summary>",
+        "",
+        "> ‼️ **IMPORTANT**",
+        "> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.",
+        "",
+        "```suggestion",
+        "git diff --cached --name-only --diff-filter=ACM | grep '\\.md$' | xargs npx markdownlint --config .markdownlint.json || true",
+        "```",
+        "",
+        "</details>",
+        "",
+        "<!-- suggestion_end -->",
+        "",
+        "<details>",
+        "<summary>🤖 Prompt for AI Agents</summary>",
+        "",
+        "```",
+        "In .husky/pre-commit around line 6, the hook uses GNU-specific xargs -r which",
+        "breaks on macOS/BSD; replace this with a portable pattern: capture the markdown",
+        "file list into a variable or command substitution, test that it is non-empty,",
+        "and only then invoke xargs (without -r) to call npx markdownlint with the",
+        "existing config; this preserves the behavior (skip when no files) while",
+        "remaining portable across GNU and BSD systems.",
+        "```",
+        "",
+        "</details>",
+        "",
+        "<!-- This is an auto-generated comment by CodeRabbit -->"
+      ],
+      "outdated": false,
+      "reactions": {
+        "total_count": 0,
+        "+1": 0,
+        "-1": 0,
+        "laugh": 0,
+        "hooray": 0,
+        "confused": 0,
+        "heart": 0,
+        "rocket": 0,
+        "eyes": 0
+      },
+      "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#discussion_r2471424834",
+      "action_commands": {
+        "reply_command": "gh api -X POST /repos/jmalicki/github-pr-automation-mcp/pulls/65/comments/2471424834/replies -f body=\"YOUR_RESPONSE_HERE\"",
+        "resolve_command": "gh api -X POST /repos/jmalicki/github-pr-automation-mcp/pulls/65/comments/2471424834/replies -f body=\"✅ Fixed\"",
+        "resolve_condition": "Run ONLY after you've verified the fix for: \"_⚠️ Potential issue_ | _🟠 Major_...\"",
+        "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web",
+        "mcp_action": {
+          "tool": "resolve_review_thread",
+          "args": {
+            "pr": "jmalicki/github-pr-automation-mcp#65",
+            "thread_id": "PRRT_kwDOQG2ass5fsPvG"
+          }
+        }
+      },
+      "status_indicators": {
+        "needs_mcp_resolution": true,
+        "has_manual_response": false,
+        "is_actionable": true,
+        "is_outdated": false,
+        "priority_score": 35,
+        "resolution_status": "in_progress",
+        "suggested_action": "resolve"
+      }
+    },
+    {
+      "id": 2471424841,
+      "type": "review_comment",
+      "author": "coderabbitai[bot]",
+      "author_association": "CONTRIBUTOR",
+      "is_bot": true,
+      "created_at": "2025-10-29T00:26:31Z",
+      "updated_at": "2025-10-29T00:26:32Z",
+      "file_path": "scripts/pre-push-version-check.js",
+      "line_number": 47,
+      "start_line": 42,
+      "diff_hunk": [
+        "@@ -0,0 +1,92 @@",
+        "+#!/usr/bin/env node",
+        "+",
+        "+/**",
+        "+ * Pre-push hook to validate version tags",
+        "+ * Ensures package.json and CHANGELOG.md are updated when pushing version tags",
+        "+ */",
+        "+",
+        "+/* eslint-env node */",
+        "+",
+        "+import { existsSync } from 'fs';",
+        "+import { execSync } from 'child_process';",
+        "+import { fileURLToPath } from 'url';",
+        "+import { dirname, join } from 'path';",
+        "+",
+        "+const __filename = fileURLToPath(import.meta.url);",
+        "+const __dirname = dirname(__filename);",
+        "+const rootDir = join(__dirname, '..');",
+        "+",
+        "+// Version tag pattern (e.g., v1.2.3, v1.2.3-alpha.1)",
+        "+const VERSION_TAG_PATTERN = /^v\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.-]+)?$/;",
+        "+",
+        "+function checkVersionTagValidation() {",
+        "+  console.log('🔍 Checking for version tags...');",
+        "+  ",
+        "+  try {",
+        "+    // Check if we're pushing any version tags",
+        "+    const remote = process.argv[2] || 'origin';",
+        "+    const refs = process.argv[3] || 'main';",
+        "+    ",
+        "+    // Get the refs being pushed",
+        "+    execSync(`git ls-remote --heads --tags ${remote} ${refs}`, { ",
+        "+      encoding: 'utf8',",
+        "+      cwd: rootDir ",
+        "+    });",
+        "+    ",
+        "+    // For simplicity, check if any local tags match version pattern",
+        "+    const localTags = execSync('git tag -l', { ",
+        "+      encoding: 'utf8',",
+        "+      cwd: rootDir ",
+        "+    }).trim().split('\\n').filter(Boolean);",
+        "+    ",
+        "+    const versionTags = localTags.filter(tag => VERSION_TAG_PATTERN.test(tag));",
+        "+    ",
+        "+    if (versionTags.length === 0) {",
+        "+      console.log('✅ No version tags detected, skipping validation');",
+        "+      return true;",
+        "+    }"
+      ],
+      "body": [
+        "_⚠️ Potential issue_ | _🟠 Major_",
+        "",
+        "**Logic doesn't validate tags being pushed.**",
+        "",
+        "The current logic checks if ANY local version tags exist, then validates package.json and CHANGELOG.md. This means even if you're not pushing a version tag, the validation will still run if you have any local version tags.",
+        "",
+        "",
+        "",
+        "The hook should only validate when version tags are actually being pushed, not just when they exist locally. This requires reading the refs being pushed from the hook's stdin (see comment on lines 27-34).",
+        "",
+        "<details>",
+        "<summary>🤖 Prompt for AI Agents</summary>",
+        "",
+        "```",
+        "In scripts/pre-push-version-check.js around lines 42 to 47, the code currently",
+        "checks for any local version tags and runs validation, but it must only validate",
+        "when version tags are actually being pushed; update the logic to read the refs",
+        "being pushed from the hook's stdin (parse the stdin lines or read file",
+        "descriptor 0), extract the ref names from those lines, filter those refs with",
+        "VERSION_TAG_PATTERN to detect pushed version tags, and only run",
+        "package.json/CHANGELOG.md validation if that filtered pushed-tags list is",
+        "non-empty; leave existing VERSION_TAG_PATTERN usage and validation steps",
+        "unchanged, just replace the localTags check with a check against the pushed refs",
+        "parsed from stdin.",
+        "```",
+        "",
+        "</details>",
+        "",
+        "<!-- This is an auto-generated comment by CodeRabbit -->"
+      ],
+      "outdated": false,
+      "reactions": {
+        "total_count": 0,
+        "+1": 0,
+        "-1": 0,
+        "laugh": 0,
+        "hooray": 0,
+        "confused": 0,
+        "heart": 0,
+        "rocket": 0,
+        "eyes": 0
+      },
+      "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#discussion_r2471424841",
+      "action_commands": {
+        "reply_command": "gh api -X POST /repos/jmalicki/github-pr-automation-mcp/pulls/65/comments/2471424841/replies -f body=\"YOUR_RESPONSE_HERE\"",
+        "resolve_command": "gh api -X POST /repos/jmalicki/github-pr-automation-mcp/pulls/65/comments/2471424841/replies -f body=\"✅ Fixed\"",
+        "resolve_condition": "Run ONLY after you've verified the fix for: \"_⚠️ Potential issue_ | _🟠 Major_...\"",
+        "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web",
+        "mcp_action": {
+          "tool": "resolve_review_thread",
+          "args": {
+            "pr": "jmalicki/github-pr-automation-mcp#65",
+            "thread_id": "PRRT_kwDOQG2ass5fsPvM"
+          }
+        }
+      },
+      "status_indicators": {
+        "needs_mcp_resolution": true,
+        "has_manual_response": false,
+        "is_actionable": true,
+        "is_outdated": false,
+        "priority_score": 35,
+        "resolution_status": "in_progress",
+        "suggested_action": "resolve"
+      }
+    },
+    {
+      "id": -2,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "author_association": "CONTRIBUTOR",
+      "is_bot": true,
+      "created_at": "2025-10-29T00:26:31Z",
+      "updated_at": "2025-10-29T00:26:31Z",
+      "file_path": ".husky/pre-commit",
+      "line_number": 10,
+      "body": [
+        "Consider consistent handling of empty file lists.",
+        "",
+        "Consider consistent handling of empty file lists.",
+        "While the `|| true` pattern prevents failures when no files match, calling ESLint with an empty file list might produce warnings or unexpected behavior.",
+        "Consider making both linting commands consistent by using a portable xargs pattern or explicit file checks:",
+        "```diff",
+        "-npx eslint --fix $(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' || true)",
+        "+git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' | xargs npx eslint --fix || true",
+        "```"
+      ],
+      "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+      "action_commands": {
+        "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+        "resolve_condition": "This comment type cannot be resolved via API",
+        "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+      },
+      "coderabbit_metadata": {
+        "suggestion_type": "nit",
+        "severity": "low",
+        "category": "style",
+        "file_context": {
+          "path": ".husky/pre-commit",
+          "line_start": 10,
+          "line_end": 10
+        },
+        "code_suggestion": {
+          "old_code": "npx eslint --fix $(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' || true)",
+          "new_code": "git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' | xargs npx eslint --fix || true"
+        },
+        "agent_prompt": [
+          "CodeRabbit nit suggestion for .husky/pre-commit:10-10",
+          "    ",
+          "Current code:",
+          "```",
+          "npx eslint --fix $(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' || true)",
+          "```",
+          "",
+          "Suggested change:",
+          "```",
+          "git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' | xargs npx eslint --fix || true",
+          "```",
+          "",
+          "Context: Consider consistent handling of empty file lists.",
+          "While the `|| true` pattern prevents failures when no files match, calling ESLint with an empty file list might produce warnings or unexpected behavior.",
+          "Consider making both linting commands consistent by using a portable xargs pattern or explicit file checks:",
+          "```diff",
+          "-npx eslint --fix $(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' || true)",
+          "+git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' | xargs npx eslint --fix || true",
+          "```",
+          "Priority: Low",
+          "Effort: Quick fix (1-2 minutes)"
+        ],
+        "implementation_guidance": {
+          "priority": "low",
+          "effort_estimate": "Quick fix (1-2 minutes)",
+          "rationale": [
+            "Consider consistent handling of empty file lists.",
+            "While the `|| true` pattern prevents failures when no files match, calling ESLint with an empty file list might produce warnings or unexpected behavior.",
+            "Consider making both linting commands consistent by using a portable xargs pattern or explicit file checks:",
+            "```diff",
+            "-npx eslint --fix $(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' || true)",
+            "+git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' | xargs npx eslint --fix || true",
+            "```"
+          ]
+        }
+      },
+      "status_indicators": {
+        "needs_mcp_resolution": false,
+        "has_manual_response": false,
+        "is_actionable": true,
+        "is_outdated": false,
+        "priority_score": 30,
+        "resolution_status": "unresolved",
+        "suggested_action": "reply"
+      }
+    },
+    {
+      "id": -8,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "author_association": "CONTRIBUTOR",
+      "is_bot": true,
+      "created_at": "2025-10-29T00:26:31Z",
+      "updated_at": "2025-10-29T00:26:31Z",
+      "file_path": "package.json",
+      "line_number": 56,
+      "body": [
+        "LGTM!",
+        "",
+        "LGTM!",
+        "The new npm scripts provide convenient access to commitizen for conventional commits and markdown linting with auto-fix capabilities. These align well with the Git hooks introduced in this PR."
+      ],
+      "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+      "action_commands": {
+        "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+        "resolve_condition": "This comment type cannot be resolved via API",
+        "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+      },
+      "coderabbit_metadata": {
+        "suggestion_type": "nit",
+        "severity": "low",
+        "category": "style",
+        "file_context": {
+          "path": "package.json",
+          "line_start": 56,
+          "line_end": 59
+        },
+        "code_suggestion": null,
+        "agent_prompt": [
+          "CodeRabbit nit suggestion for package.json:56-59",
+          "  ",
+          "Description: LGTM!",
+          "The new npm scripts provide convenient access to commitizen for conventional commits and markdown linting with auto-fix capabilities. These align well with the Git hooks introduced in this PR.",
+          "Priority: Low"
+        ],
+        "implementation_guidance": {
+          "priority": "low",
+          "effort_estimate": "Quick fix (1-2 minutes)",
+          "rationale": [
+            "LGTM!",
+            "The new npm scripts provide convenient access to commitizen for conventional commits and markdown linting with auto-fix capabilities. These align well with the Git hooks introduced in this PR."
+          ]
+        }
+      },
+      "status_indicators": {
+        "needs_mcp_resolution": false,
+        "has_manual_response": false,
+        "is_actionable": true,
+        "is_outdated": false,
+        "priority_score": 30,
+        "resolution_status": "unresolved",
+        "suggested_action": "reply"
+      }
+    },
+    {
+      "id": -9,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "author_association": "CONTRIBUTOR",
+      "is_bot": true,
+      "created_at": "2025-10-29T00:26:31Z",
+      "updated_at": "2025-10-29T00:26:31Z",
+      "file_path": "package.json",
+      "line_number": 61,
+      "body": [
+        "LGTM!",
+        "",
+        "LGTM!",
+        "The commitizen configuration correctly points to the conventional changelog adapter, enabling interactive conventional commit creation via `npm run commit`."
+      ],
+      "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+      "action_commands": {
+        "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+        "resolve_condition": "This comment type cannot be resolved via API",
+        "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+      },
+      "coderabbit_metadata": {
+        "suggestion_type": "nit",
+        "severity": "low",
+        "category": "general",
+        "file_context": {
+          "path": "package.json",
+          "line_start": 61,
+          "line_end": 64
+        },
+        "code_suggestion": null,
+        "agent_prompt": [
+          "CodeRabbit nit suggestion for package.json:61-64",
+          "  ",
+          "Description: LGTM!",
+          "The commitizen configuration correctly points to the conventional changelog adapter, enabling interactive conventional commit creation via `npm run commit`.",
+          "Priority: Low"
+        ],
+        "implementation_guidance": {
+          "priority": "low",
+          "effort_estimate": "Quick fix (1-2 minutes)",
+          "rationale": [
+            "LGTM!",
+            "The commitizen configuration correctly points to the conventional changelog adapter, enabling interactive conventional commit creation via `npm run commit`."
+          ]
+        }
+      },
+      "status_indicators": {
+        "needs_mcp_resolution": false,
+        "has_manual_response": false,
+        "is_actionable": true,
+        "is_outdated": false,
+        "priority_score": 30,
+        "resolution_status": "unresolved",
+        "suggested_action": "reply"
+      }
+    },
+    {
+      "id": 2471424839,
+      "type": "review_comment",
+      "author": "coderabbitai[bot]",
+      "author_association": "CONTRIBUTOR",
+      "is_bot": true,
+      "created_at": "2025-10-29T00:26:31Z",
+      "updated_at": "2025-10-29T00:26:32Z",
+      "file_path": "scripts/pre-push-version-check.js",
+      "line_number": 34,
+      "start_line": 27,
+      "diff_hunk": [
+        "@@ -0,0 +1,92 @@",
+        "+#!/usr/bin/env node",
+        "+",
+        "+/**",
+        "+ * Pre-push hook to validate version tags",
+        "+ * Ensures package.json and CHANGELOG.md are updated when pushing version tags",
+        "+ */",
+        "+",
+        "+/* eslint-env node */",
+        "+",
+        "+import { existsSync } from 'fs';",
+        "+import { execSync } from 'child_process';",
+        "+import { fileURLToPath } from 'url';",
+        "+import { dirname, join } from 'path';",
+        "+",
+        "+const __filename = fileURLToPath(import.meta.url);",
+        "+const __dirname = dirname(__filename);",
+        "+const rootDir = join(__dirname, '..');",
+        "+",
+        "+// Version tag pattern (e.g., v1.2.3, v1.2.3-alpha.1)",
+        "+const VERSION_TAG_PATTERN = /^v\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.-]+)?$/;",
+        "+",
+        "+function checkVersionTagValidation() {",
+        "+  console.log('🔍 Checking for version tags...');",
+        "+  ",
+        "+  try {",
+        "+    // Check if we're pushing any version tags",
+        "+    const remote = process.argv[2] || 'origin';",
+        "+    const refs = process.argv[3] || 'main';",
+        "+    ",
+        "+    // Get the refs being pushed",
+        "+    execSync(`git ls-remote --heads --tags ${remote} ${refs}`, { ",
+        "+      encoding: 'utf8',",
+        "+      cwd: rootDir ",
+        "+    });"
+      ],
+      "body": [
+        "_⚠️ Potential issue_ | _🟠 Major_",
+        "",
+        "**Dead code: git ls-remote result is not used.**",
+        "",
+        "The script accepts `remote` and `refs` arguments and executes `git ls-remote`, but the output is never used. This appears to be incomplete logic.",
+        "",
+        "",
+        "",
+        "The script should actually check what refs are being pushed rather than just checking if any local version tags exist. Consider implementing proper ref detection using git hooks' stdin input:",
+        "",
+        "```javascript",
+        "// Read refs from stdin (format: <local-ref> SP <local-oid> SP <remote-ref> SP <remote-oid> LF)",
+        "const refs = [];",
+        "const input = execSync('cat', { encoding: 'utf8' }).trim();",
+        "if (input) {",
+        "  input.split('\\n').forEach(line => {",
+        "    const parts = line.split(' ');",
+        "    if (parts[2]) {",
+        "      refs.push(parts[2]); // remote ref being pushed",
+        "    }",
+        "  });",
+        "}",
+        "",
+        "// Check if any of the refs being pushed are version tags",
+        "const versionTagsBeingPushed = refs.filter(ref => ",
+        "  ref.startsWith('refs/tags/') && VERSION_TAG_PATTERN.test(ref.replace('refs/tags/', ''))",
+        ");",
+        "```",
+        "",
+        "<details>",
+        "<summary>🤖 Prompt for AI Agents</summary>",
+        "",
+        "```",
+        "In scripts/pre-push-version-check.js around lines 27 to 34, the call to `git",
+        "ls-remote` is dead code because its output is never used; replace that with",
+        "reading the hook stdin to detect the actual refs being pushed: read from stdin,",
+        "split lines, parse each line into fields and collect the remote ref (3rd field)",
+        "into an array, then filter that array for refs starting with \"refs/tags/\" and",
+        "test the tag name against VERSION_TAG_PATTERN to determine version tags being",
+        "pushed; remove the unused execSync call and use the parsed refs for the",
+        "subsequent version-check logic.",
+        "```",
+        "",
+        "</details>",
+        "",
+        "<!-- This is an auto-generated comment by CodeRabbit -->"
+      ],
+      "outdated": false,
+      "reactions": {
+        "total_count": 0,
+        "+1": 0,
+        "-1": 0,
+        "laugh": 0,
+        "hooray": 0,
+        "confused": 0,
+        "heart": 0,
+        "rocket": 0,
+        "eyes": 0
+      },
+      "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#discussion_r2471424839",
+      "action_commands": {
+        "reply_command": "gh api -X POST /repos/jmalicki/github-pr-automation-mcp/pulls/65/comments/2471424839/replies -f body=\"YOUR_RESPONSE_HERE\"",
+        "resolve_command": "gh api -X POST /repos/jmalicki/github-pr-automation-mcp/pulls/65/comments/2471424839/replies -f body=\"✅ Fixed\"",
+        "resolve_condition": "Run ONLY after you've verified the fix for: \"_⚠️ Potential issue_ | _🟠 Major_...\"",
+        "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web",
+        "mcp_action": {
+          "tool": "resolve_review_thread",
+          "args": {
+            "pr": "jmalicki/github-pr-automation-mcp#65",
+            "thread_id": "PRRT_kwDOQG2ass5fsPvK"
+          }
+        }
+      },
+      "status_indicators": {
+        "needs_mcp_resolution": true,
+        "has_manual_response": false,
+        "is_actionable": false,
+        "is_outdated": false,
+        "priority_score": 20,
+        "resolution_status": "in_progress",
+        "suggested_action": "resolve"
+      }
+    },
+    {
+      "id": -1,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "author_association": "CONTRIBUTOR",
+      "is_bot": true,
+      "created_at": "2025-10-29T00:26:31Z",
+      "updated_at": "2025-10-29T00:26:31Z",
+      "file_path": "eslint.config.js",
+      "line_number": 87,
+      "body": [
+        "Consider simplifying the ignore pattern.",
+        "",
+        "Consider simplifying the ignore pattern.",
+        "The current pattern includes all scripts with `!scripts/*.js`, then immediately excludes `scripts/pre-push-version-check.js`. This include-then-exclude pattern can be confusing.",
+        "Consider either:",
+        "1. Explicitly listing scripts to include rather than using a blanket include with exceptions",
+        "2. Moving the version check script to a different location if it shouldn't be linted",
+        "```diff",
+        "-    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/*.js', 'scripts/pre-push-version-check.js', 'commitlint.config.cjs']",
+        "+    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/generate-version-info.js', '!scripts/release.js', '!scripts/install-cli.cjs', 'commitlint.config.cjs']",
+        "```"
+      ],
+      "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+      "action_commands": {
+        "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+        "resolve_condition": "This comment type cannot be resolved via API",
+        "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+      },
+      "coderabbit_metadata": {
+        "suggestion_type": "nit",
+        "severity": "low",
+        "category": "style",
+        "file_context": {
+          "path": "eslint.config.js",
+          "line_start": 87,
+          "line_end": 87
+        },
+        "code_suggestion": {
+          "old_code": "    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/*.js', 'scripts/pre-push-version-check.js', 'commitlint.config.cjs']",
+          "new_code": "    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/generate-version-info.js', '!scripts/release.js', '!scripts/install-cli.cjs', 'commitlint.config.cjs']"
+        },
+        "agent_prompt": [
+          "CodeRabbit nit suggestion for eslint.config.js:87-87",
+          "    ",
+          "Current code:",
+          "```",
+          "    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/*.js', 'scripts/pre-push-version-check.js', 'commitlint.config.cjs']",
+          "```",
+          "",
+          "Suggested change:",
+          "```",
+          "    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/generate-version-info.js', '!scripts/release.js', '!scripts/install-cli.cjs', 'commitlint.config.cjs']",
+          "```",
+          "",
+          "Context: Consider simplifying the ignore pattern.",
+          "The current pattern includes all scripts with `!scripts/*.js`, then immediately excludes `scripts/pre-push-version-check.js`. This include-then-exclude pattern can be confusing.",
+          "Consider either:",
+          "1. Explicitly listing scripts to include rather than using a blanket include with exceptions",
+          "2. Moving the version check script to a different location if it shouldn't be linted",
+          "```diff",
+          "-    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/*.js', 'scripts/pre-push-version-check.js', 'commitlint.config.cjs']",
+          "+    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/generate-version-info.js', '!scripts/release.js', '!scripts/install-cli.cjs', 'commitlint.config.cjs']",
+          "```",
+          "Priority: Low",
+          "Effort: Quick fix (1-2 minutes)"
+        ],
+        "implementation_guidance": {
+          "priority": "low",
+          "effort_estimate": "Quick fix (1-2 minutes)",
+          "rationale": [
+            "Consider simplifying the ignore pattern.",
+            "The current pattern includes all scripts with `!scripts/*.js`, then immediately excludes `scripts/pre-push-version-check.js`. This include-then-exclude pattern can be confusing.",
+            "Consider either:",
+            "1. Explicitly listing scripts to include rather than using a blanket include with exceptions",
+            "2. Moving the version check script to a different location if it shouldn't be linted",
+            "```diff",
+            "-    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/*.js', 'scripts/pre-push-version-check.js', 'commitlint.config.cjs']",
+            "+    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/generate-version-info.js', '!scripts/release.js', '!scripts/install-cli.cjs', 'commitlint.config.cjs']",
+            "```"
+          ]
+        }
+      },
+      "status_indicators": {
+        "needs_mcp_resolution": false,
+        "has_manual_response": false,
+        "is_actionable": false,
+        "is_outdated": false,
+        "priority_score": 15,
+        "resolution_status": "unresolved",
+        "suggested_action": "ignore"
+      }
+    },
+    {
+      "id": -3,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "author_association": "CONTRIBUTOR",
+      "is_bot": true,
+      "created_at": "2025-10-29T00:26:31Z",
+      "updated_at": "2025-10-29T00:26:31Z",
+      "file_path": "scripts/pre-push-version-check.js",
+      "line_number": 68,
+      "body": [
+        "Error handling is too permissive.",
+        "",
+        "Error handling is too permissive.",
+        "Catching all errors and allowing the push to continue (returning `true`) means that git command failures or other unexpected errors will silently skip validation.",
+        "Consider being more selective about which errors to ignore:",
+        "```diff",
+        "  } catch (error) {",
+        "-   console.log('⚠️  Could not check version tags, skipping validation');",
+        "-   return true;",
+        "+   // Only skip validation for specific expected errors",
+        "+   if (error.message.includes('not a git repository') || error.code === 'ENOENT') {",
+        "+     console.log('⚠️  Could not check version tags, skipping validation');",
+        "+     return true;",
+        "+   }",
+        "+   throw error;",
+        "  }",
+        "```"
+      ],
+      "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+      "action_commands": {
+        "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+        "resolve_condition": "This comment type cannot be resolved via API",
+        "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+      },
+      "coderabbit_metadata": {
+        "suggestion_type": "nit",
+        "severity": "low",
+        "category": "bug",
+        "file_context": {
+          "path": "scripts/pre-push-version-check.js",
+          "line_start": 68,
+          "line_end": 71
+        },
+        "code_suggestion": {
+          "old_code": [
+            "   console.log('⚠️  Could not check version tags, skipping validation');",
+            "   return true;"
+          ],
+          "new_code": [
+            "   // Only skip validation for specific expected errors",
+            "   if (error.message.includes('not a git repository') || error.code === 'ENOENT') {",
+            "     console.log('⚠️  Could not check version tags, skipping validation');",
+            "     return true;",
+            "   }",
+            "   throw error;"
+          ]
+        },
+        "agent_prompt": [
+          "CodeRabbit nit suggestion for scripts/pre-push-version-check.js:68-71",
+          "    ",
+          "Current code:",
+          "```",
+          "   console.log('⚠️  Could not check version tags, skipping validation');",
+          "   return true;",
+          "```",
+          "",
+          "Suggested change:",
+          "```",
+          "   // Only skip validation for specific expected errors",
+          "   if (error.message.includes('not a git repository') || error.code === 'ENOENT') {",
+          "     console.log('⚠️  Could not check version tags, skipping validation');",
+          "     return true;",
+          "   }",
+          "   throw error;",
+          "```",
+          "",
+          "Context: Error handling is too permissive.",
+          "Catching all errors and allowing the push to continue (returning `true`) means that git command failures or other unexpected errors will silently skip validation.",
+          "Consider being more selective about which errors to ignore:",
+          "```diff",
+          "  } catch (error) {",
+          "-   console.log('⚠️  Could not check version tags, skipping validation');",
+          "-   return true;",
+          "+   // Only skip validation for specific expected errors",
+          "+   if (error.message.includes('not a git repository') || error.code === 'ENOENT') {",
+          "+     console.log('⚠️  Could not check version tags, skipping validation');",
+          "+     return true;",
+          "+   }",
+          "+   throw error;",
+          "  }",
+          "```",
+          "Priority: Low",
+          "Effort: Quick fix (1-2 minutes)"
+        ],
+        "implementation_guidance": {
+          "priority": "low",
+          "effort_estimate": "Quick fix (1-2 minutes)",
+          "rationale": [
+            "Error handling is too permissive.",
+            "Catching all errors and allowing the push to continue (returning `true`) means that git command failures or other unexpected errors will silently skip validation.",
+            "Consider being more selective about which errors to ignore:",
+            "```diff",
+            "  } catch (error) {",
+            "-   console.log('⚠️  Could not check version tags, skipping validation');",
+            "-   return true;",
+            "+   // Only skip validation for specific expected errors",
+            "+   if (error.message.includes('not a git repository') || error.code === 'ENOENT') {",
+            "+     console.log('⚠️  Could not check version tags, skipping validation');",
+            "+     return true;",
+            "+   }",
+            "+   throw error;",
+            "  }",
+            "```"
+          ]
+        }
+      },
+      "status_indicators": {
+        "needs_mcp_resolution": false,
+        "has_manual_response": false,
+        "is_actionable": false,
+        "is_outdated": false,
+        "priority_score": 15,
+        "resolution_status": "unresolved",
+        "suggested_action": "ignore"
+      }
+    },
+    {
+      "id": -4,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "author_association": "CONTRIBUTOR",
+      "is_bot": true,
+      "created_at": "2025-10-29T00:26:31Z",
+      "updated_at": "2025-10-29T00:26:31Z",
+      "file_path": ".husky/commit-msg",
+      "line_number": 1,
+      "body": [
+        "LGTM!",
+        "",
+        "LGTM!",
+        "The commit message hook correctly delegates to commitlint for validation. The implementation is clean and follows Husky best practices."
+      ],
+      "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+      "action_commands": {
+        "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+        "resolve_condition": "This comment type cannot be resolved via API",
+        "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+      },
+      "coderabbit_metadata": {
+        "suggestion_type": "nit",
+        "severity": "low",
+        "category": "style",
+        "file_context": {
+          "path": ".husky/commit-msg",
+          "line_start": 1,
+          "line_end": 5
+        },
+        "code_suggestion": null,
+        "agent_prompt": [
+          "CodeRabbit nit suggestion for .husky/commit-msg:1-5",
+          "  ",
+          "Description: LGTM!",
+          "The commit message hook correctly delegates to commitlint for validation. The implementation is clean and follows Husky best practices.",
+          "Priority: Low"
+        ],
+        "implementation_guidance": {
+          "priority": "low",
+          "effort_estimate": "Quick fix (1-2 minutes)",
+          "rationale": [
+            "LGTM!",
+            "The commit message hook correctly delegates to commitlint for validation. The implementation is clean and follows Husky best practices."
+          ]
+        }
+      },
+      "status_indicators": {
+        "needs_mcp_resolution": false,
+        "has_manual_response": false,
+        "is_actionable": false,
+        "is_outdated": false,
+        "priority_score": 15,
+        "resolution_status": "unresolved",
+        "suggested_action": "ignore"
+      }
+    },
+    {
+      "id": -5,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "author_association": "CONTRIBUTOR",
+      "is_bot": true,
+      "created_at": "2025-10-29T00:26:31Z",
+      "updated_at": "2025-10-29T00:26:31Z",
+      "file_path": "commitlint.config.cjs",
+      "line_number": 1,
+      "body": [
+        "LGTM!",
+        "",
+        "LGTM!",
+        "The commitlint configuration is comprehensive and follows conventional commit standards. The custom `release` type is a reasonable addition for this project's workflow."
+      ],
+      "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+      "action_commands": {
+        "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+        "resolve_condition": "This comment type cannot be resolved via API",
+        "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+      },
+      "coderabbit_metadata": {
+        "suggestion_type": "nit",
+        "severity": "low",
+        "category": "style",
+        "file_context": {
+          "path": "commitlint.config.cjs",
+          "line_start": 1,
+          "line_end": 32
+        },
+        "code_suggestion": null,
+        "agent_prompt": [
+          "CodeRabbit nit suggestion for commitlint.config.cjs:1-32",
+          "  ",
+          "Description: LGTM!",
+          "The commitlint configuration is comprehensive and follows conventional commit standards. The custom `release` type is a reasonable addition for this project's workflow.",
+          "Priority: Low"
+        ],
+        "implementation_guidance": {
+          "priority": "low",
+          "effort_estimate": "Quick fix (1-2 minutes)",
+          "rationale": [
+            "LGTM!",
+            "The commitlint configuration is comprehensive and follows conventional commit standards. The custom `release` type is a reasonable addition for this project's workflow."
+          ]
+        }
+      },
+      "status_indicators": {
+        "needs_mcp_resolution": false,
+        "has_manual_response": false,
+        "is_actionable": false,
+        "is_outdated": false,
+        "priority_score": 15,
+        "resolution_status": "unresolved",
+        "suggested_action": "ignore"
+      }
+    },
+    {
+      "id": -6,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "author_association": "CONTRIBUTOR",
+      "is_bot": true,
+      "created_at": "2025-10-29T00:26:31Z",
+      "updated_at": "2025-10-29T00:26:31Z",
+      "file_path": ".husky/pre-push",
+      "line_number": 1,
+      "body": [
+        "LGTM!",
+        "",
+        "LGTM!",
+        "The pre-push hook correctly invokes the version check script with proper Husky setup."
+      ],
+      "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+      "action_commands": {
+        "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+        "resolve_condition": "This comment type cannot be resolved via API",
+        "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+      },
+      "coderabbit_metadata": {
+        "suggestion_type": "nit",
+        "severity": "low",
+        "category": "general",
+        "file_context": {
+          "path": ".husky/pre-push",
+          "line_start": 1,
+          "line_end": 5
+        },
+        "code_suggestion": null,
+        "agent_prompt": [
+          "CodeRabbit nit suggestion for .husky/pre-push:1-5",
+          "  ",
+          "Description: LGTM!",
+          "The pre-push hook correctly invokes the version check script with proper Husky setup.",
+          "Priority: Low"
+        ],
+        "implementation_guidance": {
+          "priority": "low",
+          "effort_estimate": "Quick fix (1-2 minutes)",
+          "rationale": [
+            "LGTM!",
+            "The pre-push hook correctly invokes the version check script with proper Husky setup."
+          ]
+        }
+      },
+      "status_indicators": {
+        "needs_mcp_resolution": false,
+        "has_manual_response": false,
+        "is_actionable": false,
+        "is_outdated": false,
+        "priority_score": 15,
+        "resolution_status": "unresolved",
+        "suggested_action": "ignore"
+      }
+    },
+    {
+      "id": -7,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "author_association": "CONTRIBUTOR",
+      "is_bot": true,
+      "created_at": "2025-10-29T00:26:31Z",
+      "updated_at": "2025-10-29T00:26:31Z",
+      "file_path": ".markdownlint.json",
+      "line_number": 1,
+      "body": [
+        "LGTM!",
+        "",
+        "LGTM!",
+        "The markdownlint configuration appropriately relaxes several rules to accommodate existing documentation. This pragmatic approach allows the hooks to be added without forcing extensive rewrites of existing docs."
+      ],
+      "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+      "action_commands": {
+        "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+        "resolve_condition": "This comment type cannot be resolved via API",
+        "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+      },
+      "coderabbit_metadata": {
+        "suggestion_type": "nit",
+        "severity": "low",
+        "category": "style",
+        "file_context": {
+          "path": ".markdownlint.json",
+          "line_start": 1,
+          "line_end": 14
+        },
+        "code_suggestion": null,
+        "agent_prompt": [
+          "CodeRabbit nit suggestion for .markdownlint.json:1-14",
+          "  ",
+          "Description: LGTM!",
+          "The markdownlint configuration appropriately relaxes several rules to accommodate existing documentation. This pragmatic approach allows the hooks to be added without forcing extensive rewrites of existing docs.",
+          "Priority: Low"
+        ],
+        "implementation_guidance": {
+          "priority": "low",
+          "effort_estimate": "Quick fix (1-2 minutes)",
+          "rationale": [
+            "LGTM!",
+            "The markdownlint configuration appropriately relaxes several rules to accommodate existing documentation. This pragmatic approach allows the hooks to be added without forcing extensive rewrites of existing docs."
+          ]
+        }
+      },
+      "status_indicators": {
+        "needs_mcp_resolution": false,
+        "has_manual_response": false,
+        "is_actionable": false,
+        "is_outdated": false,
+        "priority_score": 15,
+        "resolution_status": "unresolved",
+        "suggested_action": "ignore"
+      }
+    },
+    {
+      "id": -10,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "author_association": "CONTRIBUTOR",
+      "is_bot": true,
+      "created_at": "2025-10-29T00:26:31Z",
+      "updated_at": "2025-10-29T00:26:31Z",
+      "file_path": "package.json",
+      "line_number": 100,
+      "body": [
+        "LGTM!",
+        "",
+        "LGTM!",
+        "The new dev dependencies are appropriate for the commit validation, markdown linting, and interactive commit tooling introduced in this PR."
+      ],
+      "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+      "action_commands": {
+        "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+        "resolve_condition": "This comment type cannot be resolved via API",
+        "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+      },
+      "coderabbit_metadata": {
+        "suggestion_type": "nit",
+        "severity": "low",
+        "category": "style",
+        "file_context": {
+          "path": "package.json",
+          "line_start": 100,
+          "line_end": 114
+        },
+        "code_suggestion": null,
+        "agent_prompt": [
+          "CodeRabbit nit suggestion for package.json:100-114",
+          "  ",
+          "Description: LGTM!",
+          "The new dev dependencies are appropriate for the commit validation, markdown linting, and interactive commit tooling introduced in this PR.",
+          "Priority: Low"
+        ],
+        "implementation_guidance": {
+          "priority": "low",
+          "effort_estimate": "Quick fix (1-2 minutes)",
+          "rationale": [
+            "LGTM!",
+            "The new dev dependencies are appropriate for the commit validation, markdown linting, and interactive commit tooling introduced in this PR."
+          ]
+        }
+      },
+      "status_indicators": {
+        "needs_mcp_resolution": false,
+        "has_manual_response": false,
+        "is_actionable": false,
+        "is_outdated": false,
+        "priority_score": 15,
+        "resolution_status": "unresolved",
+        "suggested_action": "ignore"
+      }
+    },
+    {
+      "id": 3459161478,
+      "type": "issue_comment",
+      "author": "coderabbitai[bot]",
+      "author_association": "CONTRIBUTOR",
+      "is_bot": true,
+      "created_at": "2025-10-29T00:21:54Z",
+      "updated_at": "2025-10-29T00:26:29Z",
+      "body": [
+        "<!-- This is an auto-generated comment: summarize by coderabbit.ai -->",
+        "<!-- walkthrough_start -->",
+        "",
+        "## Walkthrough",
+        "",
+        "This pull request introduces Git hooks for commit message validation, pre-commit checks, and pre-push version verification. It adds markdownlint and commitlint configuration files, updates ESLint ignores, and adds npm scripts for markdown linting and guided commits.",
+        "",
+        "## Changes",
+        "",
+        "| Cohort / File(s) | Summary |",
+        "|---|---|",
+        "| **Husky Git Hooks** <br> `.husky/commit-msg`, `.husky/pre-commit`, `.husky/pre-push` | `commit-msg` hook replaced with commitlint invocation; `pre-commit` hook added to run markdownlint on Markdown files and ESLint on JavaScript/TypeScript files; `pre-push` hook introduced to validate version tags. |",
+        "| **Linting Configuration** <br> `.markdownlint.json`, `commitlint.config.cjs` | `.markdownlint.json` created with disabled/configured rules (MD013, MD024, MD033, etc.); `commitlint.config.cjs` created extending conventional preset with type-enum, case constraints, and validation rules for commit messages. |",
+        "| **ESLint Configuration** <br> `eslint.config.js` | Ignores list expanded to include `scripts/pre-push-version-check.js` and `commitlint.config.cjs`. |",
+        "| **Dependency and Script Management** <br> `package.json` | Four npm scripts added: `commit` (git-cz), `commit:retry`, `lint:md`, `lint:md:fix`; commitizen config section added; five dev dependencies added: @commitlint/cli, @commitlint/config-conventional, commitizen, cz-conventional-changelog, markdownlint-cli. |",
+        "| **Version Validation Script** <br> `scripts/pre-push-version-check.js` | New script that detects version tags matching vMAJOR.MINOR.PATCH pattern and validates existence of package.json and docs/CHANGELOG.md before allowing push. |",
+        "",
+        "## Sequence Diagram",
+        "",
+        "```mermaid",
+        "sequenceDiagram",
+        "    participant User",
+        "    participant Git",
+        "    participant commit-msg",
+        "    participant pre-commit",
+        "    participant pre-push",
+        "",
+        "    User->>Git: git commit",
+        "    Git->>commit-msg: Run commit-msg hook",
+        "    commit-msg->>commit-msg: Validate message via commitlint",
+        "    alt Message valid",
+        "        commit-msg-->>Git: Exit 0",
+        "    else Message invalid",
+        "        commit-msg-->>Git: Exit 1 (abort)",
+        "    end",
+        "",
+        "    alt Commit successful",
+        "        Git->>pre-commit: Run pre-commit hook",
+        "        par Run checks",
+        "            pre-commit->>pre-commit: markdownlint on staged .md files",
+        "            pre-commit->>pre-commit: ESLint --fix on staged .js/.ts files",
+        "        end",
+        "        pre-commit-->>Git: Exit 0 (stage updates)",
+        "    end",
+        "",
+        "    User->>Git: git push",
+        "    Git->>pre-push: Run pre-push hook",
+        "    pre-push->>pre-push: Detect version tags (v*.*.*)",
+        "    alt Version tags found",
+        "        pre-push->>pre-push: Validate package.json exists",
+        "        pre-push->>pre-push: Validate docs/CHANGELOG.md exists",
+        "        alt All files present",
+        "            pre-push-->>Git: Exit 0",
+        "        else Files missing",
+        "            pre-push-->>Git: Exit 1 (abort)",
+        "        end",
+        "    else No version tags",
+        "        pre-push-->>Git: Exit 0 (skip validation)",
+        "    end",
+        "```",
+        "",
+        "## Estimated code review effort",
+        "",
+        "🎯 3 (Moderate) | ⏱️ ~25 minutes",
+        "",
+        "- **`.husky/` hook files**: Verify correct Husky syntax, environment loading, and command invocations; confirm proper error handling and exit codes.",
+        "- **`scripts/pre-push-version-check.js`**: Pay special attention to the regex pattern for version tag detection, try/catch error handling, and git command invocations to ensure robustness.",
+        "- **`commitlint.config.cjs`**: Review rule severities (error vs. warning) and type-enum values to ensure alignment with project conventions.",
+        "- **`package.json`**: Verify correct dependency versions and script command syntax; confirm commitizen config path is accurate.",
+        "",
+        "<!-- walkthrough_end -->",
+        "",
+        "",
+        "<!-- pre_merge_checks_walkthrough_start -->",
+        "",
+        "## Pre-merge checks and finishing touches",
+        "<details>",
+        "<summary>❌ Failed checks (1 warning)</summary>",
+        "",
+        "|     Check name     | Status     | Explanation                                                                          | Resolution                                                                     |",
+        "| :----------------: | :--------- | :----------------------------------------------------------------------------------- | :----------------------------------------------------------------------------- |",
+        "| Docstring Coverage | ⚠️ Warning | Docstring coverage is 0.00% which is insufficient. The required threshold is 80.00%. | You can run `@coderabbitai generate docstrings` to improve docstring coverage. |",
+        "",
+        "</details>",
+        "<details>",
+        "<summary>✅ Passed checks (2 passed)</summary>",
+        "",
+        "|     Check name    | Status   | Explanation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |",
+        "| :---------------: | :------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |",
+        "| Description Check | ✅ Passed | Check skipped - CodeRabbit’s high-level summary is enabled.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |",
+        "|    Title Check    | ✅ Passed | The pull request title \"feat: add client-side git hooks for code quality and conventional commits\" directly and comprehensively summarizes the main changes in this changeset. The title accurately reflects the core additions: multiple Husky-based Git hooks (.commit-msg, .pre-commit, .pre-push) for enforcing conventional commits, linting staged files, and validating releases, along with supporting configuration files and npm scripts. The title is concise, specific, and uses the conventional commit format appropriately. It avoids vague or misleading language and provides clear information about what was changed. |",
+        "",
+        "</details>",
+        "",
+        "<!-- pre_merge_checks_walkthrough_end -->",
+        "",
+        "<!-- finishing_touch_checkbox_start -->",
+        "",
+        "<details>",
+        "<summary>✨ Finishing touches</summary>",
+        "",
+        "- [ ] <!-- {\"checkboxId\": \"7962f53c-55bc-4827-bfbf-6a18da830691\"} --> 📝 Generate docstrings",
+        "<details>",
+        "<summary>🧪 Generate unit tests (beta)</summary>",
+        "",
+        "- [ ] <!-- {\"checkboxId\": \"f47ac10b-58cc-4372-a567-0e02b2c3d479\", \"radioGroupId\": \"utg-output-choice-group-unknown_comment_id\"} -->   Create PR with unit tests",
+        "- [ ] <!-- {\"checkboxId\": \"07f1e7d6-8a8e-4e23-9900-8731c2c87f58\", \"radioGroupId\": \"utg-output-choice-group-unknown_comment_id\"} -->   Post copyable unit tests in a comment",
+        "- [ ] <!-- {\"checkboxId\": \"6ba7b810-9dad-11d1-80b4-00c04fd430c8\", \"radioGroupId\": \"utg-output-choice-group-unknown_comment_id\"} -->   Commit unit tests in branch `feature/pre-receive-hook-validation`",
+        "",
+        "</details>",
+        "",
+        "</details>",
+        "",
+        "<!-- finishing_touch_checkbox_end -->",
+        "",
+        "<!-- tips_start -->",
+        "",
+        "---",
+        "",
+        "",
+        "",
+        "<sub>Comment `@coderabbitai help` to get the list of available commands and usage tips.</sub>",
+        "",
+        "<!-- tips_end -->",
+        "",
+        "<!-- internal state start -->",
+        "",
+        "",
+        "<!-- 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= -->",
+        "",
+        "<!-- internal state end -->"
+      ],
+      "reactions": {
+        "total_count": 0,
+        "+1": 0,
+        "-1": 0,
+        "laugh": 0,
+        "hooray": 0,
+        "confused": 0,
+        "heart": 0,
+        "rocket": 0,
+        "eyes": 0
+      },
+      "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#issuecomment-3459161478",
+      "action_commands": {
+        "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+        "resolve_condition": "This comment type cannot be resolved via API",
+        "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+      },
+      "status_indicators": {
+        "needs_mcp_resolution": false,
+        "has_manual_response": false,
+        "is_actionable": true,
+        "is_outdated": false,
+        "priority_score": 15,
+        "resolution_status": "unresolved",
+        "suggested_action": "reply"
+      }
+    }
+  ],
+  "summary": {
+    "comments_in_page": 14,
+    "by_author": {
+      "coderabbitai[bot]": 14
+    },
+    "by_type": {
+      "review_comment": 3,
+      "review": 10,
+      "issue_comment": 1
+    },
+    "bot_comments": 14,
+    "human_comments": 0,
+    "with_reactions": 0,
+    "priority_summary": {
+      "high_priority": 0,
+      "medium_priority": 5,
+      "low_priority": 9,
+      "needs_mcp_resolution": 3,
+      "has_manual_responses": 0,
+      "actionable_items": 6,
+      "outdated_comments": 0
+    },
+    "status_groups": {
+      "unresolved": [
+        {
+          "id": -2,
+          "type": "review",
+          "author": "coderabbitai[bot]",
+          "author_association": "CONTRIBUTOR",
+          "is_bot": true,
+          "created_at": "2025-10-29T00:26:31Z",
+          "updated_at": "2025-10-29T00:26:31Z",
+          "file_path": ".husky/pre-commit",
+          "line_number": 10,
+          "body": [
+            "Consider consistent handling of empty file lists.",
+            "",
+            "Consider consistent handling of empty file lists.",
+            "While the `|| true` pattern prevents failures when no files match, calling ESLint with an empty file list might produce warnings or unexpected behavior.",
+            "Consider making both linting commands consistent by using a portable xargs pattern or explicit file checks:",
+            "```diff",
+            "-npx eslint --fix $(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' || true)",
+            "+git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' | xargs npx eslint --fix || true",
+            "```"
+          ],
+          "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+          "action_commands": {
+            "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+            "resolve_condition": "This comment type cannot be resolved via API",
+            "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+          },
+          "coderabbit_metadata": {
+            "suggestion_type": "nit",
+            "severity": "low",
+            "category": "style",
+            "file_context": {
+              "path": ".husky/pre-commit",
+              "line_start": 10,
+              "line_end": 10
+            },
+            "code_suggestion": {
+              "old_code": "npx eslint --fix $(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' || true)",
+              "new_code": "git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' | xargs npx eslint --fix || true"
+            },
+            "agent_prompt": [
+              "CodeRabbit nit suggestion for .husky/pre-commit:10-10",
+              "    ",
+              "Current code:",
+              "```",
+              "npx eslint --fix $(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' || true)",
+              "```",
+              "",
+              "Suggested change:",
+              "```",
+              "git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' | xargs npx eslint --fix || true",
+              "```",
+              "",
+              "Context: Consider consistent handling of empty file lists.",
+              "While the `|| true` pattern prevents failures when no files match, calling ESLint with an empty file list might produce warnings or unexpected behavior.",
+              "Consider making both linting commands consistent by using a portable xargs pattern or explicit file checks:",
+              "```diff",
+              "-npx eslint --fix $(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' || true)",
+              "+git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' | xargs npx eslint --fix || true",
+              "```",
+              "Priority: Low",
+              "Effort: Quick fix (1-2 minutes)"
+            ],
+            "implementation_guidance": {
+              "priority": "low",
+              "effort_estimate": "Quick fix (1-2 minutes)",
+              "rationale": [
+                "Consider consistent handling of empty file lists.",
+                "While the `|| true` pattern prevents failures when no files match, calling ESLint with an empty file list might produce warnings or unexpected behavior.",
+                "Consider making both linting commands consistent by using a portable xargs pattern or explicit file checks:",
+                "```diff",
+                "-npx eslint --fix $(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' || true)",
+                "+git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' | xargs npx eslint --fix || true",
+                "```"
+              ]
+            }
+          },
+          "status_indicators": {
+            "needs_mcp_resolution": false,
+            "has_manual_response": false,
+            "is_actionable": true,
+            "is_outdated": false,
+            "priority_score": 30,
+            "resolution_status": "unresolved",
+            "suggested_action": "reply"
+          }
+        },
+        {
+          "id": -8,
+          "type": "review",
+          "author": "coderabbitai[bot]",
+          "author_association": "CONTRIBUTOR",
+          "is_bot": true,
+          "created_at": "2025-10-29T00:26:31Z",
+          "updated_at": "2025-10-29T00:26:31Z",
+          "file_path": "package.json",
+          "line_number": 56,
+          "body": [
+            "LGTM!",
+            "",
+            "LGTM!",
+            "The new npm scripts provide convenient access to commitizen for conventional commits and markdown linting with auto-fix capabilities. These align well with the Git hooks introduced in this PR."
+          ],
+          "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+          "action_commands": {
+            "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+            "resolve_condition": "This comment type cannot be resolved via API",
+            "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+          },
+          "coderabbit_metadata": {
+            "suggestion_type": "nit",
+            "severity": "low",
+            "category": "style",
+            "file_context": {
+              "path": "package.json",
+              "line_start": 56,
+              "line_end": 59
+            },
+            "code_suggestion": null,
+            "agent_prompt": [
+              "CodeRabbit nit suggestion for package.json:56-59",
+              "  ",
+              "Description: LGTM!",
+              "The new npm scripts provide convenient access to commitizen for conventional commits and markdown linting with auto-fix capabilities. These align well with the Git hooks introduced in this PR.",
+              "Priority: Low"
+            ],
+            "implementation_guidance": {
+              "priority": "low",
+              "effort_estimate": "Quick fix (1-2 minutes)",
+              "rationale": [
+                "LGTM!",
+                "The new npm scripts provide convenient access to commitizen for conventional commits and markdown linting with auto-fix capabilities. These align well with the Git hooks introduced in this PR."
+              ]
+            }
+          },
+          "status_indicators": {
+            "needs_mcp_resolution": false,
+            "has_manual_response": false,
+            "is_actionable": true,
+            "is_outdated": false,
+            "priority_score": 30,
+            "resolution_status": "unresolved",
+            "suggested_action": "reply"
+          }
+        },
+        {
+          "id": -9,
+          "type": "review",
+          "author": "coderabbitai[bot]",
+          "author_association": "CONTRIBUTOR",
+          "is_bot": true,
+          "created_at": "2025-10-29T00:26:31Z",
+          "updated_at": "2025-10-29T00:26:31Z",
+          "file_path": "package.json",
+          "line_number": 61,
+          "body": [
+            "LGTM!",
+            "",
+            "LGTM!",
+            "The commitizen configuration correctly points to the conventional changelog adapter, enabling interactive conventional commit creation via `npm run commit`."
+          ],
+          "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+          "action_commands": {
+            "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+            "resolve_condition": "This comment type cannot be resolved via API",
+            "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+          },
+          "coderabbit_metadata": {
+            "suggestion_type": "nit",
+            "severity": "low",
+            "category": "general",
+            "file_context": {
+              "path": "package.json",
+              "line_start": 61,
+              "line_end": 64
+            },
+            "code_suggestion": null,
+            "agent_prompt": [
+              "CodeRabbit nit suggestion for package.json:61-64",
+              "  ",
+              "Description: LGTM!",
+              "The commitizen configuration correctly points to the conventional changelog adapter, enabling interactive conventional commit creation via `npm run commit`.",
+              "Priority: Low"
+            ],
+            "implementation_guidance": {
+              "priority": "low",
+              "effort_estimate": "Quick fix (1-2 minutes)",
+              "rationale": [
+                "LGTM!",
+                "The commitizen configuration correctly points to the conventional changelog adapter, enabling interactive conventional commit creation via `npm run commit`."
+              ]
+            }
+          },
+          "status_indicators": {
+            "needs_mcp_resolution": false,
+            "has_manual_response": false,
+            "is_actionable": true,
+            "is_outdated": false,
+            "priority_score": 30,
+            "resolution_status": "unresolved",
+            "suggested_action": "reply"
+          }
+        },
+        {
+          "id": -1,
+          "type": "review",
+          "author": "coderabbitai[bot]",
+          "author_association": "CONTRIBUTOR",
+          "is_bot": true,
+          "created_at": "2025-10-29T00:26:31Z",
+          "updated_at": "2025-10-29T00:26:31Z",
+          "file_path": "eslint.config.js",
+          "line_number": 87,
+          "body": [
+            "Consider simplifying the ignore pattern.",
+            "",
+            "Consider simplifying the ignore pattern.",
+            "The current pattern includes all scripts with `!scripts/*.js`, then immediately excludes `scripts/pre-push-version-check.js`. This include-then-exclude pattern can be confusing.",
+            "Consider either:",
+            "1. Explicitly listing scripts to include rather than using a blanket include with exceptions",
+            "2. Moving the version check script to a different location if it shouldn't be linted",
+            "```diff",
+            "-    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/*.js', 'scripts/pre-push-version-check.js', 'commitlint.config.cjs']",
+            "+    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/generate-version-info.js', '!scripts/release.js', '!scripts/install-cli.cjs', 'commitlint.config.cjs']",
+            "```"
+          ],
+          "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+          "action_commands": {
+            "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+            "resolve_condition": "This comment type cannot be resolved via API",
+            "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+          },
+          "coderabbit_metadata": {
+            "suggestion_type": "nit",
+            "severity": "low",
+            "category": "style",
+            "file_context": {
+              "path": "eslint.config.js",
+              "line_start": 87,
+              "line_end": 87
+            },
+            "code_suggestion": {
+              "old_code": "    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/*.js', 'scripts/pre-push-version-check.js', 'commitlint.config.cjs']",
+              "new_code": "    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/generate-version-info.js', '!scripts/release.js', '!scripts/install-cli.cjs', 'commitlint.config.cjs']"
+            },
+            "agent_prompt": [
+              "CodeRabbit nit suggestion for eslint.config.js:87-87",
+              "    ",
+              "Current code:",
+              "```",
+              "    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/*.js', 'scripts/pre-push-version-check.js', 'commitlint.config.cjs']",
+              "```",
+              "",
+              "Suggested change:",
+              "```",
+              "    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/generate-version-info.js', '!scripts/release.js', '!scripts/install-cli.cjs', 'commitlint.config.cjs']",
+              "```",
+              "",
+              "Context: Consider simplifying the ignore pattern.",
+              "The current pattern includes all scripts with `!scripts/*.js`, then immediately excludes `scripts/pre-push-version-check.js`. This include-then-exclude pattern can be confusing.",
+              "Consider either:",
+              "1. Explicitly listing scripts to include rather than using a blanket include with exceptions",
+              "2. Moving the version check script to a different location if it shouldn't be linted",
+              "```diff",
+              "-    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/*.js', 'scripts/pre-push-version-check.js', 'commitlint.config.cjs']",
+              "+    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/generate-version-info.js', '!scripts/release.js', '!scripts/install-cli.cjs', 'commitlint.config.cjs']",
+              "```",
+              "Priority: Low",
+              "Effort: Quick fix (1-2 minutes)"
+            ],
+            "implementation_guidance": {
+              "priority": "low",
+              "effort_estimate": "Quick fix (1-2 minutes)",
+              "rationale": [
+                "Consider simplifying the ignore pattern.",
+                "The current pattern includes all scripts with `!scripts/*.js`, then immediately excludes `scripts/pre-push-version-check.js`. This include-then-exclude pattern can be confusing.",
+                "Consider either:",
+                "1. Explicitly listing scripts to include rather than using a blanket include with exceptions",
+                "2. Moving the version check script to a different location if it shouldn't be linted",
+                "```diff",
+                "-    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/*.js', 'scripts/pre-push-version-check.js', 'commitlint.config.cjs']",
+                "+    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/generate-version-info.js', '!scripts/release.js', '!scripts/install-cli.cjs', 'commitlint.config.cjs']",
+                "```"
+              ]
+            }
+          },
+          "status_indicators": {
+            "needs_mcp_resolution": false,
+            "has_manual_response": false,
+            "is_actionable": false,
+            "is_outdated": false,
+            "priority_score": 15,
+            "resolution_status": "unresolved",
+            "suggested_action": "ignore"
+          }
+        },
+        {
+          "id": -3,
+          "type": "review",
+          "author": "coderabbitai[bot]",
+          "author_association": "CONTRIBUTOR",
+          "is_bot": true,
+          "created_at": "2025-10-29T00:26:31Z",
+          "updated_at": "2025-10-29T00:26:31Z",
+          "file_path": "scripts/pre-push-version-check.js",
+          "line_number": 68,
+          "body": [
+            "Error handling is too permissive.",
+            "",
+            "Error handling is too permissive.",
+            "Catching all errors and allowing the push to continue (returning `true`) means that git command failures or other unexpected errors will silently skip validation.",
+            "Consider being more selective about which errors to ignore:",
+            "```diff",
+            "  } catch (error) {",
+            "-   console.log('⚠️  Could not check version tags, skipping validation');",
+            "-   return true;",
+            "+   // Only skip validation for specific expected errors",
+            "+   if (error.message.includes('not a git repository') || error.code === 'ENOENT') {",
+            "+     console.log('⚠️  Could not check version tags, skipping validation');",
+            "+     return true;",
+            "+   }",
+            "+   throw error;",
+            "  }",
+            "```"
+          ],
+          "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+          "action_commands": {
+            "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+            "resolve_condition": "This comment type cannot be resolved via API",
+            "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+          },
+          "coderabbit_metadata": {
+            "suggestion_type": "nit",
+            "severity": "low",
+            "category": "bug",
+            "file_context": {
+              "path": "scripts/pre-push-version-check.js",
+              "line_start": 68,
+              "line_end": 71
+            },
+            "code_suggestion": {
+              "old_code": [
+                "   console.log('⚠️  Could not check version tags, skipping validation');",
+                "   return true;"
+              ],
+              "new_code": [
+                "   // Only skip validation for specific expected errors",
+                "   if (error.message.includes('not a git repository') || error.code === 'ENOENT') {",
+                "     console.log('⚠️  Could not check version tags, skipping validation');",
+                "     return true;",
+                "   }",
+                "   throw error;"
+              ]
+            },
+            "agent_prompt": [
+              "CodeRabbit nit suggestion for scripts/pre-push-version-check.js:68-71",
+              "    ",
+              "Current code:",
+              "```",
+              "   console.log('⚠️  Could not check version tags, skipping validation');",
+              "   return true;",
+              "```",
+              "",
+              "Suggested change:",
+              "```",
+              "   // Only skip validation for specific expected errors",
+              "   if (error.message.includes('not a git repository') || error.code === 'ENOENT') {",
+              "     console.log('⚠️  Could not check version tags, skipping validation');",
+              "     return true;",
+              "   }",
+              "   throw error;",
+              "```",
+              "",
+              "Context: Error handling is too permissive.",
+              "Catching all errors and allowing the push to continue (returning `true`) means that git command failures or other unexpected errors will silently skip validation.",
+              "Consider being more selective about which errors to ignore:",
+              "```diff",
+              "  } catch (error) {",
+              "-   console.log('⚠️  Could not check version tags, skipping validation');",
+              "-   return true;",
+              "+   // Only skip validation for specific expected errors",
+              "+   if (error.message.includes('not a git repository') || error.code === 'ENOENT') {",
+              "+     console.log('⚠️  Could not check version tags, skipping validation');",
+              "+     return true;",
+              "+   }",
+              "+   throw error;",
+              "  }",
+              "```",
+              "Priority: Low",
+              "Effort: Quick fix (1-2 minutes)"
+            ],
+            "implementation_guidance": {
+              "priority": "low",
+              "effort_estimate": "Quick fix (1-2 minutes)",
+              "rationale": [
+                "Error handling is too permissive.",
+                "Catching all errors and allowing the push to continue (returning `true`) means that git command failures or other unexpected errors will silently skip validation.",
+                "Consider being more selective about which errors to ignore:",
+                "```diff",
+                "  } catch (error) {",
+                "-   console.log('⚠️  Could not check version tags, skipping validation');",
+                "-   return true;",
+                "+   // Only skip validation for specific expected errors",
+                "+   if (error.message.includes('not a git repository') || error.code === 'ENOENT') {",
+                "+     console.log('⚠️  Could not check version tags, skipping validation');",
+                "+     return true;",
+                "+   }",
+                "+   throw error;",
+                "  }",
+                "```"
+              ]
+            }
+          },
+          "status_indicators": {
+            "needs_mcp_resolution": false,
+            "has_manual_response": false,
+            "is_actionable": false,
+            "is_outdated": false,
+            "priority_score": 15,
+            "resolution_status": "unresolved",
+            "suggested_action": "ignore"
+          }
+        },
+        {
+          "id": -4,
+          "type": "review",
+          "author": "coderabbitai[bot]",
+          "author_association": "CONTRIBUTOR",
+          "is_bot": true,
+          "created_at": "2025-10-29T00:26:31Z",
+          "updated_at": "2025-10-29T00:26:31Z",
+          "file_path": ".husky/commit-msg",
+          "line_number": 1,
+          "body": [
+            "LGTM!",
+            "",
+            "LGTM!",
+            "The commit message hook correctly delegates to commitlint for validation. The implementation is clean and follows Husky best practices."
+          ],
+          "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+          "action_commands": {
+            "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+            "resolve_condition": "This comment type cannot be resolved via API",
+            "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+          },
+          "coderabbit_metadata": {
+            "suggestion_type": "nit",
+            "severity": "low",
+            "category": "style",
+            "file_context": {
+              "path": ".husky/commit-msg",
+              "line_start": 1,
+              "line_end": 5
+            },
+            "code_suggestion": null,
+            "agent_prompt": [
+              "CodeRabbit nit suggestion for .husky/commit-msg:1-5",
+              "  ",
+              "Description: LGTM!",
+              "The commit message hook correctly delegates to commitlint for validation. The implementation is clean and follows Husky best practices.",
+              "Priority: Low"
+            ],
+            "implementation_guidance": {
+              "priority": "low",
+              "effort_estimate": "Quick fix (1-2 minutes)",
+              "rationale": [
+                "LGTM!",
+                "The commit message hook correctly delegates to commitlint for validation. The implementation is clean and follows Husky best practices."
+              ]
+            }
+          },
+          "status_indicators": {
+            "needs_mcp_resolution": false,
+            "has_manual_response": false,
+            "is_actionable": false,
+            "is_outdated": false,
+            "priority_score": 15,
+            "resolution_status": "unresolved",
+            "suggested_action": "ignore"
+          }
+        },
+        {
+          "id": -5,
+          "type": "review",
+          "author": "coderabbitai[bot]",
+          "author_association": "CONTRIBUTOR",
+          "is_bot": true,
+          "created_at": "2025-10-29T00:26:31Z",
+          "updated_at": "2025-10-29T00:26:31Z",
+          "file_path": "commitlint.config.cjs",
+          "line_number": 1,
+          "body": [
+            "LGTM!",
+            "",
+            "LGTM!",
+            "The commitlint configuration is comprehensive and follows conventional commit standards. The custom `release` type is a reasonable addition for this project's workflow."
+          ],
+          "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+          "action_commands": {
+            "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+            "resolve_condition": "This comment type cannot be resolved via API",
+            "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+          },
+          "coderabbit_metadata": {
+            "suggestion_type": "nit",
+            "severity": "low",
+            "category": "style",
+            "file_context": {
+              "path": "commitlint.config.cjs",
+              "line_start": 1,
+              "line_end": 32
+            },
+            "code_suggestion": null,
+            "agent_prompt": [
+              "CodeRabbit nit suggestion for commitlint.config.cjs:1-32",
+              "  ",
+              "Description: LGTM!",
+              "The commitlint configuration is comprehensive and follows conventional commit standards. The custom `release` type is a reasonable addition for this project's workflow.",
+              "Priority: Low"
+            ],
+            "implementation_guidance": {
+              "priority": "low",
+              "effort_estimate": "Quick fix (1-2 minutes)",
+              "rationale": [
+                "LGTM!",
+                "The commitlint configuration is comprehensive and follows conventional commit standards. The custom `release` type is a reasonable addition for this project's workflow."
+              ]
+            }
+          },
+          "status_indicators": {
+            "needs_mcp_resolution": false,
+            "has_manual_response": false,
+            "is_actionable": false,
+            "is_outdated": false,
+            "priority_score": 15,
+            "resolution_status": "unresolved",
+            "suggested_action": "ignore"
+          }
+        },
+        {
+          "id": -6,
+          "type": "review",
+          "author": "coderabbitai[bot]",
+          "author_association": "CONTRIBUTOR",
+          "is_bot": true,
+          "created_at": "2025-10-29T00:26:31Z",
+          "updated_at": "2025-10-29T00:26:31Z",
+          "file_path": ".husky/pre-push",
+          "line_number": 1,
+          "body": [
+            "LGTM!",
+            "",
+            "LGTM!",
+            "The pre-push hook correctly invokes the version check script with proper Husky setup."
+          ],
+          "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+          "action_commands": {
+            "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+            "resolve_condition": "This comment type cannot be resolved via API",
+            "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+          },
+          "coderabbit_metadata": {
+            "suggestion_type": "nit",
+            "severity": "low",
+            "category": "general",
+            "file_context": {
+              "path": ".husky/pre-push",
+              "line_start": 1,
+              "line_end": 5
+            },
+            "code_suggestion": null,
+            "agent_prompt": [
+              "CodeRabbit nit suggestion for .husky/pre-push:1-5",
+              "  ",
+              "Description: LGTM!",
+              "The pre-push hook correctly invokes the version check script with proper Husky setup.",
+              "Priority: Low"
+            ],
+            "implementation_guidance": {
+              "priority": "low",
+              "effort_estimate": "Quick fix (1-2 minutes)",
+              "rationale": [
+                "LGTM!",
+                "The pre-push hook correctly invokes the version check script with proper Husky setup."
+              ]
+            }
+          },
+          "status_indicators": {
+            "needs_mcp_resolution": false,
+            "has_manual_response": false,
+            "is_actionable": false,
+            "is_outdated": false,
+            "priority_score": 15,
+            "resolution_status": "unresolved",
+            "suggested_action": "ignore"
+          }
+        },
+        {
+          "id": -7,
+          "type": "review",
+          "author": "coderabbitai[bot]",
+          "author_association": "CONTRIBUTOR",
+          "is_bot": true,
+          "created_at": "2025-10-29T00:26:31Z",
+          "updated_at": "2025-10-29T00:26:31Z",
+          "file_path": ".markdownlint.json",
+          "line_number": 1,
+          "body": [
+            "LGTM!",
+            "",
+            "LGTM!",
+            "The markdownlint configuration appropriately relaxes several rules to accommodate existing documentation. This pragmatic approach allows the hooks to be added without forcing extensive rewrites of existing docs."
+          ],
+          "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+          "action_commands": {
+            "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+            "resolve_condition": "This comment type cannot be resolved via API",
+            "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+          },
+          "coderabbit_metadata": {
+            "suggestion_type": "nit",
+            "severity": "low",
+            "category": "style",
+            "file_context": {
+              "path": ".markdownlint.json",
+              "line_start": 1,
+              "line_end": 14
+            },
+            "code_suggestion": null,
+            "agent_prompt": [
+              "CodeRabbit nit suggestion for .markdownlint.json:1-14",
+              "  ",
+              "Description: LGTM!",
+              "The markdownlint configuration appropriately relaxes several rules to accommodate existing documentation. This pragmatic approach allows the hooks to be added without forcing extensive rewrites of existing docs.",
+              "Priority: Low"
+            ],
+            "implementation_guidance": {
+              "priority": "low",
+              "effort_estimate": "Quick fix (1-2 minutes)",
+              "rationale": [
+                "LGTM!",
+                "The markdownlint configuration appropriately relaxes several rules to accommodate existing documentation. This pragmatic approach allows the hooks to be added without forcing extensive rewrites of existing docs."
+              ]
+            }
+          },
+          "status_indicators": {
+            "needs_mcp_resolution": false,
+            "has_manual_response": false,
+            "is_actionable": false,
+            "is_outdated": false,
+            "priority_score": 15,
+            "resolution_status": "unresolved",
+            "suggested_action": "ignore"
+          }
+        },
+        {
+          "id": -10,
+          "type": "review",
+          "author": "coderabbitai[bot]",
+          "author_association": "CONTRIBUTOR",
+          "is_bot": true,
+          "created_at": "2025-10-29T00:26:31Z",
+          "updated_at": "2025-10-29T00:26:31Z",
+          "file_path": "package.json",
+          "line_number": 100,
+          "body": [
+            "LGTM!",
+            "",
+            "LGTM!",
+            "The new dev dependencies are appropriate for the commit validation, markdown linting, and interactive commit tooling introduced in this PR."
+          ],
+          "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+          "action_commands": {
+            "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+            "resolve_condition": "This comment type cannot be resolved via API",
+            "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+          },
+          "coderabbit_metadata": {
+            "suggestion_type": "nit",
+            "severity": "low",
+            "category": "style",
+            "file_context": {
+              "path": "package.json",
+              "line_start": 100,
+              "line_end": 114
+            },
+            "code_suggestion": null,
+            "agent_prompt": [
+              "CodeRabbit nit suggestion for package.json:100-114",
+              "  ",
+              "Description: LGTM!",
+              "The new dev dependencies are appropriate for the commit validation, markdown linting, and interactive commit tooling introduced in this PR.",
+              "Priority: Low"
+            ],
+            "implementation_guidance": {
+              "priority": "low",
+              "effort_estimate": "Quick fix (1-2 minutes)",
+              "rationale": [
+                "LGTM!",
+                "The new dev dependencies are appropriate for the commit validation, markdown linting, and interactive commit tooling introduced in this PR."
+              ]
+            }
+          },
+          "status_indicators": {
+            "needs_mcp_resolution": false,
+            "has_manual_response": false,
+            "is_actionable": false,
+            "is_outdated": false,
+            "priority_score": 15,
+            "resolution_status": "unresolved",
+            "suggested_action": "ignore"
+          }
+        },
+        {
+          "id": 3459161478,
+          "type": "issue_comment",
+          "author": "coderabbitai[bot]",
+          "author_association": "CONTRIBUTOR",
+          "is_bot": true,
+          "created_at": "2025-10-29T00:21:54Z",
+          "updated_at": "2025-10-29T00:26:29Z",
+          "body": [
+            "<!-- This is an auto-generated comment: summarize by coderabbit.ai -->",
+            "<!-- walkthrough_start -->",
+            "",
+            "## Walkthrough",
+            "",
+            "This pull request introduces Git hooks for commit message validation, pre-commit checks, and pre-push version verification. It adds markdownlint and commitlint configuration files, updates ESLint ignores, and adds npm scripts for markdown linting and guided commits.",
+            "",
+            "## Changes",
+            "",
+            "| Cohort / File(s) | Summary |",
+            "|---|---|",
+            "| **Husky Git Hooks** <br> `.husky/commit-msg`, `.husky/pre-commit`, `.husky/pre-push` | `commit-msg` hook replaced with commitlint invocation; `pre-commit` hook added to run markdownlint on Markdown files and ESLint on JavaScript/TypeScript files; `pre-push` hook introduced to validate version tags. |",
+            "| **Linting Configuration** <br> `.markdownlint.json`, `commitlint.config.cjs` | `.markdownlint.json` created with disabled/configured rules (MD013, MD024, MD033, etc.); `commitlint.config.cjs` created extending conventional preset with type-enum, case constraints, and validation rules for commit messages. |",
+            "| **ESLint Configuration** <br> `eslint.config.js` | Ignores list expanded to include `scripts/pre-push-version-check.js` and `commitlint.config.cjs`. |",
+            "| **Dependency and Script Management** <br> `package.json` | Four npm scripts added: `commit` (git-cz), `commit:retry`, `lint:md`, `lint:md:fix`; commitizen config section added; five dev dependencies added: @commitlint/cli, @commitlint/config-conventional, commitizen, cz-conventional-changelog, markdownlint-cli. |",
+            "| **Version Validation Script** <br> `scripts/pre-push-version-check.js` | New script that detects version tags matching vMAJOR.MINOR.PATCH pattern and validates existence of package.json and docs/CHANGELOG.md before allowing push. |",
+            "",
+            "## Sequence Diagram",
+            "",
+            "```mermaid",
+            "sequenceDiagram",
+            "    participant User",
+            "    participant Git",
+            "    participant commit-msg",
+            "    participant pre-commit",
+            "    participant pre-push",
+            "",
+            "    User->>Git: git commit",
+            "    Git->>commit-msg: Run commit-msg hook",
+            "    commit-msg->>commit-msg: Validate message via commitlint",
+            "    alt Message valid",
+            "        commit-msg-->>Git: Exit 0",
+            "    else Message invalid",
+            "        commit-msg-->>Git: Exit 1 (abort)",
+            "    end",
+            "",
+            "    alt Commit successful",
+            "        Git->>pre-commit: Run pre-commit hook",
+            "        par Run checks",
+            "            pre-commit->>pre-commit: markdownlint on staged .md files",
+            "            pre-commit->>pre-commit: ESLint --fix on staged .js/.ts files",
+            "        end",
+            "        pre-commit-->>Git: Exit 0 (stage updates)",
+            "    end",
+            "",
+            "    User->>Git: git push",
+            "    Git->>pre-push: Run pre-push hook",
+            "    pre-push->>pre-push: Detect version tags (v*.*.*)",
+            "    alt Version tags found",
+            "        pre-push->>pre-push: Validate package.json exists",
+            "        pre-push->>pre-push: Validate docs/CHANGELOG.md exists",
+            "        alt All files present",
+            "            pre-push-->>Git: Exit 0",
+            "        else Files missing",
+            "            pre-push-->>Git: Exit 1 (abort)",
+            "        end",
+            "    else No version tags",
+            "        pre-push-->>Git: Exit 0 (skip validation)",
+            "    end",
+            "```",
+            "",
+            "## Estimated code review effort",
+            "",
+            "🎯 3 (Moderate) | ⏱️ ~25 minutes",
+            "",
+            "- **`.husky/` hook files**: Verify correct Husky syntax, environment loading, and command invocations; confirm proper error handling and exit codes.",
+            "- **`scripts/pre-push-version-check.js`**: Pay special attention to the regex pattern for version tag detection, try/catch error handling, and git command invocations to ensure robustness.",
+            "- **`commitlint.config.cjs`**: Review rule severities (error vs. warning) and type-enum values to ensure alignment with project conventions.",
+            "- **`package.json`**: Verify correct dependency versions and script command syntax; confirm commitizen config path is accurate.",
+            "",
+            "<!-- walkthrough_end -->",
+            "",
+            "",
+            "<!-- pre_merge_checks_walkthrough_start -->",
+            "",
+            "## Pre-merge checks and finishing touches",
+            "<details>",
+            "<summary>❌ Failed checks (1 warning)</summary>",
+            "",
+            "|     Check name     | Status     | Explanation                                                                          | Resolution                                                                     |",
+            "| :----------------: | :--------- | :----------------------------------------------------------------------------------- | :----------------------------------------------------------------------------- |",
+            "| Docstring Coverage | ⚠️ Warning | Docstring coverage is 0.00% which is insufficient. The required threshold is 80.00%. | You can run `@coderabbitai generate docstrings` to improve docstring coverage. |",
+            "",
+            "</details>",
+            "<details>",
+            "<summary>✅ Passed checks (2 passed)</summary>",
+            "",
+            "|     Check name    | Status   | Explanation                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |",
+            "| :---------------: | :------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |",
+            "| Description Check | ✅ Passed | Check skipped - CodeRabbit’s high-level summary is enabled.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |",
+            "|    Title Check    | ✅ Passed | The pull request title \"feat: add client-side git hooks for code quality and conventional commits\" directly and comprehensively summarizes the main changes in this changeset. The title accurately reflects the core additions: multiple Husky-based Git hooks (.commit-msg, .pre-commit, .pre-push) for enforcing conventional commits, linting staged files, and validating releases, along with supporting configuration files and npm scripts. The title is concise, specific, and uses the conventional commit format appropriately. It avoids vague or misleading language and provides clear information about what was changed. |",
+            "",
+            "</details>",
+            "",
+            "<!-- pre_merge_checks_walkthrough_end -->",
+            "",
+            "<!-- finishing_touch_checkbox_start -->",
+            "",
+            "<details>",
+            "<summary>✨ Finishing touches</summary>",
+            "",
+            "- [ ] <!-- {\"checkboxId\": \"7962f53c-55bc-4827-bfbf-6a18da830691\"} --> 📝 Generate docstrings",
+            "<details>",
+            "<summary>🧪 Generate unit tests (beta)</summary>",
+            "",
+            "- [ ] <!-- {\"checkboxId\": \"f47ac10b-58cc-4372-a567-0e02b2c3d479\", \"radioGroupId\": \"utg-output-choice-group-unknown_comment_id\"} -->   Create PR with unit tests",
+            "- [ ] <!-- {\"checkboxId\": \"07f1e7d6-8a8e-4e23-9900-8731c2c87f58\", \"radioGroupId\": \"utg-output-choice-group-unknown_comment_id\"} -->   Post copyable unit tests in a comment",
+            "- [ ] <!-- {\"checkboxId\": \"6ba7b810-9dad-11d1-80b4-00c04fd430c8\", \"radioGroupId\": \"utg-output-choice-group-unknown_comment_id\"} -->   Commit unit tests in branch `feature/pre-receive-hook-validation`",
+            "",
+            "</details>",
+            "",
+            "</details>",
+            "",
+            "<!-- finishing_touch_checkbox_end -->",
+            "",
+            "<!-- tips_start -->",
+            "",
+            "---",
+            "",
+            "",
+            "",
+            "<sub>Comment `@coderabbitai help` to get the list of available commands and usage tips.</sub>",
+            "",
+            "<!-- tips_end -->",
+            "",
+            "<!-- internal state start -->",
+            "",
+            "",
+            "<!-- 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= -->",
+            "",
+            "<!-- internal state end -->"
+          ],
+          "reactions": {
+            "total_count": 0,
+            "+1": 0,
+            "-1": 0,
+            "laugh": 0,
+            "hooray": 0,
+            "confused": 0,
+            "heart": 0,
+            "rocket": 0,
+            "eyes": 0
+          },
+          "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#issuecomment-3459161478",
+          "action_commands": {
+            "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+            "resolve_condition": "This comment type cannot be resolved via API",
+            "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+          },
+          "status_indicators": {
+            "needs_mcp_resolution": false,
+            "has_manual_response": false,
+            "is_actionable": true,
+            "is_outdated": false,
+            "priority_score": 15,
+            "resolution_status": "unresolved",
+            "suggested_action": "reply"
+          }
+        }
+      ],
+      "acknowledged": [],
+      "in_progress": [
+        {
+          "id": 2471424834,
+          "type": "review_comment",
+          "author": "coderabbitai[bot]",
+          "author_association": "CONTRIBUTOR",
+          "is_bot": true,
+          "created_at": "2025-10-29T00:26:31Z",
+          "updated_at": "2025-10-29T00:26:31Z",
+          "file_path": ".husky/pre-commit",
+          "line_number": 6,
+          "diff_hunk": [
+            "@@ -1,3 +1,12 @@",
+            "-npm run lint",
+            "-npm run format:check",
+            "-npm run type-check",
+            "+#!/usr/bin/env sh",
+            "+. \"$(dirname -- \"$0\")/_/husky.sh\"",
+            "+",
+            "+# Run markdownlint on staged markdown files (only new/modified files)",
+            "+echo \"🔍 Running markdownlint on staged files...\"",
+            "+git diff --cached --name-only --diff-filter=ACM | grep '\\.md$' | xargs -r npx markdownlint --config .markdownlint.json"
+          ],
+          "body": [
+            "_⚠️ Potential issue_ | _🟠 Major_",
+            "",
+            "**Fix portability issue with xargs -r.**",
+            "",
+            "The `-r` flag for xargs is a GNU extension not available on macOS/BSD systems. This will cause the pre-commit hook to fail on macOS.",
+            "",
+            "",
+            "",
+            "Apply this diff to fix the portability issue:",
+            "",
+            "```diff",
+            "-git diff --cached --name-only --diff-filter=ACM | grep '\\.md$' | xargs -r npx markdownlint --config .markdownlint.json",
+            "+git diff --cached --name-only --diff-filter=ACM | grep '\\.md$' | xargs npx markdownlint --config .markdownlint.json || true",
+            "```",
+            "",
+            "Alternatively, you can use the pattern from line 10 with command substitution, though the xargs approach is cleaner when fixed for portability.",
+            "",
+            "<!-- suggestion_start -->",
+            "",
+            "<details>",
+            "<summary>📝 Committable suggestion</summary>",
+            "",
+            "> ‼️ **IMPORTANT**",
+            "> Carefully review the code before committing. Ensure that it accurately replaces the highlighted code, contains no missing lines, and has no issues with indentation. Thoroughly test & benchmark the code to ensure it meets the requirements.",
+            "",
+            "```suggestion",
+            "git diff --cached --name-only --diff-filter=ACM | grep '\\.md$' | xargs npx markdownlint --config .markdownlint.json || true",
+            "```",
+            "",
+            "</details>",
+            "",
+            "<!-- suggestion_end -->",
+            "",
+            "<details>",
+            "<summary>🤖 Prompt for AI Agents</summary>",
+            "",
+            "```",
+            "In .husky/pre-commit around line 6, the hook uses GNU-specific xargs -r which",
+            "breaks on macOS/BSD; replace this with a portable pattern: capture the markdown",
+            "file list into a variable or command substitution, test that it is non-empty,",
+            "and only then invoke xargs (without -r) to call npx markdownlint with the",
+            "existing config; this preserves the behavior (skip when no files) while",
+            "remaining portable across GNU and BSD systems.",
+            "```",
+            "",
+            "</details>",
+            "",
+            "<!-- This is an auto-generated comment by CodeRabbit -->"
+          ],
+          "outdated": false,
+          "reactions": {
+            "total_count": 0,
+            "+1": 0,
+            "-1": 0,
+            "laugh": 0,
+            "hooray": 0,
+            "confused": 0,
+            "heart": 0,
+            "rocket": 0,
+            "eyes": 0
+          },
+          "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#discussion_r2471424834",
+          "action_commands": {
+            "reply_command": "gh api -X POST /repos/jmalicki/github-pr-automation-mcp/pulls/65/comments/2471424834/replies -f body=\"YOUR_RESPONSE_HERE\"",
+            "resolve_command": "gh api -X POST /repos/jmalicki/github-pr-automation-mcp/pulls/65/comments/2471424834/replies -f body=\"✅ Fixed\"",
+            "resolve_condition": "Run ONLY after you've verified the fix for: \"_⚠️ Potential issue_ | _🟠 Major_...\"",
+            "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web",
+            "mcp_action": {
+              "tool": "resolve_review_thread",
+              "args": {
+                "pr": "jmalicki/github-pr-automation-mcp#65",
+                "thread_id": "PRRT_kwDOQG2ass5fsPvG"
+              }
+            }
+          },
+          "status_indicators": {
+            "needs_mcp_resolution": true,
+            "has_manual_response": false,
+            "is_actionable": true,
+            "is_outdated": false,
+            "priority_score": 35,
+            "resolution_status": "in_progress",
+            "suggested_action": "resolve"
+          }
+        },
+        {
+          "id": 2471424841,
+          "type": "review_comment",
+          "author": "coderabbitai[bot]",
+          "author_association": "CONTRIBUTOR",
+          "is_bot": true,
+          "created_at": "2025-10-29T00:26:31Z",
+          "updated_at": "2025-10-29T00:26:32Z",
+          "file_path": "scripts/pre-push-version-check.js",
+          "line_number": 47,
+          "start_line": 42,
+          "diff_hunk": [
+            "@@ -0,0 +1,92 @@",
+            "+#!/usr/bin/env node",
+            "+",
+            "+/**",
+            "+ * Pre-push hook to validate version tags",
+            "+ * Ensures package.json and CHANGELOG.md are updated when pushing version tags",
+            "+ */",
+            "+",
+            "+/* eslint-env node */",
+            "+",
+            "+import { existsSync } from 'fs';",
+            "+import { execSync } from 'child_process';",
+            "+import { fileURLToPath } from 'url';",
+            "+import { dirname, join } from 'path';",
+            "+",
+            "+const __filename = fileURLToPath(import.meta.url);",
+            "+const __dirname = dirname(__filename);",
+            "+const rootDir = join(__dirname, '..');",
+            "+",
+            "+// Version tag pattern (e.g., v1.2.3, v1.2.3-alpha.1)",
+            "+const VERSION_TAG_PATTERN = /^v\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.-]+)?$/;",
+            "+",
+            "+function checkVersionTagValidation() {",
+            "+  console.log('🔍 Checking for version tags...');",
+            "+  ",
+            "+  try {",
+            "+    // Check if we're pushing any version tags",
+            "+    const remote = process.argv[2] || 'origin';",
+            "+    const refs = process.argv[3] || 'main';",
+            "+    ",
+            "+    // Get the refs being pushed",
+            "+    execSync(`git ls-remote --heads --tags ${remote} ${refs}`, { ",
+            "+      encoding: 'utf8',",
+            "+      cwd: rootDir ",
+            "+    });",
+            "+    ",
+            "+    // For simplicity, check if any local tags match version pattern",
+            "+    const localTags = execSync('git tag -l', { ",
+            "+      encoding: 'utf8',",
+            "+      cwd: rootDir ",
+            "+    }).trim().split('\\n').filter(Boolean);",
+            "+    ",
+            "+    const versionTags = localTags.filter(tag => VERSION_TAG_PATTERN.test(tag));",
+            "+    ",
+            "+    if (versionTags.length === 0) {",
+            "+      console.log('✅ No version tags detected, skipping validation');",
+            "+      return true;",
+            "+    }"
+          ],
+          "body": [
+            "_⚠️ Potential issue_ | _🟠 Major_",
+            "",
+            "**Logic doesn't validate tags being pushed.**",
+            "",
+            "The current logic checks if ANY local version tags exist, then validates package.json and CHANGELOG.md. This means even if you're not pushing a version tag, the validation will still run if you have any local version tags.",
+            "",
+            "",
+            "",
+            "The hook should only validate when version tags are actually being pushed, not just when they exist locally. This requires reading the refs being pushed from the hook's stdin (see comment on lines 27-34).",
+            "",
+            "<details>",
+            "<summary>🤖 Prompt for AI Agents</summary>",
+            "",
+            "```",
+            "In scripts/pre-push-version-check.js around lines 42 to 47, the code currently",
+            "checks for any local version tags and runs validation, but it must only validate",
+            "when version tags are actually being pushed; update the logic to read the refs",
+            "being pushed from the hook's stdin (parse the stdin lines or read file",
+            "descriptor 0), extract the ref names from those lines, filter those refs with",
+            "VERSION_TAG_PATTERN to detect pushed version tags, and only run",
+            "package.json/CHANGELOG.md validation if that filtered pushed-tags list is",
+            "non-empty; leave existing VERSION_TAG_PATTERN usage and validation steps",
+            "unchanged, just replace the localTags check with a check against the pushed refs",
+            "parsed from stdin.",
+            "```",
+            "",
+            "</details>",
+            "",
+            "<!-- This is an auto-generated comment by CodeRabbit -->"
+          ],
+          "outdated": false,
+          "reactions": {
+            "total_count": 0,
+            "+1": 0,
+            "-1": 0,
+            "laugh": 0,
+            "hooray": 0,
+            "confused": 0,
+            "heart": 0,
+            "rocket": 0,
+            "eyes": 0
+          },
+          "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#discussion_r2471424841",
+          "action_commands": {
+            "reply_command": "gh api -X POST /repos/jmalicki/github-pr-automation-mcp/pulls/65/comments/2471424841/replies -f body=\"YOUR_RESPONSE_HERE\"",
+            "resolve_command": "gh api -X POST /repos/jmalicki/github-pr-automation-mcp/pulls/65/comments/2471424841/replies -f body=\"✅ Fixed\"",
+            "resolve_condition": "Run ONLY after you've verified the fix for: \"_⚠️ Potential issue_ | _🟠 Major_...\"",
+            "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web",
+            "mcp_action": {
+              "tool": "resolve_review_thread",
+              "args": {
+                "pr": "jmalicki/github-pr-automation-mcp#65",
+                "thread_id": "PRRT_kwDOQG2ass5fsPvM"
+              }
+            }
+          },
+          "status_indicators": {
+            "needs_mcp_resolution": true,
+            "has_manual_response": false,
+            "is_actionable": true,
+            "is_outdated": false,
+            "priority_score": 35,
+            "resolution_status": "in_progress",
+            "suggested_action": "resolve"
+          }
+        },
+        {
+          "id": 2471424839,
+          "type": "review_comment",
+          "author": "coderabbitai[bot]",
+          "author_association": "CONTRIBUTOR",
+          "is_bot": true,
+          "created_at": "2025-10-29T00:26:31Z",
+          "updated_at": "2025-10-29T00:26:32Z",
+          "file_path": "scripts/pre-push-version-check.js",
+          "line_number": 34,
+          "start_line": 27,
+          "diff_hunk": [
+            "@@ -0,0 +1,92 @@",
+            "+#!/usr/bin/env node",
+            "+",
+            "+/**",
+            "+ * Pre-push hook to validate version tags",
+            "+ * Ensures package.json and CHANGELOG.md are updated when pushing version tags",
+            "+ */",
+            "+",
+            "+/* eslint-env node */",
+            "+",
+            "+import { existsSync } from 'fs';",
+            "+import { execSync } from 'child_process';",
+            "+import { fileURLToPath } from 'url';",
+            "+import { dirname, join } from 'path';",
+            "+",
+            "+const __filename = fileURLToPath(import.meta.url);",
+            "+const __dirname = dirname(__filename);",
+            "+const rootDir = join(__dirname, '..');",
+            "+",
+            "+// Version tag pattern (e.g., v1.2.3, v1.2.3-alpha.1)",
+            "+const VERSION_TAG_PATTERN = /^v\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.-]+)?$/;",
+            "+",
+            "+function checkVersionTagValidation() {",
+            "+  console.log('🔍 Checking for version tags...');",
+            "+  ",
+            "+  try {",
+            "+    // Check if we're pushing any version tags",
+            "+    const remote = process.argv[2] || 'origin';",
+            "+    const refs = process.argv[3] || 'main';",
+            "+    ",
+            "+    // Get the refs being pushed",
+            "+    execSync(`git ls-remote --heads --tags ${remote} ${refs}`, { ",
+            "+      encoding: 'utf8',",
+            "+      cwd: rootDir ",
+            "+    });"
+          ],
+          "body": [
+            "_⚠️ Potential issue_ | _🟠 Major_",
+            "",
+            "**Dead code: git ls-remote result is not used.**",
+            "",
+            "The script accepts `remote` and `refs` arguments and executes `git ls-remote`, but the output is never used. This appears to be incomplete logic.",
+            "",
+            "",
+            "",
+            "The script should actually check what refs are being pushed rather than just checking if any local version tags exist. Consider implementing proper ref detection using git hooks' stdin input:",
+            "",
+            "```javascript",
+            "// Read refs from stdin (format: <local-ref> SP <local-oid> SP <remote-ref> SP <remote-oid> LF)",
+            "const refs = [];",
+            "const input = execSync('cat', { encoding: 'utf8' }).trim();",
+            "if (input) {",
+            "  input.split('\\n').forEach(line => {",
+            "    const parts = line.split(' ');",
+            "    if (parts[2]) {",
+            "      refs.push(parts[2]); // remote ref being pushed",
+            "    }",
+            "  });",
+            "}",
+            "",
+            "// Check if any of the refs being pushed are version tags",
+            "const versionTagsBeingPushed = refs.filter(ref => ",
+            "  ref.startsWith('refs/tags/') && VERSION_TAG_PATTERN.test(ref.replace('refs/tags/', ''))",
+            ");",
+            "```",
+            "",
+            "<details>",
+            "<summary>🤖 Prompt for AI Agents</summary>",
+            "",
+            "```",
+            "In scripts/pre-push-version-check.js around lines 27 to 34, the call to `git",
+            "ls-remote` is dead code because its output is never used; replace that with",
+            "reading the hook stdin to detect the actual refs being pushed: read from stdin,",
+            "split lines, parse each line into fields and collect the remote ref (3rd field)",
+            "into an array, then filter that array for refs starting with \"refs/tags/\" and",
+            "test the tag name against VERSION_TAG_PATTERN to determine version tags being",
+            "pushed; remove the unused execSync call and use the parsed refs for the",
+            "subsequent version-check logic.",
+            "```",
+            "",
+            "</details>",
+            "",
+            "<!-- This is an auto-generated comment by CodeRabbit -->"
+          ],
+          "outdated": false,
+          "reactions": {
+            "total_count": 0,
+            "+1": 0,
+            "-1": 0,
+            "laugh": 0,
+            "hooray": 0,
+            "confused": 0,
+            "heart": 0,
+            "rocket": 0,
+            "eyes": 0
+          },
+          "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#discussion_r2471424839",
+          "action_commands": {
+            "reply_command": "gh api -X POST /repos/jmalicki/github-pr-automation-mcp/pulls/65/comments/2471424839/replies -f body=\"YOUR_RESPONSE_HERE\"",
+            "resolve_command": "gh api -X POST /repos/jmalicki/github-pr-automation-mcp/pulls/65/comments/2471424839/replies -f body=\"✅ Fixed\"",
+            "resolve_condition": "Run ONLY after you've verified the fix for: \"_⚠️ Potential issue_ | _🟠 Major_...\"",
+            "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web",
+            "mcp_action": {
+              "tool": "resolve_review_thread",
+              "args": {
+                "pr": "jmalicki/github-pr-automation-mcp#65",
+                "thread_id": "PRRT_kwDOQG2ass5fsPvK"
+              }
+            }
+          },
+          "status_indicators": {
+            "needs_mcp_resolution": true,
+            "has_manual_response": false,
+            "is_actionable": false,
+            "is_outdated": false,
+            "priority_score": 20,
+            "resolution_status": "in_progress",
+            "suggested_action": "resolve"
+          }
+        }
+      ],
+      "resolved": []
+    }
+  }
+}

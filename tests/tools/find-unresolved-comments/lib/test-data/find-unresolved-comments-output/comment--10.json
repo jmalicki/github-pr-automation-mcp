@@ -1,0 +1,58 @@
+{
+  "id": -10,
+  "type": "review",
+  "author": "coderabbitai[bot]",
+  "author_association": "CONTRIBUTOR",
+  "is_bot": true,
+  "created_at": "2025-10-29T00:26:31Z",
+  "updated_at": "2025-10-29T00:26:31Z",
+  "file_path": "package.json",
+  "line_number": 100,
+  "body": [
+    "LGTM!",
+    "",
+    "LGTM!",
+    "The new dev dependencies are appropriate for the commit validation, markdown linting, and interactive commit tooling introduced in this PR."
+  ],
+  "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+  "action_commands": {
+    "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+    "resolve_condition": "This comment type cannot be resolved via API",
+    "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+  },
+  "coderabbit_metadata": {
+    "suggestion_type": "nit",
+    "severity": "low",
+    "category": "style",
+    "file_context": {
+      "path": "package.json",
+      "line_start": 100,
+      "line_end": 114
+    },
+    "code_suggestion": null,
+    "agent_prompt": [
+      "CodeRabbit nit suggestion for package.json:100-114",
+      "  ",
+      "Description: LGTM!",
+      "The new dev dependencies are appropriate for the commit validation, markdown linting, and interactive commit tooling introduced in this PR.",
+      "Priority: Low"
+    ],
+    "implementation_guidance": {
+      "priority": "low",
+      "effort_estimate": "Quick fix (1-2 minutes)",
+      "rationale": [
+        "LGTM!",
+        "The new dev dependencies are appropriate for the commit validation, markdown linting, and interactive commit tooling introduced in this PR."
+      ]
+    }
+  },
+  "status_indicators": {
+    "needs_mcp_resolution": false,
+    "has_manual_response": false,
+    "is_actionable": false,
+    "is_outdated": false,
+    "priority_score": 15,
+    "resolution_status": "unresolved",
+    "suggested_action": "ignore"
+  }
+}

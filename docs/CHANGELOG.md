@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.2] - 2025-10-28
+
+### Fixed
+- Fixed GitHub Actions release workflow permissions
+- Moved workflow permissions to workflow level for better security
+- Updated release workflows to use modern `softprops/action-gh-release`
+- Fixed 403 "Resource not accessible by integration" error
+
+### Changed
+- Reorganized documentation files to `docs/` directory
+- Improved release workflow step ordering
+
+## [0.5.0] - 2025-10-28
+
+### Fixed
+- Fixed integration test failures and CI issues
+- Improved CI workflow reliability
+
 ## [0.2.1] - 2025-10-27
 
 ## [0.1.1] - 2025-10-22

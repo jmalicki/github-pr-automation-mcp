@@ -1,0 +1,117 @@
+{
+  "pr": "jmalicki/github-pr-automation-mcp#65",
+  "unresolved_in_page": 14,
+  "total_comments": 14,
+  "comments": [
+    {
+      "id": 2471424834,
+      "type": "review_comment",
+      "author": "coderabbitai[bot]",
+      "file_path": ".husky/pre-commit",
+      "line_number": 6,
+      "filename": "comment-2471424834.json"
+    },
+    {
+      "id": 2471424841,
+      "type": "review_comment",
+      "author": "coderabbitai[bot]",
+      "file_path": "scripts/pre-push-version-check.js",
+      "line_number": 47,
+      "filename": "comment-2471424841.json"
+    },
+    {
+      "id": -2,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "file_path": ".husky/pre-commit",
+      "line_number": 10,
+      "filename": "comment--2.json"
+    },
+    {
+      "id": -8,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "file_path": "package.json",
+      "line_number": 56,
+      "filename": "comment--8.json"
+    },
+    {
+      "id": -9,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "file_path": "package.json",
+      "line_number": 61,
+      "filename": "comment--9.json"
+    },
+    {
+      "id": 2471424839,
+      "type": "review_comment",
+      "author": "coderabbitai[bot]",
+      "file_path": "scripts/pre-push-version-check.js",
+      "line_number": 34,
+      "filename": "comment-2471424839.json"
+    },
+    {
+      "id": -1,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "file_path": "eslint.config.js",
+      "line_number": 87,
+      "filename": "comment--1.json"
+    },
+    {
+      "id": -3,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "file_path": "scripts/pre-push-version-check.js",
+      "line_number": 68,
+      "filename": "comment--3.json"
+    },
+    {
+      "id": -4,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "file_path": ".husky/commit-msg",
+      "line_number": 1,
+      "filename": "comment--4.json"
+    },
+    {
+      "id": -5,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "file_path": "commitlint.config.cjs",
+      "line_number": 1,
+      "filename": "comment--5.json"
+    },
+    {
+      "id": -6,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "file_path": ".husky/pre-push",
+      "line_number": 1,
+      "filename": "comment--6.json"
+    },
+    {
+      "id": -7,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "file_path": ".markdownlint.json",
+      "line_number": 1,
+      "filename": "comment--7.json"
+    },
+    {
+      "id": -10,
+      "type": "review",
+      "author": "coderabbitai[bot]",
+      "file_path": "package.json",
+      "line_number": 100,
+      "filename": "comment--10.json"
+    },
+    {
+      "id": 3459161478,
+      "type": "issue_comment",
+      "author": "coderabbitai[bot]",
+      "filename": "comment-3459161478.json"
+    }
+  ]
+}

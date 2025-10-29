@@ -1,0 +1,58 @@
+{
+  "id": -4,
+  "type": "review",
+  "author": "coderabbitai[bot]",
+  "author_association": "CONTRIBUTOR",
+  "is_bot": true,
+  "created_at": "2025-10-29T00:26:31Z",
+  "updated_at": "2025-10-29T00:26:31Z",
+  "file_path": ".husky/commit-msg",
+  "line_number": 1,
+  "body": [
+    "LGTM!",
+    "",
+    "LGTM!",
+    "The commit message hook correctly delegates to commitlint for validation. The implementation is clean and follows Husky best practices."
+  ],
+  "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+  "action_commands": {
+    "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+    "resolve_condition": "This comment type cannot be resolved via API",
+    "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+  },
+  "coderabbit_metadata": {
+    "suggestion_type": "nit",
+    "severity": "low",
+    "category": "style",
+    "file_context": {
+      "path": ".husky/commit-msg",
+      "line_start": 1,
+      "line_end": 5
+    },
+    "code_suggestion": null,
+    "agent_prompt": [
+      "CodeRabbit nit suggestion for .husky/commit-msg:1-5",
+      "  ",
+      "Description: LGTM!",
+      "The commit message hook correctly delegates to commitlint for validation. The implementation is clean and follows Husky best practices.",
+      "Priority: Low"
+    ],
+    "implementation_guidance": {
+      "priority": "low",
+      "effort_estimate": "Quick fix (1-2 minutes)",
+      "rationale": [
+        "LGTM!",
+        "The commit message hook correctly delegates to commitlint for validation. The implementation is clean and follows Husky best practices."
+      ]
+    }
+  },
+  "status_indicators": {
+    "needs_mcp_resolution": false,
+    "has_manual_response": false,
+    "is_actionable": false,
+    "is_outdated": false,
+    "priority_score": 15,
+    "resolution_status": "unresolved",
+    "suggested_action": "ignore"
+  }
+}
