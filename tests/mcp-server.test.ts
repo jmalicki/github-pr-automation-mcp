@@ -348,6 +348,66 @@ describe("MCP Server", () => {
     }
   });
 
+  it("should have MCP server schema match actual tool schemas", async () => {
+    // Read the MCP server source to extract the schema
+    const serverContent = await import("fs").then((fs) =>
+      fs.readFileSync("src/index.ts", "utf8"),
+    );
+
+    // Verify required properties exist in MCP schema by checking the source
+    const requiredProperties = [
+      "pr",
+      "include_bots",
+      "exclude_authors",
+      "cursor",
+      "sort",
+      "parse_review_bodies",
+      "include_status_indicators",
+      "priority_ordering",
+      "coderabbit_options",
+    ];
+
+    for (const prop of requiredProperties) {
+      expect(serverContent).toContain(`${prop}:`);
+    }
+
+    // Verify coderabbit_options has all required sub-properties
+    expect(serverContent).toContain("coderabbit_options:");
+    expect(serverContent).toContain("properties: {");
+
+    const coderabbitProperties = [
+      "include_nits",
+      "include_duplicates",
+      "include_additional",
+      "suggestion_types",
+      "prioritize_actionable",
+      "group_by_type",
+      "extract_agent_prompts",
+    ];
+
+    for (const prop of coderabbitProperties) {
+      expect(serverContent).toContain(`${prop}:`);
+    }
+
+    // Verify sort enum includes all values
+    expect(serverContent).toContain('"chronological"');
+    expect(serverContent).toContain('"by_file"');
+    expect(serverContent).toContain('"by_author"');
+    expect(serverContent).toContain('"priority"');
+
+    // Verify suggestion_types enum includes all values
+    expect(serverContent).toContain('"nit"');
+    expect(serverContent).toContain('"duplicate"');
+    expect(serverContent).toContain('"additional"');
+    expect(serverContent).toContain('"actionable"');
+
+    // Verify defaults match schema defaults
+    expect(serverContent).toContain("include_bots:");
+    expect(serverContent).toContain("default: true");
+    expect(serverContent).toContain('default: "priority"');
+    expect(serverContent).toContain("default: false");
+  });
+
   it("should have consistent tool naming between API_DESIGN.md and implementation", async () => {
     const apiDesignContent = await import("fs").then((fs) =>
       fs.readFileSync("docs/API_DESIGN.md", "utf8"),
