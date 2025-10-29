@@ -1,0 +1,87 @@
+{
+  "id": -2,
+  "type": "review",
+  "author": "coderabbitai[bot]",
+  "author_association": "CONTRIBUTOR",
+  "is_bot": true,
+  "created_at": "2025-10-29T00:26:31Z",
+  "updated_at": "2025-10-29T00:26:31Z",
+  "file_path": ".husky/pre-commit",
+  "line_number": 10,
+  "body": [
+    "Consider consistent handling of empty file lists.",
+    "",
+    "Consider consistent handling of empty file lists.",
+    "While the `|| true` pattern prevents failures when no files match, calling ESLint with an empty file list might produce warnings or unexpected behavior.",
+    "Consider making both linting commands consistent by using a portable xargs pattern or explicit file checks:",
+    "```diff",
+    "-npx eslint --fix $(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' || true)",
+    "+git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' | xargs npx eslint --fix || true",
+    "```"
+  ],
+  "html_url": "https://github.com/jmalicki/github-pr-automation-mcp/pull/65#pullrequestreview-3391312656",
+  "action_commands": {
+    "reply_command": "gh pr comment 65 --repo jmalicki/github-pr-automation-mcp --body \"YOUR_RESPONSE_HERE\"",
+    "resolve_condition": "This comment type cannot be resolved via API",
+    "view_in_browser": "gh pr view 65 --repo jmalicki/github-pr-automation-mcp --web"
+  },
+  "coderabbit_metadata": {
+    "suggestion_type": "nit",
+    "severity": "low",
+    "category": "style",
+    "file_context": {
+      "path": ".husky/pre-commit",
+      "line_start": 10,
+      "line_end": 10
+    },
+    "code_suggestion": {
+      "old_code": "npx eslint --fix $(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' || true)",
+      "new_code": "git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' | xargs npx eslint --fix || true"
+    },
+    "agent_prompt": [
+      "CodeRabbit nit suggestion for .husky/pre-commit:10-10",
+      "    ",
+      "Current code:",
+      "```",
+      "npx eslint --fix $(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' || true)",
+      "```",
+      "",
+      "Suggested change:",
+      "```",
+      "git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' | xargs npx eslint --fix || true",
+      "```",
+      "",
+      "Context: Consider consistent handling of empty file lists.",
+      "While the `|| true` pattern prevents failures when no files match, calling ESLint with an empty file list might produce warnings or unexpected behavior.",
+      "Consider making both linting commands consistent by using a portable xargs pattern or explicit file checks:",
+      "```diff",
+      "-npx eslint --fix $(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' || true)",
+      "+git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' | xargs npx eslint --fix || true",
+      "```",
+      "Priority: Low",
+      "Effort: Quick fix (1-2 minutes)"
+    ],
+    "implementation_guidance": {
+      "priority": "low",
+      "effort_estimate": "Quick fix (1-2 minutes)",
+      "rationale": [
+        "Consider consistent handling of empty file lists.",
+        "While the `|| true` pattern prevents failures when no files match, calling ESLint with an empty file list might produce warnings or unexpected behavior.",
+        "Consider making both linting commands consistent by using a portable xargs pattern or explicit file checks:",
+        "```diff",
+        "-npx eslint --fix $(git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' || true)",
+        "+git diff --cached --name-only --diff-filter=ACM | grep -E '\\.(ts|tsx|js|jsx)$' | xargs npx eslint --fix || true",
+        "```"
+      ]
+    }
+  },
+  "status_indicators": {
+    "needs_mcp_resolution": false,
+    "has_manual_response": false,
+    "is_actionable": true,
+    "is_outdated": false,
+    "priority_score": 30,
+    "resolution_status": "unresolved",
+    "suggested_action": "reply"
+  }
+}
