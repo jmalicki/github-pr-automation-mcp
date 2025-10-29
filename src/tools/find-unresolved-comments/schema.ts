@@ -1,30 +1,165 @@
 import { z } from "zod";
 import { PRIdentifierStringSchema } from "../../utils/validation.js";
 
+/**
+ * FindUnresolvedCommentsSchema - Zod schema for find_unresolved_comments tool
+ *
+ * IMPORTANT: This schema uses zodToJsonSchema() from @alcyone-labs/zod-to-json-schema
+ * instead of Zod v4's built-in z.toJSONSchema() due to a critical bug.
+ *
+ * ## The Zod v4 JSON Schema Bug
+ *
+ * Zod v4's built-in z.toJSONSchema() has a bug where it incorrectly marks fields
+ * with default values as "required" in the generated JSON Schema, even when they
+ * are explicitly marked as optional using .optional().
+ *
+ * Example of the bug:
+ * ```typescript
+ * const schema = z.object({
+ *   required: z.string(),
+ *   optional_default: z.string().optional().default('test'),
+ * });
+ *
+ * const jsonSchema = z.toJSONSchema(schema);
+ * // BUG: jsonSchema.required = ['required', 'optional_default']
+ * // Expected: jsonSchema.required = ['required']
+ * ```
+ *
+ * ## The Solution
+ *
+ * We use @alcyone-labs/zod-to-json-schema, which is a fork of the original
+ * zod-to-json-schema library that supports Zod v4 and correctly handles
+ * optional fields with defaults.
+ *
+ * This library correctly generates:
+ * ```typescript
+ * const jsonSchema = zodToJsonSchema(schema);
+ * // CORRECT: jsonSchema.required = ['required']
+ * // optional_default is NOT in required array, but has default: 'test'
+ * ```
+ *
+ * ## Why This Matters for MCP
+ *
+ * Optional parameters are fundamental to MCP (Model Context Protocol). MCP clients
+ * expect optional fields to NOT be in the JSON Schema's "required" array, even
+ * if they have default values. This allows clients to omit optional parameters
+ * and let the server apply defaults.
+ *
+ * Most MCP servers work correctly because they use:
+ * - Zod v3 (which doesn't have this bug)
+ * - zod-to-json-schema library (which handles optional fields correctly)
+ *
+ * The official MCP SDK (@modelcontextprotocol/sdk) uses:
+ * - zod@3.23.8
+ * - zod-to-json-schema@3.24.1
+ *
+ * ## Schema Design Notes
+ *
+ * - All fields except 'pr' are optional with defaults
+ * - Descriptions include emoji annotations (💾) and user preference hints
+ * - coderabbit_options is a nested optional object with its own defaults
+ * - The schema matches the manual MCP schema in src/index.ts exactly
+ *
+ * @see {@link https://github.com/alcyone-labs/zod-to-json-schema} - Zod v4 compatible JSON Schema generator
+ * @see {@link https://github.com/colinhacks/zod/issues/1643} - Zod issue about optional fields
+ * @see {@link https://github.com/colinhacks/zod/issues/4179} - Zod issue about default values
+ */
 export const FindUnresolvedCommentsSchema = z.object({
-  pr: PRIdentifierStringSchema,
-  include_bots: z.boolean().default(true),
-  exclude_authors: z.array(z.string()).optional(),
-  cursor: z.string().optional(), // MCP cursor-based pagination
+  pr: PRIdentifierStringSchema.describe(
+    "PR identifier (owner/repo#123 or URL)",
+  ),
+  include_bots: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe(
+      "💾 Include bot comments (default: true). User preference: noise tolerance",
+    ),
+  exclude_authors: z
+    .array(z.string())
+    .optional()
+    .describe("Specific authors to exclude (optional)"),
+  cursor: z
+    .string()
+    .optional()
+    .describe("MCP cursor for pagination (optional)"),
   sort: z
     .enum(["chronological", "by_file", "by_author", "priority"])
-    .default("priority"),
-  parse_review_bodies: z.boolean().default(true), // Parse review bodies for actionable comments
-  include_status_indicators: z.boolean().default(true), // 💾 User preference: Include status indicators
-  priority_ordering: z.boolean().default(true), // 💾 User preference: Use priority-based ordering
+    .optional()
+    .default("priority")
+    .describe(
+      "💾 Sort order: chronological, by_file, by_author, priority (default: priority). User preference",
+    ),
+  parse_review_bodies: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe("Parse review bodies for actionable comments (default: true)"),
+  include_status_indicators: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe(
+      "💾 Include status indicators (default: true). User preference: workflow management",
+    ),
+  priority_ordering: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe(
+      "💾 Use priority-based ordering (default: true). User preference: task prioritization",
+    ),
   coderabbit_options: z
     .object({
-      include_nits: z.boolean().optional().default(true), // 💾 User preference: Include minor suggestions
-      include_duplicates: z.boolean().optional().default(true), // 💾 User preference: Include duplicate suggestions
-      include_additional: z.boolean().optional().default(true), // 💾 User preference: Include additional comments
+      include_nits: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe(
+          "💾 Include minor suggestions (default: true). User preference: noise tolerance",
+        ),
+      include_duplicates: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe(
+          "💾 Include duplicate suggestions (default: true). User preference: code quality focus",
+        ),
+      include_additional: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe(
+          "💾 Include additional comments (default: true). User preference: enhancement suggestions",
+        ),
       suggestion_types: z
         .array(z.enum(["nit", "duplicate", "additional", "actionable"]))
-        .optional(),
-      prioritize_actionable: z.boolean().optional().default(false), // 💾 User preference: Show actionable items first
-      group_by_type: z.boolean().optional().default(false), // 💾 User preference: Group comments by suggestion type
-      extract_agent_prompts: z.boolean().optional().default(true), // 💾 User preference: Generate agent-friendly prompts
+        .optional()
+        .describe("Specific suggestion types to include (optional)"),
+      prioritize_actionable: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe(
+          "💾 Show actionable items first (default: false). User preference: priority focus",
+        ),
+      group_by_type: z
+        .boolean()
+        .optional()
+        .default(false)
+        .describe(
+          "💾 Group comments by suggestion type (default: false). User preference: organization",
+        ),
+      extract_agent_prompts: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe(
+          "💾 Generate agent-friendly prompts (default: true). User preference: AI agent optimization",
+        ),
     })
-    .optional(),
+    .optional()
+    .describe("CodeRabbit-specific parsing and filtering options"),
 });
 
 export type FindUnresolvedCommentsInput = z.infer<
