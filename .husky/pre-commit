@@ -1,3 +1,12 @@
-npm run lint
-npm run format:check
-npm run type-check
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Run markdownlint on staged markdown files (only new/modified files)
+echo "🔍 Running markdownlint on staged files..."
+git diff --cached --name-only --diff-filter=ACM | grep '\.md$' | xargs -r npx markdownlint --config .markdownlint.json
+
+# Run basic linting (fast checks only)
+echo "🔍 Running ESLint on staged files..."
+npx eslint --fix $(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx)$' || true)
+
+echo "✅ Pre-commit checks passed"

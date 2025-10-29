@@ -13,11 +13,13 @@
 **Purpose**: Extract failing test information from PR CI checks and provide targeted fix instructions.
 
 **Use Cases**:
+
 - AI wants to know what's broken before starting fixes
 - Quick feedback loop: Get first failure ASAP
 - Complete analysis: Get all failures for batch fixing
 
 **Input Schema**:
+
 ```typescript
 interface GetFailingTestsInput {
   pr: string;              // Format: "owner/repo#number" or "owner/repo/pulls/number"
@@ -28,6 +30,7 @@ interface GetFailingTestsInput {
 ```
 
 **Output Schema**:
+
 ```typescript
 interface GetFailingTestsOutput {
   pr: string;              // Normalized PR identifier
@@ -94,10 +97,10 @@ interface GetFailingTestsOutput {
    - Timeout after 30 minutes
 
 **Error Scenarios**:
+
 - PR not found: `{"error": "PR owner/repo#123 not found", "category": "user"}`
 - No CI configured: `{"status": "unknown", "message": "No CI checks configured"}`
 - Rate limit: `{"error": "Rate limited", "retry_after": 300}`
-
 
 ---
 
@@ -106,6 +109,7 @@ interface GetFailingTestsOutput {
 **Purpose**: Find unresolved PR review comments and generate response commands for efficient resolution.
 
 **Use Cases**:
+
 - AI preparing to address reviewer feedback
 - Bulk comment triage and resolution
 - Filtering out bot nits vs. human concerns
@@ -113,6 +117,7 @@ interface GetFailingTestsOutput {
 - **NEW**: Capturing structured feedback embedded in review bodies
 
 **Input Schema**:
+
 ```typescript
 interface FindUnresolvedCommentsInput {
   pr: string;                  // Format: "owner/repo#number"
@@ -125,6 +130,7 @@ interface FindUnresolvedCommentsInput {
 ```
 
 **Output Schema**:
+
 ```typescript
 interface FindUnresolvedCommentsOutput {
   pr: string;
@@ -204,6 +210,7 @@ interface FindUnresolvedCommentsOutput {
 ```
 
 **Review Body Parsing** (NEW Feature):
+
 - **Purpose**: Extracts actionable suggestions from AI review tools like CodeRabbit that embed feedback in review bodies
 - **Why Needed**: Traditional GitHub comments miss structured feedback from AI tools that use review bodies instead of individual comments
 - **How It Works**: Parses structured markup to extract file context, line ranges, and actionable suggestions
@@ -213,15 +220,18 @@ interface FindUnresolvedCommentsOutput {
 - **See**: [REVIEW_BODY_PARSING.md](./REVIEW_BODY_PARSING.md) for detailed documentation
 
 **Bot Detection**:
+
 - Account type from GitHub API (`is_bot` field)
 - Can be filtered via `exclude_authors` parameter if desired
 
 **Tool Provides** (what the tool returns):
+
 - Raw comment data with metadata (including CodeRabbit severity markers if present)
 - **GitHub CLI reply commands** (agent fills in response text)
 - **GitHub CLI resolve commands** (with conditional warnings)
 
 **AI Agent Decides** (what the LLM does with this data):
+
 1. **Analyze** comment body for urgency and category (agent parses CodeRabbit markers, etc.)
 2. **Decide** action: fix, discuss, defer, or escalate to human
 3. **Generate response content** (agent writes the actual reply text)
@@ -231,18 +241,19 @@ interface FindUnresolvedCommentsOutput {
 7. **ONLY THEN call resolve_review_thread MCP tool** (if fully satisfied with fix)
 
 **Critical Workflow**:
+
 ```
 Comment → Agent reads → Agent decides action → Agent writes response → 
 Agent makes fix → Agent verifies fix → Agent calls resolve_review_thread MCP tool
 ```
 
 **Resolution via MCP**:
+
 - For `review_comment` types, `action_commands.mcp_action` provides ready-to-call MCP action
 - Agent must verify fix **completely addresses** all thread concerns before calling
 - See `resolve_review_thread` tool docs for strict usage requirements
 
 **Never**: Auto-resolve without verification!
-
 
 ---
 
@@ -251,17 +262,20 @@ Agent makes fix → Agent verifies fix → Agent calls resolve_review_thread MCP
 **Purpose**: Immediately resolve a specific GitHub review thread using GraphQL API.
 
 **⚠️ CRITICAL: Only call this tool AFTER:**
+
 1. The AI has **read and understood** all concerns in the thread
 2. The AI has **made code changes** to address those concerns
 3. The AI has **verified the fix** (tests pass, requirements met)
 4. The AI is **satisfied** the thread's requests are completely fulfilled
 
 **Use Cases**:
+
 - AI needs to resolve a specific review conversation after addressing feedback
 - One-shot thread resolution after verification
 - Programmatic thread management (with human-like judgment)
 
 **Input Schema**:
+
 ```typescript
 interface ResolveReviewThreadInput {
   pr: string;                    // Format: "owner/repo#number"
@@ -272,6 +286,7 @@ interface ResolveReviewThreadInput {
 ```
 
 **Output Schema**:
+
 ```typescript
 interface ResolveReviewThreadOutput {
   ok: boolean;                   // Whether resolution succeeded
@@ -282,11 +297,13 @@ interface ResolveReviewThreadOutput {
 ```
 
 **GraphQL Integration**:
+
 - Uses `resolveReviewThread` mutation to resolve threads
 - Maps comment IDs to thread IDs when needed
 - Checks resolution status before attempting resolution
 
 **Tool Philosophy**:
+
 - **One-shot execution**: Immediately resolves the thread (no undo!)
 - **Idempotent**: Safe to call on already-resolved threads
 - **Smart mapping**: Can resolve via comment ID by looking up the thread
@@ -296,6 +313,7 @@ interface ResolveReviewThreadOutput {
   - When in doubt, leave unresolved and ask the human
 
 **Example Usage**:
+
 ```bash
 # Resolve by thread ID
 resolve-review-thread --pr owner/repo#123 --thread-id "thread-abc123"
@@ -304,7 +322,6 @@ resolve-review-thread --pr owner/repo#123 --thread-id "thread-abc123"
 resolve-review-thread --pr owner/repo#123 --comment-id "comment-xyz789"
 ```
 
-
 ---
 
 ### 4. manage_stacked_prs
@@ -312,11 +329,13 @@ resolve-review-thread --pr owner/repo#123 --comment-id "comment-xyz789"
 **Purpose**: Manage dependency chains between stacked PRs, detecting when rebases are needed and orchestrating automated fixes.
 
 **Use Cases**:
+
 - Base PR merged, need to update dependent PRs
 - Base PR has new commits, need to rebase stack
 - Automated rebase-test-fix loop
 
 **Input Schema**:
+
 ```typescript
 interface ManageStackedPRsInput {
   base_pr: string;           // Earlier PR: "owner/repo#123"
@@ -330,6 +349,7 @@ interface ManageStackedPRsInput {
 ```
 
 **Output Schema**:
+
 ```typescript
 interface ManageStackedPRsOutput {
   base_pr: string;
@@ -450,6 +470,7 @@ The tool analyzes the situation and recommends a strategy:
 **Command Generation Examples**:
 
 When base PR has new commits:
+
 ```typescript
 [
   {
@@ -493,7 +514,6 @@ When base PR has new commits:
 ]
 ```
 
-
 ---
 
 ### 5. detect_merge_conflicts
@@ -501,6 +521,7 @@ When base PR has new commits:
 **Purpose**: Proactively detect merge conflicts before attempting merge.
 
 **Input Schema**:
+
 ```typescript
 interface DetectMergeConflictsInput {
   pr: string;              // "owner/repo#number"
@@ -509,6 +530,7 @@ interface DetectMergeConflictsInput {
 ```
 
 **Output Schema**:
+
 ```typescript
 interface DetectMergeConflictsOutput {
   pr: string;
@@ -531,7 +553,6 @@ interface DetectMergeConflictsOutput {
 }
 ```
 
-
 ---
 
 ### 6. check_merge_readiness
@@ -539,6 +560,7 @@ interface DetectMergeConflictsOutput {
 **Purpose**: Comprehensive check of all merge requirements.
 
 **Input Schema**:
+
 ```typescript
 interface CheckMergeReadinessInput {
   pr: string;
@@ -546,6 +568,7 @@ interface CheckMergeReadinessInput {
 ```
 
 **Output Schema**:
+
 ```typescript
 interface CheckMergeReadinessOutput {
   pr: string;
@@ -575,7 +598,6 @@ interface CheckMergeReadinessOutput {
 }
 ```
 
-
 ---
 
 ### 7. rebase_after_squash_merge
@@ -583,6 +605,7 @@ interface CheckMergeReadinessOutput {
 **Purpose**: Generate rebase commands after upstream PR was squash-merged, using --onto strategy.
 
 **Input Schema**:
+
 ```typescript
 interface RebaseAfterSquashMergeInput {
   pr: string;                    // Your PR identifier (owner/repo#123)
@@ -592,6 +615,7 @@ interface RebaseAfterSquashMergeInput {
 ```
 
 **Output Schema**:
+
 ```typescript
 interface RebaseAfterSquashMergeOutput {
   pr: string;
@@ -620,26 +644,30 @@ interface RebaseAfterSquashMergeOutput {
 }
 ```
 
-
 ## Common Patterns
 
 ### PR Identifier Parsing
+
 Support multiple formats:
+
 - `owner/repo#123`
 - `owner/repo/pulls/123`
 - `https://github.com/owner/repo/pull/123`
 
 ### Pagination (MCP-Compliant Cursor-Based)
+
 All paginated responses use MCP cursor-based pagination:
+
 - `nextCursor?: string` - Opaque base64-encoded cursor
 - Only present if more results exist
 - Server controls page size (not exposed to client)
 - Clients pass cursor to get next page
 - Cursors are opaque - clients must not parse or modify them
 
-Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/pagination
+Reference: <https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/pagination>
 
 ### Error Responses
+
 ```typescript
 interface ErrorResponse {
   error: string;
@@ -651,9 +679,9 @@ interface ErrorResponse {
 ```
 
 ### Rate Limiting
+
 - Track GitHub API usage
 - Return `retry_after` when rate limited
 - Implement exponential backoff internally
 
 <!-- MCP_TOOLS_END -->
-

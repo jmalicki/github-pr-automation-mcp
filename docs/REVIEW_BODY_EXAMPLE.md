@@ -106,17 +106,20 @@ github-pr-automation find-unresolved-comments --pr "owner/repo#123" --parse-revi
 ## Why This Matters
 
 ### Traditional GitHub Comments
+
 - **Review Comments**: Line-specific feedback on code changes
 - **Issue Comments**: General PR discussion
 - **Review Bodies**: Main review text (often ignored by tools)
 
 ### AI Review Tools (CodeRabbit, etc.)
+
 - **Structured Feedback**: Multiple suggestions in single review body
 - **File Context**: `<summary>filename (n)</summary>` format
 - **Line Ranges**: `36-41`: **suggestion text** format
 - **Code Suggestions**: Embedded diff blocks
 
 ### The Gap
+
 Without review body parsing, AI-generated actionable suggestions are completely invisible to automated tools, causing important feedback to be missed.
 
 ## Benefits

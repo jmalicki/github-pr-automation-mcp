@@ -24,6 +24,7 @@ await server.connect(transport);
 ```
 
 The client (Claude Desktop, etc.) spawns the process:
+
 ```bash
 node /path/to/dist/index.js
 # Server reads from stdin, writes to stdout
@@ -43,27 +44,32 @@ resolve-pr-mcp get-failing-tests --pr "owner/repo#123" --json
 ```
 
 **CLI vs MCP Mode**:
+
 - **MCP Mode** (primary): stdio transport for AI agent integration
 - **CLI Mode** (supplementary): Command-line tool for testing, scripts, CI/CD
 
 ## Design Principles
 
 ### 1. Token Efficiency
+
 - **Problem**: AI agents have finite context windows; GitHub APIs return verbose data
 - **Solution**: Pre-process and filter data to return only actionable information
 - **Example**: Instead of returning full CI logs, extract and return only failing test names and error messages
 
 ### 2. Actionability
+
 - **Problem**: AI agents need clear instructions, not raw data
 - **Solution**: Every tool returns structured commands or instructions the AI can execute
 - **Example**: Return "Run: `git rebase origin/pr-123`" instead of "PR 123 has new commits"
 
 ### 3. Incremental Processing
+
 - **Problem**: Large PRs can have hundreds of comments or test failures
 - **Solution**: Mandatory pagination with sensible defaults
 - **Example**: Show 20 comments at a time with summary of total remaining
 
 ### 4. Fail-Fast Options
+
 - **Problem**: Waiting for entire CI suite wastes time when early failures exist
 - **Solution**: "Bail on first failure" mode for rapid feedback loops
 - **Example**: Return first test failure immediately rather than waiting for 50 tests
@@ -125,9 +131,11 @@ resolve-pr-mcp get-failing-tests --pr "owner/repo#123" --json
 ## Layer Responsibilities
 
 ### Tool Handlers Layer
+
 **Purpose**: Implement MCP tool interfaces with input validation and response formatting
 
 **Responsibilities**:
+
 - Parse and validate tool arguments using Zod schemas
 - Orchestrate calls to GitHub Integration Layer
 - Format responses for optimal AI consumption
@@ -135,6 +143,7 @@ resolve-pr-mcp get-failing-tests --pr "owner/repo#123" --json
 - Generate actionable instructions
 
 **Key Patterns**:
+
 ```typescript
 // Consistent tool handler pattern
 async function handleTool(args: ValidatedArgs): Promise<ToolResponse> {
@@ -160,9 +169,11 @@ async function handleTool(args: ValidatedArgs): Promise<ToolResponse> {
 ```
 
 ### GitHub Integration Layer
+
 **Purpose**: Abstract GitHub API complexities and provide domain-specific operations
 
 **Responsibilities**:
+
 - Aggregate multiple GitHub API calls into logical operations
 - Handle GitHub API pagination
 - Parse GitHub-specific data structures (check runs, workflows, etc.)
@@ -170,15 +181,18 @@ async function handleTool(args: ValidatedArgs): Promise<ToolResponse> {
 - Cache frequently accessed data (optional optimization)
 
 **Key Modules**:
+
 - `CIStatusFetcher`: Fetches and interprets check runs, workflow runs, and status checks
 - `CommentManager`: CRUD operations for PR comments and review threads
 - `PRAnalyzer`: Analyzes PR relationships, diffs, and metadata
 - `ConflictDetector`: Simulates merges to detect conflicts
 
 ### Octokit Client Layer
+
 **Purpose**: Thin wrapper around Octokit with authentication and rate limiting
 
 **Responsibilities**:
+
 - Initialize Octokit with authentication
 - Handle rate limiting gracefully
 - Log API usage for debugging
@@ -261,16 +275,19 @@ interface ErrorResponse {
 ## Performance Considerations
 
 ### Rate Limiting
+
 - GitHub API: 5,000 requests/hour (authenticated)
 - Strategy: Track usage, implement exponential backoff
 - Optimization: Batch related API calls
 
 ### Response Time Targets
+
 - Immediate mode: < 2 seconds
 - Wait mode: Depends on CI duration (1-30 minutes typical)
 - Streaming updates: For long-running operations
 
 ### Caching Strategy
+
 - PR metadata: Cache for 30 seconds (sufficient for most workflows)
 - Check runs: No caching (status changes frequently)
 - Comments: Cache until operation completes
@@ -278,16 +295,19 @@ interface ErrorResponse {
 ## Security Considerations
 
 ### Authentication
+
 - Require GitHub Personal Access Token via environment variable
 - Never log or expose tokens in responses
 - Validate token permissions on startup
 
 ### Authorization
+
 - Respect GitHub repository permissions
 - Fail gracefully when permissions insufficient
 - Never attempt to bypass GitHub security
 
 ### Input Validation
+
 - Strict schema validation using Zod
 - Sanitize all inputs before GitHub API calls
 - Prevent injection attacks via command generation
@@ -295,6 +315,7 @@ interface ErrorResponse {
 ## Extensibility Points
 
 ### Adding New Tools
+
 1. Define Zod schema for input validation
 2. Implement handler in Tool Handlers Layer
 3. Register with MCP server
@@ -302,13 +323,14 @@ interface ErrorResponse {
 5. Document in README
 
 ### Adding GitHub API Support
+
 1. Extend GitHub Integration Layer with new module
 2. Handle new API endpoints in Octokit layer
 3. Update type definitions
 4. Add error handling for new failure modes
 
 ### Adding AI Provider Support
+
 - MCP protocol is provider-agnostic
 - No code changes needed for different AI agents
 - Consider response format preferences per provider (future)
-

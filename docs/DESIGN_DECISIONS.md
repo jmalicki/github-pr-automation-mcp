@@ -11,10 +11,12 @@ This document captures key design decisions made during the development of the G
 **Decision**: Use single string format `"owner/repo#123"` as the primary interface
 
 **Alternatives Considered**:
+
 - Separate fields: `{owner: string, repo: string, number: number}`
 - URL only: `"https://github.com/owner/repo/pull/123"`
 
 **Rationale**:
+
 1. **AI Efficiency**: Single field reduces cognitive load for AI agents
 2. **Human-Friendly**: Matches natural GitHub format (copy/paste from URLs)
 3. **Flexibility**: Can support multiple formats with a parser:
@@ -24,6 +26,7 @@ This document captures key design decisions made during the development of the G
 4. **Implementation**: Simple regex parsing handles all cases
 
 **Implementation Note**:
+
 ```typescript
 // Parser supports all formats:
 parsePRIdentifier("owner/repo#123")
@@ -33,6 +36,7 @@ parsePRIdentifier("https://github.com/owner/repo/pull/123")
 ```
 
 **Trade-offs**:
+
 - ✅ More concise API
 - ✅ Easier for humans and AI
 - ❌ Requires parsing (minimal cost)
@@ -45,6 +49,7 @@ parsePRIdentifier("https://github.com/owner/repo/pull/123")
 **Decision**: Tools provide **raw, structured data**; LLMs perform **analysis and categorization**
 
 **Alternatives Considered**:
+
 - Tools do full analysis (categorization, severity, response generation)
 - Hybrid approach (tools suggest, LLM decides)
 
@@ -74,6 +79,7 @@ parsePRIdentifier("https://github.com/owner/repo/pull/123")
 ### Example: `find_unresolved_comments`
 
 **Tool Provides**:
+
 ```typescript
 {
   body: "This could lead to SQL injection",
@@ -85,12 +91,14 @@ parsePRIdentifier("https://github.com/owner/repo/pull/123")
 ```
 
 **LLM Determines**:
+
 - Category: "blocking" (security concern)
 - Severity: "high" (SQL injection is critical)
 - Priority: Address immediately
 - Response: Generates appropriate fix
 
 **If Tool Did This**:
+
 ```typescript
 {
   body: "This could lead to SQL injection",
@@ -101,6 +109,7 @@ parsePRIdentifier("https://github.com/owner/repo/pull/123")
 ```
 
 **Trade-offs**:
+
 - ✅ More accurate categorization (LLM understands context)
 - ✅ Simpler tool implementation
 - ✅ Easier to maintain and test
@@ -114,6 +123,7 @@ parsePRIdentifier("https://github.com/owner/repo/pull/123")
 **Decision**: **Include bots by default** (`include_bots: true`)
 
 **Alternatives Considered**:
+
 - Exclude bots by default
 - Prescriptive bot filtering (hardcoded bot list)
 
@@ -134,6 +144,7 @@ parsePRIdentifier("https://github.com/owner/repo/pull/123")
    - LLM can decide based on prompt
 
 **Example Usage**:
+
 ```typescript
 // Default: include everything
 find_unresolved_comments({pr: "owner/repo#123"})
@@ -150,6 +161,7 @@ find_unresolved_comments({
 ```
 
 **Trade-offs**:
+
 - ✅ More data for LLM to work with
 - ✅ Flexible filtering
 - ✅ No hidden assumptions
@@ -162,6 +174,7 @@ find_unresolved_comments({
 **Decision**: **Mandatory pagination** with sensible defaults
 
 **Alternatives Considered**:
+
 - Optional pagination (return all by default)
 - No pagination (always return everything)
 
@@ -180,6 +193,7 @@ find_unresolved_comments({
    - Consistent latency
 
 **Implementation**:
+
 ```typescript
 // Defaults chosen based on typical usage
 {
@@ -201,6 +215,7 @@ find_unresolved_comments({
 ```
 
 **Trade-offs**:
+
 - ✅ Predictable token usage
 - ✅ Fast responses
 - ✅ User can control detail level
@@ -228,6 +243,7 @@ find_unresolved_comments({
 **Use Cases**:
 
 **Immediate Mode**:
+
 ```typescript
 // Quick status check
 const status = await get_failing_tests({
@@ -241,6 +257,7 @@ if (status.status === "running") {
 ```
 
 **Wait Mode with Bail**:
+
 ```typescript
 // Fast feedback loop
 const result = await get_failing_tests({
@@ -252,6 +269,7 @@ const result = await get_failing_tests({
 ```
 
 **Wait Mode Complete**:
+
 ```typescript
 // Get all failures at once
 const result = await get_failing_tests({
@@ -263,6 +281,7 @@ const result = await get_failing_tests({
 ```
 
 **Trade-offs**:
+
 - ✅ Flexible for different workflows
 - ✅ Fast by default
 - ✅ Convenience when needed
@@ -292,6 +311,7 @@ const result = await get_failing_tests({
    - Empty results → "PR has no comments" (not an error)
 
 **Example Error Response**:
+
 ```typescript
 {
   error: "PR not found: owner/repo#123",
@@ -302,6 +322,7 @@ const result = await get_failing_tests({
 ```
 
 **Trade-offs**:
+
 - ✅ Clear feedback for user mistakes
 - ✅ Resilient to transient failures
 - ✅ Actionable error messages
@@ -316,6 +337,7 @@ const result = await get_failing_tests({
 **Rationale**:
 
 LLMs benefit from:
+
 1. **Concrete next steps** rather than general observations
 2. **Commands they can execute** rather than descriptions
 3. **Prioritization** rather than flat lists
@@ -323,6 +345,7 @@ LLMs benefit from:
 **Example: get_failing_tests**
 
 **Instead of**:
+
 ```typescript
 {
   message: "Tests failed in authentication module"
@@ -330,6 +353,7 @@ LLMs benefit from:
 ```
 
 **We provide**:
+
 ```typescript
 {
   instructions: {
@@ -350,6 +374,7 @@ LLMs benefit from:
 ```
 
 **Trade-offs**:
+
 - ✅ Immediately actionable
 - ✅ Clear priorities
 - ✅ Reproducible locally
@@ -384,6 +409,7 @@ LLMs benefit from:
 - Authentication via token each request
 
 **Trade-offs**:
+
 - ✅ Simple, reliable, scalable
 - ✅ No stale state bugs
 - ❌ Can't optimize across calls (but caching helps)
@@ -398,6 +424,7 @@ LLMs benefit from:
 **Principles**:
 
 1. **Structured over prose**
+
    ```typescript
    // ✅ Good (structured)
    {status: "failed", failure_count: 3}
@@ -407,6 +434,7 @@ LLMs benefit from:
    ```
 
 2. **Explicit over implicit**
+
    ```typescript
    // ✅ Good
    {has_next: true, total_pages: 5}
@@ -416,6 +444,7 @@ LLMs benefit from:
    ```
 
 3. **Actionable over descriptive**
+
    ```typescript
    // ✅ Good
    {action_required: true, commands: ["git rebase ..."]}
@@ -425,6 +454,7 @@ LLMs benefit from:
    ```
 
 **Trade-offs**:
+
 - ✅ LLM can parse easily
 - ✅ Consistent structure
 - ✅ Type-safe
@@ -444,8 +474,8 @@ LLMs benefit from:
 8. **Optimize for AI, keep human-readable**
 
 These decisions create a system that:
+
 - Maximizes LLM strengths
 - Minimizes token waste
 - Provides clear, actionable outputs
 - Remains simple and maintainable
-

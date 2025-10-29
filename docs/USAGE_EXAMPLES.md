@@ -29,12 +29,14 @@ Add to your MCP client configuration (e.g., Claude Desktop):
 **Scenario**: Your PR has failing tests and you want to fix them quickly.
 
 **AI Prompt**:
+
 ```
 My PR owner/repo#123 has failing CI. 
 Use get_failing_tests to find the first failure and help me fix it.
 ```
 
 **MCP Tool Execution**:
+
 ```json
 {
   "tool": "get_failing_tests",
@@ -47,6 +49,7 @@ Use get_failing_tests to find the first failure and help me fix it.
 ```
 
 **Response**:
+
 ```json
 {
   "status": "failed",
@@ -82,12 +85,14 @@ The AI reads the test file, identifies the issue in the authentication endpoint,
 **Scenario**: You have 20 review comments to address and want to batch process them.
 
 **AI Prompt**:
+
 ```
 Show me all unresolved comments on PR owner/repo#456.
 Exclude bot nits for now. Help me address them systematically.
 ```
 
 **MCP Tool Execution**:
+
 ```json
 {
   "tool": "find_unresolved_comments",
@@ -102,6 +107,7 @@ Exclude bot nits for now. Help me address them systematically.
 ```
 
 **Response**:
+
 ```json
 {
   "total_unresolved": 15,
@@ -168,6 +174,7 @@ Exclude bot nits for now. Help me address them systematically.
 
 **AI Workflow**:
 The AI now analyzes the raw comments and:
+
 1. Categorizes #1234 as "blocking" due to security keywords
 2. Prioritizes it as high severity
 3. Addresses the SQL injection concern immediately
@@ -182,12 +189,14 @@ The AI now analyzes the raw comments and:
 **Scenario**: You have a stack of PRs. The base PR got new commits (or was squash-merged) and you need to update the stack.
 
 **AI Prompt**:
+
 ```
 I have PR #100 as the base and PR #101 depends on it.
 PR #100 was just squash-merged. Check if #101 needs to be rebased and help me do it.
 ```
 
 **MCP Tool Execution**:
+
 ```json
 {
   "tool": "manage_stacked_prs",
@@ -202,6 +211,7 @@ PR #100 was just squash-merged. Check if #101 needs to be rebased and help me do
 ```
 
 **Response**:
+
 ```json
 {
   "is_stacked": true,
@@ -278,12 +288,14 @@ PR #100 was just squash-merged. Check if #101 needs to be rebased and help me do
 **Scenario**: Before merging, validate everything is ready.
 
 **AI Prompt**:
+
 ```
 Check if PR owner/repo#789 is ready to merge.
 If not, tell me what's blocking and help fix it.
 ```
 
 **MCP Tool Execution**:
+
 ```json
 {
   "tool": "check_merge_readiness",
@@ -294,6 +306,7 @@ If not, tell me what's blocking and help fix it.
 ```
 
 **Response**:
+
 ```json
 {
   "ready_to_merge": false,
@@ -331,6 +344,7 @@ If not, tell me what's blocking and help fix it.
 ```
 
 **AI Action**:
+
 - Suggests requesting review from Bob or Carol (frequent collaborators)
 - Provides command to trigger security-scan workflow
 
@@ -341,11 +355,13 @@ If not, tell me what's blocking and help fix it.
 **Scenario**: Check for conflicts before attempting merge.
 
 **AI Prompt**:
+
 ```
 Check if PR owner/repo#555 has any merge conflicts.
 ```
 
 **MCP Tool Execution**:
+
 ```json
 {
   "tool": "detect_merge_conflicts",
@@ -356,6 +372,7 @@ Check if PR owner/repo#555 has any merge conflicts.
 ```
 
 **Response (with conflicts)**:
+
 ```json
 {
   "has_conflicts": true,
@@ -392,11 +409,13 @@ Check if PR owner/repo#555 has any merge conflicts.
 **Scenario**: Large PR lands in your queue, need to understand scope.
 
 **AI Prompt**:
+
 ```
 Analyze PR owner/repo#999 and give me a review strategy.
 ```
 
 **Step 1: Analyze Impact**
+
 ```json
 {
   "tool": "analyze_pr_impact",
@@ -408,6 +427,7 @@ Analyze PR owner/repo#999 and give me a review strategy.
 ```
 
 **Response**:
+
 ```json
 {
   "changes": {
@@ -461,6 +481,7 @@ Analyze PR owner/repo#999 and give me a review strategy.
 ```
 
 **Step 2: Get Review Context**
+
 ```json
 {
   "tool": "get_review_suggestions",
@@ -473,6 +494,7 @@ Analyze PR owner/repo#999 and give me a review strategy.
 ```
 
 **Response**:
+
 ```json
 {
   "files": [
@@ -533,6 +555,7 @@ Analyze PR owner/repo#999 and give me a review strategy.
 
 **AI Output**:
 Provides a structured review strategy:
+
 1. Start with security-critical files (auth.ts)
 2. Review database migrations for reversibility
 3. Check for performance issues (N+1 queries identified)
@@ -545,6 +568,7 @@ Provides a structured review strategy:
 **Scenario**: Base PR merged, need to update and fix entire stack.
 
 **AI Prompt**:
+
 ```
 PR #200 just merged. I have PRs #201, #202, #203 stacked on it.
 Update the entire stack and fix any test failures automatically.
@@ -553,6 +577,7 @@ Update the entire stack and fix any test failures automatically.
 **Sequence**:
 
 1. **Update PR #201**
+
 ```json
 {
   "tool": "manage_stacked_prs",
@@ -564,6 +589,7 @@ Update the entire stack and fix any test failures automatically.
 ```
 
 2. **Check for failures**
+
 ```json
 {
   "tool": "get_failing_tests",
@@ -577,6 +603,7 @@ Update the entire stack and fix any test failures automatically.
 3. **If failures found, AI applies fixes, then moves to #202**
 
 4. **Repeat for #202 → #201**
+
 ```json
 {
   "tool": "manage_stacked_prs",
@@ -598,6 +625,7 @@ Update the entire stack and fix any test failures automatically.
 **User**: "Fix my PR tests"
 
 **Claude**: Uses MCP to:
+
 1. Call `get_failing_tests` to identify failures
 2. Read the failing test files
 3. Read the implementation files
@@ -611,6 +639,7 @@ Update the entire stack and fix any test failures automatically.
 **User**: "Review this PR for me"
 
 **AI**: Uses MCP to:
+
 1. Call `analyze_pr_impact` to understand scope
 2. Call `get_review_suggestions` for checklist
 3. Call `find_unresolved_comments` to see existing feedback
@@ -711,11 +740,13 @@ For large datasets:
 ### 3. Wait vs. Immediate
 
 **Use wait=true when**:
+
 - You're actively fixing issues
 - Fast feedback loops
 - Bail on first failure
 
 **Use wait=false when**:
+
 - Just checking status
 - Will come back later
 - Polling externally
@@ -744,11 +775,13 @@ try {
 ### Issue: "PR not found"
 
 **Causes**:
+
 - Typo in PR identifier
 - Repository is private and token lacks access
 - PR has been closed/deleted
 
 **Solution**:
+
 ```
 Verify PR exists: https://github.com/owner/repo/pull/123
 Check token permissions: repo scope required
@@ -757,10 +790,12 @@ Check token permissions: repo scope required
 ### Issue: "Rate limit exceeded"
 
 **Causes**:
+
 - Making too many API calls
 - Shared token with other services
 
 **Solution**:
+
 ```
 Wait for rate limit reset (check retry_after field)
 Consider dedicated token for MCP server
@@ -770,11 +805,13 @@ Reduce polling frequency
 ### Issue: "No CI checks found"
 
 **Causes**:
+
 - Repository doesn't have CI configured
 - PR is in draft (CI doesn't run)
 - CI workflow has been deleted
 
 **Solution**:
+
 ```
 Check if CI is configured in .github/workflows/
 Convert draft PR to ready for review
@@ -788,6 +825,7 @@ Verify workflow file is valid
 ### Example 1: Daily PR Triage
 
 **Morning Routine**:
+
 ```
 For each PR awaiting my review:
 1. analyze_pr_impact - understand scope
@@ -799,6 +837,7 @@ For each PR awaiting my review:
 ### Example 2: Pre-Merge Checklist
 
 **Before hitting merge**:
+
 ```
 1. get_failing_tests - ensure CI passes
 2. find_unresolved_comments - address all feedback
@@ -810,6 +849,7 @@ For each PR awaiting my review:
 ### Example 3: Maintaining PR Stack
 
 **Weekly stack maintenance**:
+
 ```
 For each stack:
 1. manage_stacked_prs for each pair
@@ -819,4 +859,3 @@ For each stack:
 ```
 
 This usage guide demonstrates the practical application of all MCP tools in real-world scenarios.
-

@@ -26,6 +26,7 @@ The CLI used Commander's `.option()` third parameter to set defaults:
 ```
 
 This created **two sources of truth** for defaults:
+
 1. Zod schema defaults (in `schema.ts` files)
 2. Commander option defaults (in `cli.ts`)
 
@@ -56,6 +57,7 @@ const input = FindUnresolvedCommentsSchema.parse({
 ## Changes Made
 
 ### 1. CLI Code (`src/cli.ts`)
+
 - Removed all default values from `.option()` declarations
 - Made all option types optional (`option?: type`)
 - Added schema imports for validation
@@ -63,6 +65,7 @@ const input = FindUnresolvedCommentsSchema.parse({
 - Used spread syntax to only pass defined options
 
 ### 2. Tests (`tests/cli/schema-defaults.cli.test.ts`)
+
 - Added 8 tests to verify schema default behavior
 - Tests that unspecified options use schema defaults
 - Tests that explicit options override defaults
@@ -72,12 +75,14 @@ const input = FindUnresolvedCommentsSchema.parse({
 ## Verification
 
 **Before fix:**
+
 ```bash
 $ find-unresolved-comments --pr "jmalicki/resolve-pr-mcp#2"
 Total unresolved: 2  # ❌ Only human comments, missing 11 bot comments
 ```
 
 **After fix:**
+
 ```bash
 $ find-unresolved-comments --pr "jmalicki/resolve-pr-mcp#2"
 Total unresolved: 16  # ✅ Includes all CodeRabbit review comments
@@ -118,6 +123,7 @@ CLI Integration:
 ```
 
 **Testing Strategy:**
+
 - CLI tests must verify default behavior
 - Tests should check both "option not provided" and "option explicitly provided"
 - Static analysis tests to ensure schemas are used
@@ -126,7 +132,7 @@ CLI Integration:
 
 - **Issue**: CodeRabbit comments not appearing in `find-unresolved-comments` output
 - **PR**: #3 (Phase 3 - Core Tools)
-- **Commits**: 
+- **Commits**:
   - `b36b707` - fix(cli): remove hardcoded defaults, use Zod schema defaults only
   - `e8d9b08` - fix(cli): wire up actual tool handlers
   - `04c7047` - fix(tests): include CLI tests and fix coverage thresholds
@@ -138,4 +144,3 @@ CLI Integration:
 - [x] Document the precedence: explicit arg > schema default
 - [ ] Update IMPLEMENTATION_PLAN.md with explicit CLI default guidance
 - [ ] Update TESTING_STRATEGY.md with CLI default testing requirements
-

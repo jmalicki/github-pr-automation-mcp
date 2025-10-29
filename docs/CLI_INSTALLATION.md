@@ -19,8 +19,10 @@ npm run install:cli
 ```
 
 **Requirements:**
+
 - Add `~/.local/bin` to your PATH
 - Add this to your `~/.bashrc` or `~/.zshrc`:
+
   ```bash
   export PATH="$HOME/.local/bin:$PATH"
   ```
@@ -34,6 +36,7 @@ npm run install:cli:npm-link
 ```
 
 **Usage:**
+
 ```bash
 github-pr-automation --help
 ```
@@ -47,6 +50,7 @@ npm run install:cli:global
 ```
 
 **Usage:**
+
 ```bash
 github-pr-automation --help
 ```
@@ -69,16 +73,19 @@ github-pr-automation get-failing-tests --help
 ## Uninstallation
 
 ### Local Installation
+
 ```bash
 npm run uninstall:local
 ```
 
 ### NPM Link
+
 ```bash
 npm unlink github-pr-automation
 ```
 
 ### Global Installation
+
 ```bash
 npm uninstall -g github-pr-automation
 ```
@@ -86,6 +93,7 @@ npm uninstall -g github-pr-automation
 ## Troubleshooting
 
 ### Command Not Found
+
 If you get "command not found", check your PATH:
 
 ```bash
@@ -97,6 +105,7 @@ export PATH="$HOME/.local/bin:$PATH"
 ```
 
 ### Permission Denied
+
 Make sure the CLI is executable:
 
 ```bash
@@ -104,6 +113,7 @@ chmod +x ~/.local/bin/github-pr-automation
 ```
 
 ### Node.js Not Found
+
 Ensure Node.js is installed and in your PATH:
 
 ```bash

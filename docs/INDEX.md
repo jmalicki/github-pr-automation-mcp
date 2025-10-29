@@ -155,11 +155,13 @@ docs/
 ### Tool Categories
 
 **Core Tools** (Requested):
+
 - CI failure analysis
 - Comment management
 - Stacked PR automation
 
 **Supplementary Tools** (Enhance workflow):
+
 - Conflict detection
 - Merge readiness checks
 - Impact analysis
@@ -236,4 +238,3 @@ For questions or issues:
 ## License
 
 MIT - See [LICENSE](../LICENSE) file
-

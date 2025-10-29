@@ -56,6 +56,7 @@ export const GetFailingTestsSchema = z.object({
   page_size: z.number().int().min(1).max(50).optional()  // Optional
 });
 ```
+
 ```
 
 ### Preference Hint Convention
@@ -110,16 +111,19 @@ Use the 💾 emoji or "User preference:" prefix in descriptions to signal:
 ### On First Use
 
 ```
+
 User: "Get failing tests for owner/repo#123"
 AI: Uses default bail_on_first: true
 
-AI: "I found 1 failing test. (Note: I stopped at the first failure. 
+AI: "I found 1 failing test. (Note: I stopped at the first failure.
      If you prefer to see all failures at once, let me know!)"
+
 ```
 
 ### Learning Preference
 
 ```
+
 User: "No, show me all failures"
 AI: Calls again with bail_on_first: false
 AI: *stores in memory* "User prefers bail_on_first: false"
@@ -128,16 +132,19 @@ Later...
 User: "Get failing tests for owner/repo#456"
 AI: *remembers* Uses bail_on_first: false automatically
 AI: "Found 5 failing tests (showing all failures as you prefer)"
+
 ```
 
 ### Confirming Preference
 
 ```
-AI: "I notice you've set include_bots: false the last 3 times. 
+
+AI: "I notice you've set include_bots: false the last 3 times.
      Would you like me to always exclude bot comments by default?"
 
 User: "Yes"
 AI: *stores as strong preference*
+
 ```
 
 ## Response Hints
@@ -211,11 +218,13 @@ export const GetFailingTestsMetadata = {
 **What user preferences do**: Override tool defaults for optional arguments ONLY.
 
 **Precedence order** (highest to lowest):
+
 1. **Explicit argument from LLM/agent** - ALWAYS WINS, no exceptions
 2. **User preference** - Overrides tool default for optional arguments
 3. **Tool default** - Base fallback
 
 **Critical rules**:
+
 - ✅ Preferences override **tool defaults** for optional parameters
 - ❌ Preferences NEVER override **explicit arguments** from LLM/agent
 - 💡 Think of preferences as "better defaults" that the LLM can still override
@@ -351,12 +360,14 @@ get_failing_tests({ pr: "owner/repo#456" })
 ## Example: Complete Flow
 
 ### 1. First Interaction
+
 ```
 User: "Check PR #123 for failing tests"
 AI: Uses defaults (bail_on_first: true, page_size: 10)
 ```
 
 ### 2. User Correction
+
 ```
 User: "Show all failures, not just the first"
 AI: Learns bail_on_first: false preference
@@ -364,6 +375,7 @@ AI: *stores in conversation memory*
 ```
 
 ### 3. Pattern Recognition
+
 ```
 AI: After 3 uses with same preference
 AI: "I notice you prefer seeing all test failures at once. 
@@ -371,6 +383,7 @@ AI: "I notice you prefer seeing all test failures at once.
 ```
 
 ### 4. Automatic Application
+
 ```
 User: "Check PR #456 for failing tests"
 AI: *applies remembered preference*
@@ -379,6 +392,7 @@ AI: "Checking all failures (as you prefer)..."
 ```
 
 ### 5. Situational Override
+
 ```
 User: "Quick check on PR #789, just show first failure"
 AI: *recognizes situational override*
@@ -420,19 +434,21 @@ AI: "Using fast mode for this check..."
 ## Summary
 
 **What user preferences are**:
+
 - Better defaults that override tool defaults
 - Apply ONLY to optional parameters
 - Apply ONLY when LLM doesn't provide explicit argument
 
 **What user preferences are NOT**:
+
 - Not overrides for explicit LLM arguments
 - Not mandatory settings
 - Not stored server-side (just local config file)
 
 **Implementation**:
+
 - Add 💾 emoji to mark preference-worthy parameters
 - AI agents learn and store preferences
 - Simple config file (optional)
 - Explicit LLM arguments ALWAYS win
 - Keeps MCP server stateless
-

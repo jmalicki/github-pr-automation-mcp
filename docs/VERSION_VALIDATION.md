@@ -16,6 +16,7 @@ The test (`tests/utils/version-validation.test.ts`) performs the following check
 ### Version Comparison Logic
 
 The test uses semantic version comparison:
+
 - `1.0.0` < `2.0.0` (major version)
 - `1.1.0` < `1.2.0` (minor version)  
 - `1.0.1` < `1.0.2` (patch version)
@@ -24,6 +25,7 @@ The test uses semantic version comparison:
 ### Git Tag Detection
 
 The test automatically detects the latest git tag using:
+
 ```bash
 git tag --sort=-version:refname
 ```
@@ -31,6 +33,7 @@ git tag --sort=-version:refname
 ### Error Handling
 
 When a version regression is detected, the test:
+
 1. Logs clear error messages
 2. Explains what needs to be fixed
 3. Fails the test with a descriptive error
@@ -38,12 +41,14 @@ When a version regression is detected, the test:
 ## CI Integration
 
 The test runs in GitHub Actions workflows:
+
 - **Build workflow**: Runs early to catch version issues before build
 - **Test workflow**: Runs as part of the full test suite
 
 ## Example Output
 
 ### ✅ Success Case
+
 ```
 Package version: 0.3.1
 Latest git tag: v0.3.0
@@ -51,6 +56,7 @@ Latest git tag: v0.3.0
 ```
 
 ### ❌ Failure Case
+
 ```
 Package version: 0.2.1
 Latest git tag: v0.3.0
@@ -74,6 +80,7 @@ npm version patch  # or minor/major
 ## Test Coverage
 
 The test covers:
+
 - ✅ Standard semantic versions (`1.2.3`)
 - ✅ Versions with 'v' prefix (`v1.2.3`)
 - ✅ Prerelease versions (`1.2.3-alpha.1`)

@@ -16,25 +16,33 @@ The release workflow follows MCP (Model Context Protocol) best practices and inc
 ## Release Types
 
 ### 1. Patch Release (0.1.0 → 0.1.1)
+
 For bug fixes and minor improvements:
+
 ```bash
 npm run release:patch
 ```
 
 ### 2. Minor Release (0.1.0 → 0.2.0)
+
 For new features and enhancements:
+
 ```bash
 npm run release:minor
 ```
 
 ### 3. Major Release (0.1.0 → 1.0.0)
+
 For breaking changes and major updates:
+
 ```bash
 npm run release:major
 ```
 
 ### 4. Pre-release (0.1.0 → 0.1.1-alpha.1)
+
 For testing and validation:
+
 ```bash
 npm run release:prerelease
 ```
@@ -54,6 +62,7 @@ npm run release:prerelease
 ### Manual Release Steps
 
 1. **Run Release Script**:
+
    ```bash
    npm run release:patch  # or minor/major/prerelease
    ```
@@ -66,12 +75,14 @@ npm run release:prerelease
 ## GitHub Actions Workflows
 
 ### Release Workflow (`.github/workflows/release.yml`)
+
 - Triggers on version tags (e.g., `v1.0.0`)
 - Runs tests and linting
 - Publishes to npm registry
 - Creates GitHub release with changelog
 
 ### Pre-release Workflow (`.github/workflows/prerelease.yml`)
+
 - Triggers on pre-release tags (e.g., `v1.0.0-alpha.1`)
 - Publishes to npm with `beta` tag
 - Creates GitHub pre-release
@@ -79,6 +90,7 @@ npm run release:prerelease
 ## Package Configuration
 
 ### MCP Metadata
+
 The `package.json` includes MCP-specific metadata:
 
 ```json
@@ -108,7 +120,9 @@ The `package.json` includes MCP-specific metadata:
 ```
 
 ### Keywords for Discovery
+
 Enhanced keywords for MCP marketplace discovery:
+
 - `mcp`, `mcp-server`, `model-context-protocol`
 - `github`, `pull-request`, `automation`
 - `claude`, `ai-tools`, `github-api`
@@ -116,6 +130,7 @@ Enhanced keywords for MCP marketplace discovery:
 ## Release Scripts
 
 ### Main Release Script (`scripts/release.js`)
+
 Handles the complete release process:
 
 ```bash
@@ -130,6 +145,7 @@ node scripts/release.js prerelease # 0.1.0 → 0.1.1-alpha.1
 ```
 
 ### NPM Scripts
+
 Convenient npm scripts for common operations:
 
 ```bash
@@ -142,9 +158,11 @@ npm run release:prerelease # Pre-release
 ## Prerequisites
 
 ### Required Secrets
+
 Set up these GitHub secrets:
 
 1. **NPM_TOKEN**: npm authentication token
+
    ```bash
    # Get token from https://www.npmjs.com/settings/tokens
    # Add to GitHub repository secrets
@@ -153,6 +171,7 @@ Set up these GitHub secrets:
 2. **GITHUB_TOKEN**: Automatically provided by GitHub Actions
 
 ### Required Permissions
+
 - npm package publishing permissions
 - GitHub repository write permissions
 - Git tag creation permissions
@@ -160,12 +179,15 @@ Set up these GitHub secrets:
 ## MCP Marketplace Publishing
 
 ### npm Registry (Primary)
+
 - Most MCP clients look for packages on npm
 - Automatic publishing via GitHub Actions
 - Proper MCP metadata for discovery
 
 ### MCP Marketplaces (Secondary)
+
 Manual registration on:
+
 - MCP Market
 - MCP.so
 - Smithery
@@ -175,6 +197,7 @@ Manual registration on:
 ## Release Checklist
 
 ### Before Release
+
 - [ ] All tests passing
 - [ ] Code linting clean
 - [ ] Documentation updated
@@ -182,12 +205,14 @@ Manual registration on:
 - [ ] Version compatibility checked
 
 ### During Release
+
 - [ ] Run appropriate release script
 - [ ] Verify GitHub Actions triggered
 - [ ] Check npm publication
 - [ ] Verify GitHub release created
 
 ### After Release
+
 - [ ] Test installation from npm
 - [ ] Verify MCP client compatibility
 - [ ] Update marketplace listings
@@ -242,6 +267,7 @@ git tag -l
 ## Support
 
 For release-related issues:
+
 - Check GitHub Actions logs
 - Review npm package status
 - Consult MCP documentation

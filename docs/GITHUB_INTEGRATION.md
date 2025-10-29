@@ -7,6 +7,7 @@
 The MCP server requires a GitHub Personal Access Token (PAT) with the following scopes:
 
 **Required Scopes**:
+
 - `repo` - Full control of private repositories
   - Includes: `repo:status`, `repo_deployment`, `public_repo`
   - Needed for: Accessing PR data, check runs, comments
@@ -14,6 +15,7 @@ The MCP server requires a GitHub Personal Access Token (PAT) with the following 
   - Needed for: Determining user associations, team mentions
 
 **Optional Scopes** (for enhanced features):
+
 - `write:discussion` - For creating/updating review comments
 - `workflow` - For triggering GitHub Actions workflows
 
@@ -111,6 +113,7 @@ class RateLimiter {
 ### Pull Requests
 
 #### Get Pull Request
+
 ```typescript
 GET /repos/{owner}/{repo}/pulls/{pull_number}
 
@@ -130,6 +133,7 @@ const { data: pr } = await octokit.pulls.get({
 ```
 
 #### List Pull Request Files
+
 ```typescript
 GET /repos/{owner}/{repo}/pulls/{pull_number}/files
 
@@ -147,6 +151,7 @@ const files = await octokit.paginate(octokit.pulls.listFiles, {
 ### Check Runs & Status
 
 #### List Check Runs for a Ref
+
 ```typescript
 GET /repos/{owner}/{repo}/commits/{ref}/check-runs
 
@@ -164,6 +169,7 @@ const { data } = await octokit.checks.listForRef({
 ```
 
 #### Get Check Run
+
 ```typescript
 GET /repos/{owner}/{repo}/check-runs/{check_run_id}
 
@@ -179,6 +185,7 @@ const { data } = await octokit.checks.get({
 ### Workflow Runs
 
 #### List Workflow Runs for PR
+
 ```typescript
 GET /repos/{owner}/{repo}/actions/runs
 
@@ -194,6 +201,7 @@ const { data } = await octokit.actions.listWorkflowRunsForRepo({
 ```
 
 #### Get Workflow Run
+
 ```typescript
 GET /repos/{owner}/{repo}/actions/runs/{run_id}
 
@@ -205,6 +213,7 @@ const { data } = await octokit.actions.getWorkflowRun({
 ```
 
 #### Download Logs
+
 ```typescript
 GET /repos/{owner}/{repo}/actions/runs/{run_id}/logs
 
@@ -221,6 +230,7 @@ const logs = await octokit.actions.downloadWorkflowRunLogs({
 ### Comments & Reviews
 
 #### List Review Comments
+
 ```typescript
 GET /repos/{owner}/{repo}/pulls/{pull_number}/comments
 
@@ -234,6 +244,7 @@ const comments = await octokit.paginate(octokit.pulls.listReviewComments, {
 ```
 
 #### List Issue Comments
+
 ```typescript
 GET /repos/{owner}/{repo}/issues/{issue_number}/comments
 
@@ -247,6 +258,7 @@ const comments = await octokit.paginate(octokit.issues.listComments, {
 ```
 
 #### List Reviews
+
 ```typescript
 GET /repos/{owner}/{repo}/pulls/{pull_number}/reviews
 
@@ -264,6 +276,7 @@ const reviews = await octokit.paginate(octokit.pulls.listReviews, {
 ### Repository Information
 
 #### Get Branch Protection
+
 ```typescript
 GET /repos/{owner}/{repo}/branches/{branch}/protection
 
@@ -280,6 +293,7 @@ const { data } = await octokit.repos.getBranchProtection({
 ```
 
 #### Compare Commits
+
 ```typescript
 GET /repos/{owner}/{repo}/compare/{base}...{head}
 
@@ -776,4 +790,3 @@ class BatchedGitHubClient {
 ```
 
 This comprehensive guide covers all major GitHub API integration patterns needed for the MCP server.
-

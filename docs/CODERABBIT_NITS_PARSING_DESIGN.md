@@ -17,6 +17,7 @@ Current CodeRabbit parsing in `find_unresolved_comments` extracts actionable com
 Based on examination of real CodeRabbit reviews, the structure includes:
 
 ### Main Sections
+
 - `🧹 Nitpick comments (N)` - Minor suggestions, style improvements
 - `♻️ Duplicate comments` - Issues already mentioned elsewhere  
 - `📜 Review details` - Metadata and configuration info
@@ -33,7 +34,7 @@ CodeRabbit's "prompt for agents" feature provides structured, AI-agent-friendly 
    - Severity indicators (implicit in section type)
    - Actionable next steps
 
-2. **Agent-Friendly Formatting**: 
+2. **Agent-Friendly Formatting**:
    - Clear categorization (nits vs actionable vs duplicates)
    - Code blocks with specific changes
    - File context and line references
@@ -46,7 +47,9 @@ CodeRabbit's "prompt for agents" feature provides structured, AI-agent-friendly 
    - Priority indicators through section organization
 
 ### Individual Comment Structure
+
 Each CodeRabbit suggestion follows a structured format with:
+
 - File path and line number in the summary
 - Clear suggestion title
 - Code diffs showing before/after changes
@@ -65,6 +68,7 @@ Each CodeRabbit suggestion follows a structured format with:
 ## Proposed Schema Changes
 
 ### Input Parameters
+
 Add an optional `coderabbit_options` object to group all CodeRabbit-specific configuration:
 
 ```typescript
@@ -80,6 +84,7 @@ coderabbit_options?: {
 ```
 
 This approach:
+
 - **Follows existing patterns**: Optional booleans with defaults, just like `include_bots`
 - **Preference hints**: Uses 💾 emoji to indicate user preferences worth remembering
 - **Clean separation**: Groups CodeRabbit functionality together
@@ -87,7 +92,9 @@ This approach:
 - **Agent-friendly**: AI agents can learn and remember user preferences
 
 ### Enhanced Comment Interface
+
 Extend the existing Comment interface with CodeRabbit-specific metadata:
+
 - `suggestion_type`: Categorization (nit, duplicate, additional, actionable)
 - `severity`: Priority level (low, medium, high)
 - `category`: Type of issue (style, performance, security, etc.)
@@ -99,27 +106,34 @@ Extend the existing Comment interface with CodeRabbit-specific metadata:
 ## Parsing Logic Design
 
 ### 1. Enhanced CodeRabbit Parser
+
 Parse CodeRabbit review bodies to extract structured sections:
+
 - Detect and categorize different section types (nitpick, duplicate, additional, actionable)
 - Extract individual suggestions with file context and code changes
 - Generate agent-friendly prompts with implementation guidance
 - Preserve existing parsing logic for backward compatibility
 
 ### 2. Section Parser
+
 Parse CodeRabbit's structured sections:
+
 - **Nitpick sections**: Minor suggestions and style improvements
 - **Duplicate sections**: Issues already mentioned elsewhere
 - **Additional sections**: Supplementary feedback and context
 - **Actionable sections**: Critical issues requiring immediate attention
 
 Each section contains:
+
 - File path and line number references
 - Suggestion titles and descriptions
 - Code diffs with before/after examples
 - Context about why changes are suggested
 
 ### 3. Agent Prompt Extraction
+
 Transform CodeRabbit suggestions into AI-agent-friendly prompts:
+
 - Include file context and line numbers for precise targeting
 - Provide code examples with before/after changes
 - Add priority indicators and effort estimates
@@ -127,7 +141,9 @@ Transform CodeRabbit suggestions into AI-agent-friendly prompts:
 - Structure prompts for easy agent consumption
 
 ### 4. Filtering Logic
+
 Apply user-specified filters to CodeRabbit suggestions:
+
 - Filter by suggestion type (nits, duplicates, additional, actionable)
 - Apply boolean toggles for different categories
 - Support agent preferences for organization and prioritization
@@ -136,18 +152,21 @@ Apply user-specified filters to CodeRabbit suggestions:
 ## Implementation Plan
 
 ### Phase 1: Enhanced Parsing
+
 1. **Update schema** with CodeRabbit-specific parameters
 2. **Enhance CodeRabbit parser** to detect and categorize sections
 3. **Add metadata extraction** for suggestion types and severity
 4. **Maintain backward compatibility** with existing parsing
 
 ### Phase 2: Filtering & Grouping
+
 1. **Implement filtering logic** for suggestion types
 2. **Add grouping options** for agent-friendly organization
 3. **Enhance action commands** with CodeRabbit-specific context
 4. **Add preference hints** for AI agents
 
 ### Phase 3: Testing & Documentation
+
 1. **Test with real CodeRabbit reviews** from the repository
 2. **Add comprehensive test cases** for different suggestion types
 3. **Update documentation** with usage examples
@@ -156,10 +175,13 @@ Apply user-specified filters to CodeRabbit suggestions:
 ## Usage Examples
 
 ### Basic Usage (Current Behavior)
+
 Existing usage continues to work without changes - no CodeRabbit options needed.
 
 ### Basic CodeRabbit Integration
+
 Enable CodeRabbit parsing with default settings (all options use defaults):
+
 ```json
 {
   "pr": "owner/repo#123",
@@ -169,7 +191,9 @@ Enable CodeRabbit parsing with default settings (all options use defaults):
 ```
 
 ### Customize Specific Preferences
+
 Override only the preferences you care about:
+
 ```json
 {
   "pr": "owner/repo#123",
@@ -181,7 +205,9 @@ Override only the preferences you care about:
 ```
 
 ### Agent-Friendly Processing
+
 Optimize for AI agent consumption with specific preferences:
+
 ```json
 {
   "pr": "owner/repo#123",
@@ -193,7 +219,9 @@ Optimize for AI agent consumption with specific preferences:
 ```
 
 ### Advanced Filtering
+
 Combine type filtering with user preferences:
+
 ```json
 {
   "pr": "owner/repo#123",
