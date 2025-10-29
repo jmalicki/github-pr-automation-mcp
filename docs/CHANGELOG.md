@@ -10,18 +10,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.2] - 2025-10-28
 
 ### Fixed
+
 - Fixed GitHub Actions release workflow permissions
 - Moved workflow permissions to workflow level for better security
 - Updated release workflows to use modern `softprops/action-gh-release`
 - Fixed 403 "Resource not accessible by integration" error
 
 ### Changed
+
 - Reorganized documentation files to `docs/` directory
 - Improved release workflow step ordering
 
 ## [0.5.0] - 2025-10-28
 
 ### Fixed
+
 - Fixed integration test failures and CI issues
 - Improved CI workflow reliability
 
@@ -30,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.1] - 2025-10-22
 
 ### Added
+
 - Comprehensive release workflow with automated npm publishing
 - GitHub Actions workflows for releases and pre-releases
 - Release automation scripts for version management
@@ -40,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Release scripts for patch, minor, major, and prerelease versions
 
 ### Changed
+
 - CLI binary name from `resolve-pr-mcp` to `github-pr-automation`
 - Package name and description for better discoverability
 - Documentation references to use new project name
@@ -49,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] - 2025-01-22
 
 ### Added
+
 - Initial release of GitHub PR Automation
 - MCP server implementation with 8 core tools
 - CLI mode for direct tool usage
@@ -60,6 +66,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Complete documentation suite
 
 ### Core Tools
+
 - `get_failing_tests` - Analyze PR CI failures and get fix instructions
 - `find_unresolved_comments` - Find and manage unresolved PR comments
 - `manage_stacked_prs` - Automated stacked PR management with rebase strategies
@@ -70,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `rebase_after_squash_merge` - Clean rebase after upstream squash-merge
 
 ### Features
+
 - **MCP Server Mode**: Primary mode for AI agents via stdio communication
 - **CLI Mode**: Direct command-line usage for testing and automation
 - **GitHub Integration**: Full GitHub API integration with authentication
@@ -80,6 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Testing**: Unit, integration, and CLI tests with coverage reporting
 
 ### Documentation
+
 - Complete API documentation with examples
 - Design decisions and architecture documentation
 - Implementation plan with detailed phases
@@ -87,6 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Development guidelines and contribution process
 
 ### Technical Details
+
 - Built with TypeScript and Node.js 18+
 - Uses @modelcontextprotocol/sdk for MCP implementation
 - Integrates with GitHub API via @octokit/rest
@@ -110,6 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 If you were using the previous name:
 
 1. **Update MCP server configuration**:
+
    ```json
    {
      "mcpServers": {
@@ -125,6 +136,7 @@ If you were using the previous name:
    ```
 
 2. **Update CLI usage**:
+
    ```bash
    # Old
    resolve-pr-mcp get-failing-tests --pr "owner/repo#123"
@@ -162,6 +174,7 @@ None currently.
 ## Dependencies
 
 ### Core Dependencies
+
 - @modelcontextprotocol/sdk ^0.5.0
 - @octokit/rest ^20.0.2
 - @octokit/auth-app ^6.0.3
@@ -169,6 +182,7 @@ None currently.
 - zod ^3.22.4
 
 ### Development Dependencies
+
 - @types/node ^20.11.0
 - @typescript-eslint/eslint-plugin ^6.19.0
 - @typescript-eslint/parser ^6.19.0

@@ -33,9 +33,11 @@ resolve-pr-mcp/
 ## Core Tools Designed
 
 ### 1. get_failing_tests
+
 **Purpose**: Analyze PR CI failures and provide targeted fix instructions
 
 **Key Features**:
+
 - ✅ Wait for CI completion or return immediately
 - ✅ Bail on first failure for fast feedback
 - ✅ Parse multiple test framework outputs (Jest, pytest, Go, RSpec)
@@ -45,9 +47,11 @@ resolve-pr-mcp/
 **Unique Value**: Extracts exact failing tests from CI logs instead of making AI parse raw logs
 
 ### 2. find_unresolved_comments
+
 **Purpose**: Find unresolved PR comments and return raw data for LLM analysis
 
 **Key Features**:
+
 - ✅ Fetches all comment types (review, issue, inline)
 - ✅ Builds conversation threads
 - ✅ Includes bot comments by default (LLM filters)
@@ -57,9 +61,11 @@ resolve-pr-mcp/
 **Design Update**: Tool provides **raw data only** - LLM handles categorization and response generation
 
 ### 3. manage_stacked_prs
+
 **Purpose**: Automate rebase and testing of stacked (dependent) PRs
 
 **Key Features**:
+
 - ✅ Verifies PR dependency chains
 - ✅ Detects when rebase is needed
 - ✅ Generates step-by-step rebase commands
@@ -83,13 +89,17 @@ These supplementary tools enhance the core workflow but are considered lower pri
 ## Key Design Decisions
 
 ### 1. PR Identifier Format ✅
-**Decision**: Use single string `"owner/repo#123"` 
+
+**Decision**: Use single string `"owner/repo#123"`
+
 - More concise for AI agents
 - Supports multiple formats (URLs, etc.)
 - Human-friendly
 
 ### 2. Tool Responsibilities ✅
+
 **Decision**: Tools provide raw data, LLMs analyze
+
 - Tools: Fetch and structure GitHub data
 - LLMs: Categorize, prioritize, generate responses
 - Better separation of concerns
@@ -98,19 +108,25 @@ These supplementary tools enhance the core workflow but are considered lower pri
 **Example**: Tool returns comment text and metadata → LLM determines if it's "blocking", "nit", or "question"
 
 ### 3. Bot Filtering ✅
+
 **Decision**: Include bots by default
+
 - Neutral default - no assumptions
 - LLM can filter based on content
 - User can explicitly exclude via `exclude_authors`
 
 ### 4. Pagination ✅
+
 **Decision**: Mandatory with sensible defaults
+
 - Token efficiency (don't return 500 comments at once)
 - Default sizes: 10 for tests, 20 for comments, 5 for commands
 - Progressive disclosure
 
 ### 5. Wait vs. Immediate ✅
+
 **Decision**: Support both, default to immediate
+
 - Fast responses by default (<2s)
 - Wait mode for convenience (CI polling)
 - Bail-on-first for rapid feedback
@@ -120,12 +136,14 @@ These supplementary tools enhance the core workflow but are considered lower pri
 ### Dual Mode: MCP (stdio) + CLI
 
 **Primary: MCP Server (stdio)**
+
 - ✅ No HTTP server, no ports, no daemon
 - ✅ MCP client spawns as subprocess
 - ✅ Communicates via stdin/stdout (JSON-RPC)
 - ✅ Process lifecycle managed by client
 
 **Bonus: CLI Mode**
+
 - ✅ Direct command-line invocation
 - ✅ Perfect for testing and scripting
 - ✅ CI/CD integration
@@ -140,6 +158,7 @@ resolve-pr-mcp get-failing-tests --pr "owner/repo#123" --json
 ```
 
 ### Layer Structure
+
 ```
 AI Agent (Claude Desktop/etc)
       ↓ Spawns subprocess
@@ -165,28 +184,33 @@ GitHub API (HTTPS)
 ## Implementation Roadmap
 
 ### Phase 1: Foundation (Week 1)
+
 - Project setup and MCP server skeleton
 - GitHub API client wrapper
 - Core utilities (parser, pagination, formatting)
 
 ### Phase 2: Core Tools (Weeks 2-3)
+
 - Implement get_failing_tests (with log parsers)
 - Implement find_unresolved_comments (with thread analysis)
 - Implement manage_stacked_prs (with command generation)
 
 ### Phase 3: Enhanced Tools (Week 4)
+
 - Conflict detection
 - Merge readiness checks
 - Impact analysis
 - Review suggestions
 
 ### Phase 4: Optimization (Week 5)
+
 - Caching layer
 - Rate limiting improvements
 - Error recovery
 - Performance tuning
 
 ### Phase 5: Polish (Week 6)
+
 - Complete documentation
 - Usage examples
 - Deployment tooling
@@ -197,11 +221,13 @@ GitHub API (HTTPS)
 ## Testing Strategy
 
 ### Coverage Targets
+
 - Unit tests: >90% coverage
 - Integration tests: >80% coverage
 - Critical paths: 100% coverage
 
 ### Test Organization
+
 ```
 tests/
 ├── fixtures/          # Mock GitHub API responses
@@ -217,15 +243,16 @@ tests/
 ```
 
 ### Key Test Scenarios
+
 - 15+ scenarios per core tool
 - All error cases covered
 - Pagination edge cases
 - Rate limiting simulation
 
-
 ## Documentation Quality
 
 ### Comprehensive Coverage
+
 - **11 design documents** covering all aspects
 - **Real-world examples** for every tool
 - **Complete API specifications** with TypeScript types
@@ -253,6 +280,7 @@ tests/
 ### Ready for Implementation ✅
 
 All design phase deliverables are complete:
+
 - ✅ Architecture defined
 - ✅ APIs specified  
 - ✅ Data models documented
@@ -260,14 +288,14 @@ All design phase deliverables are complete:
 - ✅ Testing strategy defined
 - ✅ Examples provided
 
-### To Start Development:
+### To Start Development
 
 1. **Initialize dependencies**: `npm install`
 2. **Follow Phase 1** in [IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md)
 3. **Reference designs** as you implement
 4. **Write tests** per [TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md)
 
-### Key Implementation Files to Create:
+### Key Implementation Files to Create
 
 ```
 src/
@@ -292,16 +320,19 @@ src/
 ## Success Metrics
 
 ### Functional
+
 - All 7 core tools implemented
 - >85% test coverage
 - All APIs work as specified
 
 ### Performance
+
 - Average response <2s (immediate mode)
 - <100 GitHub API calls per tool invocation
 - <200MB memory usage
 
 ### Quality
+
 - Zero critical bugs
 - All error cases handled
 - Complete documentation
@@ -309,12 +340,15 @@ src/
 ## Questions Addressed
 
 ### Q: PR identifier - single string or separate fields?
+
 **A**: Single string `"owner/repo#123"` - more AI-friendly, supports multiple formats
 
 ### Q: Should we filter bots by default?
+
 **A**: No - include by default, let LLM filter based on content
 
 ### Q: What should find_unresolved_comments return?
+
 **A**: Raw data only - LLM handles categorization, severity, response generation
 
 ## Conclusion
@@ -336,4 +370,3 @@ The design phase is **complete and comprehensive**. The project is ready for imp
 **Ready to implement!** 🚀
 
 Start with [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) Phase 1.
-

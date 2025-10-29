@@ -5,9 +5,11 @@ Integration tests use **@octokit/fixtures** for recording and playback of real G
 ## Two Modes
 
 ### 1. Record Mode (First Time Setup)
+
 Records real GitHub API calls to fixtures for future playback.
 
 ### 2. Playback Mode (Default)
+
 Uses recorded fixtures for fast, offline testing.
 
 ## Why @octokit/fixtures?
@@ -31,6 +33,7 @@ npm run test:integration:record
 ```
 
 This will:
+
 1. Make real GitHub API calls
 2. Record responses to `tests/integration/fixtures/`
 3. Save fixtures with metadata
@@ -43,6 +46,7 @@ npm run test:integration:playback
 ```
 
 This will:
+
 1. Load recorded fixtures
 2. Use @octokit/fixtures server
 3. Run tests without network calls
@@ -123,6 +127,7 @@ npm run test:integration:record -- --grep "find-unresolved-comments"
 ## Safety Guards
 
 Integration tests have multiple safety checks:
+
 1. ✅ Require `GITHUB_TOKEN` env var (record mode only)
 2. ✅ Require `RUN_INTEGRATION_TESTS=true` flag
 3. ✅ Skip gracefully if fixtures missing
@@ -155,4 +160,3 @@ This ensures we don't pollute real repositories with test data.
 - ✅ **More reliable** (no network timeouts)
 - ✅ **Deterministic** (same results every time)
 - ✅ **Rate limit friendly** (no API consumption)
-

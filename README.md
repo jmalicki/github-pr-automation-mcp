@@ -58,7 +58,6 @@ github-pr-automation get-failing-tests --pr "owner/repo#123"
    - Checks CI status, approvals, branch protection rules
    - Reports missing requirements with actionable steps
 
-
 6. **`rebase_after_squash_merge`** - Clean rebase after upstream squash-merge
    - Handles scenario where upstream PR was squash-merged
    - Uses `git rebase --onto` to skip upstream commits
@@ -115,6 +114,7 @@ npm run install:cli
 ```
 
 **Verify Installation:**
+
 ```bash
 # Test the CLI
 github-pr-automation --help
@@ -124,6 +124,7 @@ github-pr-automation get-failing-tests --help
 ```
 
 **Uninstall:**
+
 ```bash
 # NPM Link
 npm unlink github-pr-automation
@@ -154,6 +155,7 @@ export GITHUB_TOKEN="your_github_personal_access_token"
 ```
 
 The token needs the following scopes:
+
 - `repo` (full control of private repositories)
 - `read:org` (read organization membership)
 
@@ -199,12 +201,14 @@ github-pr-automation get-failing-tests --pr "owner/repo#123" --json
 ```
 
 **CLI Use Cases:**
+
 - 🚀 **Quick PR checks** - Get immediate feedback on PR status
 - 🤖 **Automation scripts** - Integrate into CI/CD pipelines
 - 🔧 **Development workflow** - Test tools during development
 - 📊 **Data extraction** - Get structured JSON output for analysis
 
 **Environment Setup:**
+
 ```bash
 # Set your GitHub token
 export GITHUB_TOKEN="your_github_personal_access_token"
@@ -295,6 +299,7 @@ npm run lint:fix
 ## Architecture
 
 The server is built using:
+
 - **@modelcontextprotocol/sdk** - MCP protocol implementation
 - **@octokit/rest** - GitHub API client
 - **@octokit/auth-app** - GitHub App authentication
@@ -330,6 +335,6 @@ MIT
 
 ## Repository
 
-- **GitHub**: https://github.com/jmalicki/github-pr-automation-mcp
-- **NPM**: https://www.npmjs.com/package/github-pr-automation
-- **Issues**: https://github.com/jmalicki/github-pr-automation-mcp/issues
+- **GitHub**: <https://github.com/jmalicki/github-pr-automation-mcp>
+- **NPM**: <https://www.npmjs.com/package/github-pr-automation>
+- **Issues**: <https://github.com/jmalicki/github-pr-automation-mcp/issues>

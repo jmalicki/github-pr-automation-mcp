@@ -32,40 +32,49 @@ main
 ### Branch Strategy
 
 **Phase 1**:
+
 - Branch: `phase-1-ci-setup` (off `main`)
 - PR: `phase-1-ci-setup` → `main`
 
 **Phase 2**:
+
 - Branch: `phase-2-foundation` (off `phase-1-ci-setup`)
 - PR: `phase-2-foundation` → `phase-1-ci-setup`
 
 **Phase 3**:
+
 - Branch: `phase-3-core-tools` (off `phase-2-foundation`)
 - PR: `phase-3-core-tools` → `phase-2-foundation`
 
 **Phase 3.5** 🆕:
+
 - Branch: `phase-3.5-fix-pagination` (off `phase-3-core-tools`)
 - PR: `phase-3.5-fix-pagination` → `phase-3-core-tools`
 
 **Phase 3.7** 🆕:
+
 - Branch: `phase-3.7-resolve-conversations` (off `phase-3.5-fix-pagination`)
 - PR: `phase-3.7-resolve-conversations` → `phase-3.5-fix-pagination`
 
 **Phase 4**:
+
 - Branch: `phase-4-enhanced-tools` (off `phase-3.5-fix-pagination`)
 - PR: `phase-4-enhanced-tools` → `phase-3.5-fix-pagination`
 
 **Phase 5**:
+
 - Branch: `phase-5-optimization` (off `phase-4-enhanced-tools`)
 - PR: `phase-5-optimization` → `phase-4-enhanced-tools`
 
 **Phase 6**:
+
 - Branch: `phase-6-polish` (off `phase-5-optimization`)
 - PR: `phase-6-polish` → `phase-5-optimization`
 
 ### Merge Strategy
 
 **As each phase completes**:
+
 1. Merge Phase 1 → `main`
 2. Update Phase 2's base to `main` (rebase)
 3. Merge Phase 2 → `main`
@@ -79,6 +88,7 @@ main
 9. Continue pattern...
 
 **Benefits**:
+
 - ✅ Each PR is focused and reviewable
 - ✅ Can work on later phases before earlier ones merge
 - ✅ Easy to rollback or adjust individual phases
@@ -105,6 +115,7 @@ resolve-pr-mcp manage-stacked-prs \
 **PR**: → `main`
 
 ### Goals
+
 - Set up automated testing for all future PRs
 - Configure linting and type checking
 - Establish quality gates
@@ -121,6 +132,7 @@ resolve-pr-mcp manage-stacked-prs \
 - [ ] Set up required status checks
 
 **Test Workflow**:
+
 ```yaml
 # .github/workflows/test.yml
 name: Test
@@ -142,6 +154,7 @@ jobs:
 ```
 
 **Lint Workflow**:
+
 ```yaml
 # .github/workflows/lint.yml
 name: Lint
@@ -180,6 +193,7 @@ jobs:
 - [ ] Configure commit-msg hook (Conventional Commits validation)
 
 ### Phase 1 Deliverables
+
 - [ ] GitHub Actions workflows running on all PRs
 - [ ] Linting enforced
 - [ ] Type checking enforced
@@ -187,6 +201,7 @@ jobs:
 - [ ] Branch protection enabled on `main`
 
 ### Phase 1 Success Criteria
+
 - [ ] CI passes on this PR
 - [ ] Can push commits and see CI run
 - [ ] Lint errors block merge
@@ -202,6 +217,7 @@ jobs:
 **PR**: → `phase-1-ci-setup` (stacked on Phase 1)
 
 ### Goals
+
 - Set up TypeScript project structure
 - Implement MCP server skeleton
 - Create GitHub API client wrapper
@@ -210,6 +226,7 @@ jobs:
 ### Tasks
 
 #### 1.1 Project Setup
+
 - [x] Initialize npm project with TypeScript
 - [x] Configure tsconfig.json for Node16 modules
 - [x] Set up build scripts
@@ -220,6 +237,7 @@ jobs:
 **Reference**: See [ARCHITECTURE.md](./ARCHITECTURE.md) for transport details (stdio, not HTTP)
 
 **Tasks**:
+
 - [ ] Create `src/index.ts` - MCP server entry point
 - [ ] Set up stdio transport (StdioServerTransport)
 - [ ] Register tool handler routing
@@ -227,10 +245,12 @@ jobs:
 - [ ] Validate it works with `npm run dev`
 
 **Dependencies**:
+
 - `@modelcontextprotocol/sdk` - MCP protocol over stdio
 - `zod` - Schema validation
 
 **Key Files**:
+
 - `src/index.ts` - Server entry point (stdio)
 - `src/server.ts` - Server configuration
 - `src/types/` - Shared type definitions
@@ -240,6 +260,7 @@ jobs:
 **Reference**: See [ARCHITECTURE.md](./ARCHITECTURE.md) for CLI vs MCP mode
 
 **Tasks**:
+
 - [ ] Create `src/cli.ts` with commander setup
 - [ ] Implement lazy GitHub client initialization (allow --help without token)
 - [ ] Add placeholder commands for all 8 tools (Phase 2 only adds placeholders)
@@ -248,13 +269,15 @@ jobs:
 - [ ] Test `--help` works without GITHUB_TOKEN
 - [ ] Test with `npm run cli -- <command> --help`
 
-**Important**: Phase 2 creates CLI infrastructure with **placeholders only**. 
+**Important**: Phase 2 creates CLI infrastructure with **placeholders only**.
 Tools will be wired up in Phase 3 when handlers are implemented.
 
-**Dependencies**: 
+**Dependencies**:
+
 - `commander` - CLI argument parsing
 
 **Key Files**:
+
 - `src/cli.ts` - CLI entry point (lazy init, placeholders)
 - `dist/cli.js` - Built CLI (set as bin in package.json)
 
@@ -263,6 +286,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 **Reference**: See [GITHUB_INTEGRATION.md](./GITHUB_INTEGRATION.md) for API patterns
 
 **Tasks**:
+
 - [ ] Create `src/github/client.ts` - Octokit wrapper
 - [ ] Implement token validation on startup
 - [ ] Add rate limit tracking and warnings
@@ -271,6 +295,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [ ] Test with real GitHub API
 
 **Key Files**:
+
 - `src/github/client.ts` - Main client
 - `src/github/types.ts` - GitHub-specific types
 - `src/github/errors.ts` - Error handling
@@ -280,6 +305,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 **Reference**: See [API_DESIGN.md](./API_DESIGN.md) for PR identifier format
 
 **Tasks**:
+
 - [ ] Create `src/utils/parser.ts` - PR identifier parsing
 - [ ] Create `src/utils/pagination.ts` - Pagination helpers
 - [ ] Create `src/utils/formatting.ts` - Output formatting
@@ -287,6 +313,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [ ] Write unit tests for all utilities (>90% coverage)
 
 **Key Files**:
+
 - `src/utils/parser.ts`
 - `src/utils/pagination.ts`
 - `src/utils/formatting.ts`
@@ -297,17 +324,20 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 **Reference**: See [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for full strategy
 
 **Tasks**:
+
 - [ ] Create test fixtures for GitHub API responses
 - [ ] Write tests for utilities (>90% coverage)
 - [ ] Set up mock GitHub client
 
 **Files**:
+
 - `tests/setup.ts` - Test configuration
 - `tests/fixtures/` - Mock GitHub responses
 - `tests/utils/` - Test helpers
 - `tests/mocks/` - Mock implementations
 
 ### Phase 2 Deliverables
+
 - [ ] Working MCP server that can be started
 - [ ] GitHub API client that authenticates
 - [ ] Core utility functions with tests (>90% coverage)
@@ -316,6 +346,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [ ] All CI checks passing
 
 ### Phase 2 Success Criteria
+
 - [ ] Server starts and responds to MCP protocol requests
 - [ ] Can fetch a PR from GitHub successfully
 - [ ] All utility tests pass
@@ -330,6 +361,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 **PR**: → `phase-2-foundation` (stacked on Phase 2)
 
 ### Goals
+
 - Implement `get_failing_tests`
 - Implement `find_unresolved_comments`
 - Implement `manage_stacked_prs`
@@ -339,6 +371,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 **Reference**: See [API_DESIGN.md](./API_DESIGN.md#1-get_failing_tests) for full spec
 
 **Schema & Handler**:
+
 - [x] Create `src/tools/get-failing-tests/schema.ts` with Zod input/output schemas
 - [x] Add 💾 emoji to preference-worthy parameters (bail_on_first, page_size, wait)
 - [x] Implement `src/tools/get-failing-tests/handler.ts` main function
@@ -355,12 +388,14 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [x] Return proper status (passed/failed/running/unknown)
 
 **Supporting Code** (implemented inline in handler):
+
 - [x] CI status fetching logic (inline in handler.ts, not separate file)
 - [x] Basic failure extraction (detailed log parsing deferred to Phase 4)
 - [x] Instructions generation (inline in handler.ts)
 - [ ] User preference loading (deferred to Phase 5)
 
 **CLI Integration**:
+
 - [x] Wire up CLI command in `src/cli.ts` to call handler
 - [x] **CRITICAL**: CLI options must have NO hardcoded defaults (use schema defaults)
 - [x] Use `Schema.parse()` to apply Zod defaults before calling handler
@@ -371,6 +406,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [x] Verify lazy init allows --help without token
 
 **Unit Tests** (tests/tools/get-failing-tests.test.ts):
+
 - [x] Test with no CI checks configured
 - [x] Test with all passing checks
 - [x] Test with failed checks - verify failure extraction
@@ -381,10 +417,12 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [x] Test mixed status (passed/failed/pending)
 
 **Integration Tests** (tests/integration/tools/):
+
 - [x] Test against real GitHub PR with CI (placeholder created)
 - [x] Verify actual API responses handled correctly
 
 **CLI Tests** (tests/cli/get-failing-tests.cli.test.ts):
+
 - [x] Test --help shows usage without requiring token
 - [x] Test --pr argument is required
 - [x] Test PR identifier formats accepted
@@ -397,6 +435,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [x] **Test explicit options override schema defaults** (schema-defaults.cli.test.ts)
 
 **Acceptance**:
+
 - [x] npm test passes all unit tests (7 tests)
 - [x] npm run cli -- get-failing-tests --help works without token
 - [x] npm run cli -- get-failing-tests --pr "owner/repo#123" works with token
@@ -404,6 +443,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [x] Real PR test successful (dogfooded on PR #3!)
 
 **Key Files** (as implemented):
+
 - `src/tools/get-failing-tests/schema.ts` ✅
 - `src/tools/get-failing-tests/handler.ts` ✅ (includes inline CI fetching and failure extraction)
 - Note: Log parsing and detailed extraction deferred to Phase 4 enhancements
@@ -417,6 +457,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 **Design Boundary**: Tool does NOT categorize, interpret, or suggest responses. Agent does that.
 
 **Schema & Handler**:
+
 - [ ] Create `src/tools/find-unresolved-comments/schema.ts` with Zod schemas
 - [ ] Add 💾 emoji to preference parameters (include_bots, page_size, sort)
 - [ ] Update Comment interface to include `action_commands`
@@ -437,6 +478,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [ ] **DO NOT add categorization/severity/keyword detection (agent's job!)**
 
 **Supporting Code**:
+
 - [ ] Create `src/github/comment-manager.ts` for comment API interactions
 - [ ] Create `command-generator.ts` for GitHub CLI command templates
   - [ ] Generate reply commands (gh pr comment, gh pr review comment)
@@ -446,6 +488,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [ ] Add user preference loading in handler
 
 **CLI Integration**:
+
 - [x] Wire up CLI command in `src/cli.ts` to call handler
 - [x] **CRITICAL**: CLI options must have NO hardcoded defaults (use schema defaults)
 - [x] Use `Schema.parse()` to apply Zod defaults before calling handler
@@ -455,6 +498,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [x] Handle errors and exit codes properly
 
 **Unit Tests** (tests/tools/find-unresolved-comments.test.ts):
+
 - [x] Test fetching and combining review + issue comments
 - [x] Test bot filtering (include_bots true/false)
 - [x] Test exclude_authors filtering
@@ -468,10 +512,12 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [x] **Test commands use correct GitHub CLI syntax**
 
 **Integration Tests**:
+
 - [x] Test against real GitHub PR with comments (placeholder created)
 - [x] Test bot comment filtering with real bots
 
 **CLI Tests** (tests/cli/find-unresolved-comments.cli.test.ts):
+
 - [x] Test --help without token
 - [x] Test --pr required
 - [x] Test --json outputs valid JSON with all fields
@@ -481,6 +527,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [x] Test exit codes
 
 **Acceptance**:
+
 - [x] All unit tests pass (7 tests)
 - [x] CLI --help works without token
 - [x] CLI with valid PR returns comment data
@@ -492,6 +539,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [x] **NO categorization/interpretation logic in tool** (agent does this)
 
 **Key Files** (as implemented):
+
 - `src/tools/find-unresolved-comments/schema.ts` ✅
 - `src/tools/find-unresolved-comments/handler.ts` ✅ (includes inline comment fetching)
 - `src/tools/find-unresolved-comments/command-generator.ts` ✅
@@ -503,6 +551,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 **Important**: Detect squash merges and recommend regular vs --onto rebase strategy
 
 **Schema & Handler**:
+
 - [x] Create `src/tools/manage-stacked-prs/schema.ts` with Zod schemas
 - [x] Add 💾 emoji to preference parameters (auto_fix, use_onto, page_size)
 - [x] Include optional use_onto and onto_base parameters
@@ -523,12 +572,14 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [x] Calculate estimated time and risk level
 
 **Supporting Code** (as implemented):
+
 - [x] PR comparison logic (inline in handler.ts, not separate file)
 - [x] Git command generation (inline in handler.ts)
 - [ ] Squash merge detection (deferred to Phase 4 with rebase_after_squash_merge tool)
 - [ ] User preference loading (deferred to Phase 5)
 
 **CLI Integration**:
+
 - [x] Wire up CLI command in `src/cli.ts` to call handler
 - [x] **CRITICAL**: CLI options must have NO hardcoded defaults (use schema defaults)
 - [x] Use `Schema.parse()` to apply Zod defaults before calling handler
@@ -541,6 +592,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [x] Handle errors and exit codes properly
 
 **Unit Tests** (tests/tools/manage-stacked-prs.test.ts):
+
 - [x] Test detecting stacked PRs (base branch matches)
 - [x] Test detecting non-stacked PRs
 - [x] Test error when PRs in different repos
@@ -553,11 +605,13 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [ ] Test rebase_strategy recommendation (deferred)
 
 **Integration Tests**:
+
 - [x] Test with real stacked PRs (dogfooded on PR #2 and #3!)
 - [x] Verify stacked detection works (detected our own stack)
 - [ ] Test rebase strategy detection (deferred)
 
 **CLI Tests** (tests/cli/manage-stacked-prs.cli.test.ts):
+
 - [x] Test --help without token
 - [x] Test both --base-pr and --dependent-pr required
 - [x] Test --json outputs valid JSON
@@ -566,6 +620,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [x] Test error when PRs in different repos
 
 **Acceptance**:
+
 - [x] All unit tests pass (9 tests)
 - [x] CLI --help works
 - [x] CLI with valid PRs returns stack analysis
@@ -574,11 +629,13 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 - [x] Rebase workflow successful (rebased PR #3 onto PR #2)
 
 **Key Files** (as implemented):
+
 - `src/tools/manage-stacked-prs/schema.ts` ✅
 - `src/tools/manage-stacked-prs/handler.ts` ✅ (includes inline PR analysis and command generation)
 - Note: Advanced rebase strategy detection (--onto) deferred to Phase 4
 
 ### Phase 3 Deliverables
+
 - [x] All 3 core tools functional and tested
 - [x] Test coverage: 60.73% lines, 62.5% functions, 80.64% branches (>60% target met)
 - [x] Input validation working with Zod schemas
@@ -597,6 +654,7 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 **PR**: → `phase-3-core-tools` (stacked between Phase 3 and Phase 4)
 
 ### Goals
+
 - Fix pagination to comply with MCP specification
 - Convert from page numbers to opaque cursors
 - Ensure protocol compliance
@@ -604,16 +662,18 @@ Tools will be wired up in Phase 3 when handlers are implemented.
 ### Problem
 
 **Current**: Page-based pagination (non-compliant)
+
 ```typescript
 { page: 1, page_size: 20, total_pages: 5, has_next: true }
 ```
 
 **MCP Spec**: Cursor-based pagination
+
 ```typescript
 { nextCursor: "eyJwYWdlIjogM30=" }
 ```
 
-Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/pagination
+Reference: <https://modelcontextprotocol.io/specification/2025-06-18/server/utilities/pagination>
 
 ### Tasks
 
@@ -698,11 +758,13 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 **PR**: → `phase-3.5-fix-pagination` (stacked between Phase 3.5 and Phase 4)
 
 ### Goals
+
 - Provide a dedicated tool and CLI command to resolve PR review conversations
 - Keep tool “dumb”: output data and commands; AI agent decides when to run
 - Ensure commands are safe with clear warnings and explicit opt-in
 
 ### Design Notes
+
 - No categorization/interpretation; provide review thread IDs and commands only
 - Prefer generating `gh api graphql` commands that call `resolveReviewThread`
 - CLI should default to not executing; it prints commands and guidance
@@ -710,6 +772,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 ### Tasks
 
 #### 3.7.1 API and Schema
+
 - [ ] Add new tool `resolve_review_conversations` to API design
   - [ ] Input: `pr` (PRIdentifierString 💾), `only_unresolved` (default: true 💾), `dry_run` (default: true), `limit?: number`
   - [ ] Output: `{ threads: Array<{ id: string; is_resolved: boolean; preview: string; action_commands: { resolve_command: string; view_in_browser: string } }>, nextCursor?: string, summary: { total: number; unresolved: number; suggested: number } }`
@@ -717,6 +780,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Ensure cursor-based pagination (reuse utilities from Phase 3.5)
 
 #### 3.7.2 Handler
+
 - [ ] Implement `src/tools/resolve-review-conversations/handler.ts`
   - [ ] Fetch unresolved review threads via GraphQL (server-side)
   - [ ] Build `action_commands.resolve_command` using `gh api graphql` mutation:
@@ -729,6 +793,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
   - [ ] Print commands in human-readable mode; JSON outputs full structure
 
 #### 3.7.3 Tests
+
 - [ ] Unit tests
   - [ ] Unresolved-only filter
   - [ ] Command generation for GraphQL mutation
@@ -744,11 +809,13 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
   - [ ] Dry-run prints correct commands
 
 #### 3.7.4 Documentation
+
 - [ ] Update `API_DESIGN.md` with new tool spec
 - [ ] Update `README.md` CLI usage with examples and warnings
 - [ ] Update `IMPLEMENTATION_PLAN.md` PR strategy and success criteria
 
 ### Acceptance
+
 - [ ] Tool returns threads with valid `resolve_command` and `view_in_browser`
 - [ ] CLI prints commands without executing by default
 - [ ] JSON output matches schema; cursor pagination works
@@ -763,6 +830,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 **PR**: → `phase-3-core-tools` (stacked on Phase 3)
 
 ### Goals
+
 - Implement 5 supplementary tools
 - Add value beyond core functionality
 - Create composable tool ecosystem
@@ -775,6 +843,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 **Complexity**: Medium | **Priority**: High | **Time**: 1 day
 
 **Schema & Handler**:
+
 - [ ] Create `src/tools/detect-merge-conflicts/schema.ts` with Zod schemas
 - [ ] Implement `handler.ts` main function
 - [ ] Fetch PR to check mergeable state
@@ -787,6 +856,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Return conflict status, files, and suggestions
 
 **CLI Integration**:
+
 - [ ] Wire up CLI command in `src/cli.ts`
 - [ ] Parse --pr and --target-branch arguments
 - [ ] Format JSON output
@@ -794,6 +864,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Handle errors and exit codes
 
 **Unit Tests**:
+
 - [ ] Test PR with no conflicts (mergeable_state: clean)
 - [ ] Test PR with conflicts (mergeable_state: dirty)
 - [ ] Test PR with unknown state
@@ -801,6 +872,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Test resolution suggestions generation
 
 **CLI Tests**:
+
 - [ ] Test --help without token
 - [ ] Test --pr required
 - [ ] Test JSON output format
@@ -808,6 +880,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Test exit codes
 
 **Acceptance**:
+
 - [ ] All tests pass
 - [ ] CLI --help works
 - [ ] CLI detects conflicts on real PR
@@ -820,6 +893,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 **Complexity**: Medium | **Priority**: High | **Time**: 1 day
 
 **Schema & Handler**:
+
 - [ ] Create `src/tools/check-merge-readiness/schema.ts` with Zod schemas
 - [ ] Implement `handler.ts` main function
 - [ ] Check CI status (reuse logic from get_failing_tests)
@@ -834,6 +908,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Return checklist with pass/fail for each requirement
 
 **CLI Integration**:
+
 - [ ] Wire up CLI command in `src/cli.ts`
 - [ ] Parse --pr argument
 - [ ] Format JSON output with all checks
@@ -841,6 +916,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Handle errors and exit codes
 
 **Unit Tests**:
+
 - [ ] Test PR ready to merge (all checks pass)
 - [ ] Test PR with failing CI
 - [ ] Test PR with insufficient approvals
@@ -849,6 +925,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Test next_steps generation when not ready
 
 **CLI Tests**:
+
 - [ ] Test --help without token
 - [ ] Test --pr required
 - [ ] Test JSON output format
@@ -856,6 +933,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Test exit codes
 
 **Acceptance**:
+
 - [ ] All tests pass
 - [ ] CLI works on real PR
 - [ ] Accurately identifies merge blockers
@@ -868,6 +946,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 **Complexity**: High | **Priority**: Medium | **Time**: 2 days
 
 **Schema & Handler**:
+
 - [ ] Create `src/tools/analyze-pr-impact/schema.ts` with Zod schemas
 - [ ] Add depth parameter (summary vs detailed)
 - [ ] Implement `handler.ts` main function
@@ -888,6 +967,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Generate detailed analysis report
 
 **CLI Integration**:
+
 - [ ] Wire up CLI command in `src/cli.ts`
 - [ ] Parse --pr and --depth arguments
 - [ ] Format JSON output
@@ -896,6 +976,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Handle errors and exit codes
 
 **Unit Tests**:
+
 - [ ] Test summary depth analysis
 - [ ] Test detailed depth analysis
 - [ ] Test impact area categorization (database, API, security, etc.)
@@ -904,6 +985,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Test risk level calculation
 
 **CLI Tests**:
+
 - [ ] Test --help without token
 - [ ] Test --pr required
 - [ ] Test --depth summary (default)
@@ -913,6 +995,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Test exit codes
 
 **Acceptance**:
+
 - [ ] All tests pass
 - [ ] CLI shows impact analysis on real PR
 - [ ] Impact areas correctly identified
@@ -926,6 +1009,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 **Complexity**: High | **Priority**: Medium | **Time**: 2 days
 
 **Schema & Handler**:
+
 - [ ] Create `src/tools/get-review-suggestions/schema.ts` with Zod schemas
 - [ ] Add focus_areas, include_diff, max_diff_lines parameters
 - [ ] Implement `handler.ts` main function
@@ -949,6 +1033,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Return checklist, focus points, diff excerpts
 
 **CLI Integration**:
+
 - [ ] Wire up CLI command in `src/cli.ts`
 - [ ] Parse --pr, --focus-areas, --include-diff, --max-diff-lines
 - [ ] Format JSON output
@@ -959,6 +1044,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Handle errors and exit codes
 
 **Unit Tests**:
+
 - [ ] Test checklist generation
 - [ ] Test focus point identification (security, performance)
 - [ ] Test diff excerpt extraction
@@ -967,6 +1053,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Test with include_diff=true and false
 
 **CLI Tests**:
+
 - [ ] Test --help without token
 - [ ] Test --pr required
 - [ ] Test --focus-areas with multiple values
@@ -977,6 +1064,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Test exit codes
 
 **Acceptance**:
+
 - [ ] All tests pass
 - [ ] CLI generates review guide on real PR
 - [ ] Checklist is comprehensive
@@ -991,6 +1079,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 **Complexity**: Medium | **Priority**: Medium | **Time**: 1 day
 
 **Schema & Handler**:
+
 - [ ] Create `src/tools/rebase-after-squash-merge/schema.ts` with Zod schemas
 - [ ] Add pr, upstream_pr (optional), target_branch (optional) parameters
 - [ ] Implement `handler.ts` main function
@@ -1009,6 +1098,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Integrate recommendation logic with manage_stacked_prs
 
 **CLI Integration**:
+
 - [ ] Wire up CLI command in `src/cli.ts`
 - [ ] Parse --pr, --upstream-pr, --target-branch arguments
 - [ ] Format JSON output
@@ -1018,6 +1108,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Handle errors and exit codes
 
 **Unit Tests**:
+
 - [ ] Test squash merge detection (true positive)
 - [ ] Test non-squash merge (true negative)
 - [ ] Test last upstream commit identification
@@ -1028,6 +1119,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Test warnings when uncertain
 
 **CLI Tests**:
+
 - [ ] Test --help without token
 - [ ] Test --pr required
 - [ ] Test with --upstream-pr provided
@@ -1037,6 +1129,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Test exit codes
 
 **Acceptance**:
+
 - [ ] All tests pass
 - [ ] CLI detects squash merges correctly
 - [ ] --onto command is correct
@@ -1052,6 +1145,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 **PR**: → `phase-4-enhanced-tools` (stacked on Phase 4)
 
 ### Goals
+
 - Improve performance
 - Add caching layer
 - Enhance error handling
@@ -1063,6 +1157,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 #### 5.1 Caching
 
 **Implementation**:
+
 - [ ] Create `src/cache/cache.ts` with generic Cache<K, V> class
 - [ ] Implement TTL (time-to-live) expiration logic
 - [ ] Add get/set/delete/clear methods
@@ -1075,6 +1170,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Add cache warming for common queries
 
 **Unit Tests**:
+
 - [ ] Test cache set and get
 - [ ] Test TTL expiration (entries removed after TTL)
 - [ ] Test cache invalidation
@@ -1083,17 +1179,20 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Test cache hit/miss tracking
 
 **Acceptance**:
+
 - [ ] All tests pass
 - [ ] Cache reduces API calls by >50% in typical usage
 - [ ] TTL correctly expires entries
 - [ ] No memory leaks with expired entries
 
 **Key Files**:
+
 - `src/cache/cache.ts`
 
 #### 5.2 Rate Limiting
 
 **Implementation**:
+
 - [ ] Create `src/github/rate-limiter.ts` with RateLimiter class
 - [ ] Track remaining API requests from response headers
 - [ ] Track rate limit reset time
@@ -1106,6 +1205,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Add rate limit status reporting
 
 **Unit Tests**:
+
 - [ ] Test tracking remaining requests
 - [ ] Test exponential backoff timing
 - [ ] Test request queuing when near limit
@@ -1114,17 +1214,20 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Test concurrent request limiting
 
 **Acceptance**:
+
 - [ ] All tests pass
 - [ ] Never hits rate limit in normal usage
 - [ ] Exponential backoff works correctly
 - [ ] Priority requests processed first
 
 **Key Files**:
+
 - `src/github/rate-limiter.ts`
 
 #### 5.3 Parallel Requests
 
 **Implementation**:
+
 - [ ] Identify independent API calls that can run in parallel
 - [ ] Replace sequential awaits with Promise.all where safe
 - [ ] Batch related GitHub API calls:
@@ -1137,12 +1240,14 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Document performance improvements in comments
 
 **Unit Tests**:
+
 - [ ] Test parallel fetch logic
 - [ ] Test request pooling limits concurrency
 - [ ] Test error handling when one parallel request fails
 - [ ] Mock timing to verify parallel execution
 
 **Acceptance**:
+
 - [ ] All tests pass
 - [ ] Tool execution time reduced by >30%
 - [ ] No race conditions from parallel requests
@@ -1151,6 +1256,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 #### 5.4 Error Recovery
 
 **Implementation**:
+
 - [ ] Create `src/github/retry.ts` with retry logic
 - [ ] Implement retry for transient failures (3 attempts max)
 - [ ] Use exponential backoff between retries
@@ -1169,6 +1275,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Log all retries for debugging
 
 **Unit Tests**:
+
 - [ ] Test successful retry after transient failure
 - [ ] Test max retries reached
 - [ ] Test exponential backoff timing
@@ -1177,6 +1284,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Test error message quality
 
 **Acceptance**:
+
 - [ ] All tests pass
 - [ ] Transient failures auto-recover
 - [ ] Non-retryable errors fail fast
@@ -1187,6 +1295,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 **Reference**: See [PREFERENCE_HINTS.md](./PREFERENCE_HINTS.md) for full spec
 
 **Implementation**:
+
 - [ ] Create `src/preferences/loader.ts` with PreferencesLoader class
 - [ ] Implement loadUserPreferences(toolName) method
 - [ ] Implement saveUserPreferences(toolName, prefs) method
@@ -1212,6 +1321,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Ensure explicit args always override preferences
 
 **Unit Tests** (tests/preferences/):
+
 - [ ] Test resolveParameterValue with explicit arg (wins)
 - [ ] Test resolveParameterValue with user preference (used)
 - [ ] Test resolveParameterValue with no pref (uses default)
@@ -1222,11 +1332,13 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Test precedence: explicit > pref > default
 
 **Integration Tests**:
+
 - [ ] Test real preferences file creation
 - [ ] Test preferences persist across tool calls
 - [ ] Test explicit args override preferences
 
 **CLI Tests**:
+
 - [ ] Test `preferences set` command
 - [ ] Test `preferences get` command
 - [ ] Test `preferences list` command
@@ -1234,6 +1346,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Test invalid preference values rejected
 
 **Acceptance**:
+
 - [ ] All tests pass
 - [ ] Can set preferences via CLI
 - [ ] Preferences loaded in tool handlers
@@ -1241,6 +1354,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Config file created in ~/.resolve-pr-mcp/
 
 **Key Files**:
+
 - `src/preferences/loader.ts`
 - `src/preferences/resolver.ts`
 - `~/.resolve-pr-mcp/preferences.json` (user file)
@@ -1253,6 +1367,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 **PR**: → `phase-5-optimization` (stacked on Phase 5)
 
 ### Goals
+
 - Complete documentation
 - Add usage examples
 - Create deployment guides
@@ -1263,6 +1378,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 #### 6.1 Code Quality Polish
 
 **From Phase 3.7 CodeRabbit Nitpicks**:
+
 - [ ] Type-safe GraphQL response handling (resolve-review-thread)
   - [ ] Define TypeScript interfaces for GraphQL response shapes
   - [ ] Add runtime validation (Zod) for critical fields
@@ -1273,6 +1389,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
   - [ ] Catch malformed IDs early with clear error messages
 
 **From Other Phases**:
+
 - [ ] Review and address deferred nitpicks from earlier phases
 - [ ] Add comprehensive JSDoc comments to all public APIs
 - [ ] Improve error messages for better user experience
@@ -1280,6 +1397,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 #### 6.2 Documentation
 
 **Implementation**:
+
 - [x] Architecture overview (ARCHITECTURE.md)
 - [x] API specifications (API_DESIGN.md)
 - [ ] Create USER_GUIDE.md with step-by-step tutorials
@@ -1305,6 +1423,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Ensure all public APIs have JSDoc comments
 
 **Acceptance**:
+
 - [ ] All docs reviewed and accurate
 - [ ] README is clear and complete
 - [ ] New users can get started in <5 minutes
@@ -1313,6 +1432,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 #### 6.3 Examples
 
 **Implementation**:
+
 - [ ] Create examples/ directory with sample workflows
 - [ ] Add example AI prompts for each tool:
   - [ ] "Check if my PR is ready to merge"
@@ -1336,6 +1456,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
   - [ ] Full workflow demo
 
 **Acceptance**:
+
 - [ ] All example prompts work as documented
 - [ ] Workflows are realistic and useful
 - [ ] MCP integration guide enables setup in <10 minutes
@@ -1344,6 +1465,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 #### 6.4 Deployment
 
 **Implementation**:
+
 - [ ] Prepare for npm package publication:
   - [ ] Verify package.json metadata (name, description, keywords)
   - [ ] Add repository, bugs, homepage URLs
@@ -1369,6 +1491,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
   - [ ] Include only runtime dependencies
 
 **Acceptance**:
+
 - [ ] Can publish to npm successfully
 - [ ] GitHub releases automated
 - [ ] CHANGELOG is up to date
@@ -1377,6 +1500,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 #### 6.5 Monitoring and Observability
 
 **Implementation**:
+
 - [ ] Add structured logging:
   - [ ] Create `src/logging/logger.ts` with Winston or Pino
   - [ ] Log levels: error, warn, info, debug
@@ -1404,6 +1528,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
   - [ ] Add error fingerprints for grouping
 
 **Acceptance**:
+
 - [ ] Structured logs are parsable
 - [ ] Debug logs help troubleshoot issues
 - [ ] Performance metrics identify slow paths
@@ -1417,6 +1542,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 **Reference**: See [TESTING_STRATEGY.md](./TESTING_STRATEGY.md) for complete testing approach
 
 **Coverage Goals**:
+
 - [ ] Unit tests: >90% coverage
 - [ ] Integration tests: >80% coverage
 - [ ] Critical paths: 100% coverage
@@ -1447,6 +1573,7 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 ## Success Metrics
 
 ### Functional Metrics
+
 - [ ] CI/CD pipeline running on all PRs
 - [ ] All 8 tools implemented and tested (3 core + 5 supplementary)
 - [ ] Test coverage >85% overall
@@ -1455,17 +1582,20 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 - [ ] Rebase strategy detection accurate
 
 ### Performance Metrics
+
 - [ ] Average response time <2s (immediate mode)
 - [ ] GitHub API usage <100 requests per tool invocation
 - [ ] Memory usage <200MB under normal load
 
 ### Quality Metrics
+
 - [ ] Zero critical bugs in production
 - [ ] All error cases handled gracefully
 - [ ] Documentation complete and accurate
 - [ ] All preference hints in place
 
 ### User Experience Metrics
+
 - [ ] Clear, actionable outputs
 - [ ] Minimal token usage (validated with real usage)
 - [ ] Efficient pagination working
@@ -1476,26 +1606,29 @@ Reference: https://modelcontextprotocol.io/specification/2025-06-18/server/utili
 ## Future Enhancements (Post-Launch)
 
 **Advanced Features**:
+
 - [ ] Multi-PR batch operations
 - [ ] Custom workflow definitions
 - [ ] Webhook integration for real-time updates
 - [ ] Local git operations support
 
 **AI Optimizations**:
+
 - [ ] Semantic search across PR history
 - [ ] Predictive conflict detection
 - [ ] Automated fix suggestions
 - [ ] Learning from fix success rates
 
 **Enterprise Features**:
+
 - [ ] Organization-wide analytics
 - [ ] SAML/SSO integration
 - [ ] Audit logging
 - [ ] Team-level preferences
 
 **Performance**:
+
 - [ ] Persistent caching layer (Redis)
 - [ ] GraphQL API usage where beneficial
 - [ ] Request deduplication
 - [ ] Streaming responses for large datasets
-

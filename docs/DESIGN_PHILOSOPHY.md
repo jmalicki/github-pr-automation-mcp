@@ -11,23 +11,27 @@ We are a **data access layer** and **command generator**, not an AI assistant. T
 ### ✅ Tool Responsibilities (Mechanical Work)
 
 **Data Access**:
+
 - Fetch from GitHub REST API
 - Handle pagination
 - Manage rate limiting
 - Normalize responses
 
 **Data Transformation**:
+
 - Parse PR identifiers
 - Format timestamps
 - Combine related data (review comments + issue comments)
 - Sort/filter by objective criteria
 
 **Command Generation**:
+
 - Generate GitHub CLI commands
 - Provide action templates
 - Include safety warnings
 
 **Objective Facts Only**:
+
 - Is this user a bot? (from GitHub API `type` field)
 - What file/line? (from GitHub API)
 - When created? (from GitHub API)
@@ -36,24 +40,28 @@ We are a **data access layer** and **command generator**, not an AI assistant. T
 ### ❌ Tool NEVER Does (Intelligent Work)
 
 **Interpretation**:
+
 - What does this comment mean?
 - Is this important?
 - Is this blocking?
 - Should we fix this?
 
 **Categorization**:
+
 - Severity levels
 - Priority scoring
 - Keyword-based classification
 - Sentiment analysis
 
 **Decision Making**:
+
 - When to resolve
 - What to respond
 - Which action to take
 - Whether to escalate
 
 **Content Generation**:
+
 - Response text
 - Fix suggestions
 - Explanations
@@ -61,12 +69,16 @@ We are a **data access layer** and **command generator**, not an AI assistant. T
 ## Why This Boundary Matters
 
 ### 1. **Single Responsibility**
+
 Each component does one thing well:
+
 - Tool: GitHub data access
 - Agent: Intelligence and decision-making
 
 ### 2. **Avoids Duplication**
+
 The agent is ALREADY good at:
+
 - Understanding natural language
 - Categorizing urgency
 - Making decisions
@@ -75,7 +87,9 @@ The agent is ALREADY good at:
 We don't need to poorly replicate these capabilities.
 
 ### 3. **Flexibility**
+
 Different agents may have different priorities:
+
 - One agent might prioritize security comments
 - Another might prioritize maintainer comments
 - A third might focus on quick wins
@@ -83,6 +97,7 @@ Different agents may have different priorities:
 By providing raw data, we let each agent decide.
 
 ### 4. **Maintainability**
+
 - Interpretation logic is complex and subjective
 - Keyword lists go stale
 - Different projects have different priorities
@@ -91,6 +106,7 @@ By providing raw data, we let each agent decide.
 ## Real-World Example
 
 **CodeRabbit Review Comment**:
+
 ```
 _⚠️ Potential issue_ | _🟠 Major_
 
@@ -98,6 +114,7 @@ _⚠️ Potential issue_ | _🟠 Major_
 ```
 
 ### ❌ Bad Approach (Tool interprets)
+
 ```typescript
 // Tool tries to be smart
 {
@@ -110,12 +127,14 @@ _⚠️ Potential issue_ | _🟠 Major_
 ```
 
 **Problems**:
+
 - What if agent disagrees with "high" severity?
 - What if this project doesn't care about performance?
 - What if the suggested response is wrong?
 - Now we have TWO AIs making conflicting decisions
 
 ### ✅ Good Approach (Tool provides, Agent decides)
+
 ```typescript
 // Tool provides raw data + commands
 {
@@ -129,6 +148,7 @@ _⚠️ Potential issue_ | _🟠 Major_
 ```
 
 **Agent's workflow**:
+
 1. Reads body
 2. Sees "_🟠 Major_" marker
 3. Parses "Avoid double /user requests"
@@ -140,6 +160,7 @@ _⚠️ Potential issue_ | _🟠 Major_
 9. Executes resolve command
 
 **Benefits**:
+
 - Agent makes all intelligent decisions
 - Tool just provides data and commands
 - Agent can parse CodeRabbit format (agent is good at this!)
@@ -147,21 +168,25 @@ _⚠️ Potential issue_ | _🟠 Major_
 
 ## Guidelines for Implementation
 
-### When adding new tool features, ask:
+### When adding new tool features, ask
 
 **"Is this a fact or an opinion?"**
+
 - Fact → Tool can provide it
 - Opinion → Agent decides
 
 **"Can GitHub API tell us this objectively?"**
+
 - Yes → Tool returns it
 - No → Agent interprets it
 
 **"Does this require understanding natural language?"**
+
 - No → Tool can do it (e.g., sort by file name)
 - Yes → Agent does it (e.g., "is this urgent?")
 
 **"Would different agents want different answers?"**
+
 - Yes → Agent decides
 - No → Tool can standardize
 
@@ -185,14 +210,15 @@ _⚠️ Potential issue_ | _🟠 Major_
 **We're plumbing, not intelligence.**
 
 Our value:
+
 - ✅ Handle GitHub API complexity
 - ✅ Provide commands agent can execute
 - ✅ Make review workflow scriptable
 
 Not our value:
+
 - ❌ Duplicate agent's NLP abilities
 - ❌ Make decisions agent should make
 - ❌ Add interpretation layer
 
 **The agent is smart. We help it act on GitHub.**
-

@@ -9,6 +9,7 @@ The `find_unresolved_comments` tool now supports parsing review bodies to extrac
 ### The Problem
 
 Traditional GitHub PR comments come in three types:
+
 1. **Review Comments** - Line-specific comments on code changes
 2. **Issue Comments** - General PR discussion comments  
 3. **Review Bodies** - The main text content of a review submission
@@ -20,6 +21,7 @@ The original `find_unresolved_comments` tool only captured the first two types, 
 CodeRabbit differs from traditional human reviewers in several key ways:
 
 #### 1. **Structured Review Bodies**
+
 Instead of creating separate review comments for each issue, CodeRabbit embeds multiple actionable suggestions within a single review body using structured markup:
 
 ```markdown
@@ -61,12 +63,15 @@ If reproducibility is important, add lockfile copying after line 37:
 ```
 
 #### 2. **File Context and Line Ranges**
+
 CodeRabbit uses specific markup patterns to indicate:
+
 - **File context**: `<summary>filename (n)</summary>` or `filename (n)`
 - **Line ranges**: `36-41`: **suggestion text** or `36`: **suggestion text**
 - **Code suggestions**: Embedded diff blocks with specific formatting
 
 #### 3. **Batch Processing**
+
 Unlike human reviewers who create individual comments, CodeRabbit processes multiple files and issues in a single review, then presents them as a structured summary.
 
 ## How the Feature Works
@@ -174,21 +179,25 @@ Parsed review body comments are returned as standard `Comment` objects with:
 ## Benefits
 
 ### 1. **Complete Comment Coverage**
+
 - Captures all actionable feedback, not just traditional comments
 - Ensures no important suggestions are missed
 - Provides unified view of all PR feedback
 
 ### 2. **AI Tool Integration**
+
 - Seamlessly works with CodeRabbit and other AI review tools
 - Extracts structured suggestions from complex review bodies
 - Maintains context and file/line associations
 
 ### 3. **Backward Compatibility**
+
 - Existing functionality unchanged
 - Can be disabled if not needed
 - No breaking changes to API
 
 ### 4. **Enhanced Developer Experience**
+
 - Developers see all feedback in one place
 - Actionable suggestions are properly categorized
 - Easy to track and resolve issues

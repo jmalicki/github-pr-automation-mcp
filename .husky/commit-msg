@@ -1,14 +1,5 @@
-commit_msg=$(cat "$1")
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
 
-if ! echo "$commit_msg" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: \S.*'; then
-  echo "❌ Invalid commit message format!"
-  echo "Commit messages must follow Conventional Commits:"
-  echo "  feat: add new feature"
-  echo "  fix: bug fix"
-  echo "  docs: documentation changes"
-  echo "  test: add or update tests"
-  echo ""
-  echo "Your message:"
-  echo "  $commit_msg"
-  exit 1
-fi
+# Run commitlint to validate commit messages
+npx --no -- commitlint --edit $1

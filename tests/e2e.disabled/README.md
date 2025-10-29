@@ -34,10 +34,12 @@ npm run test:slow
 ## Test Structure
 
 ### Setup
+
 - **`tests/e2e/setup.ts`**: E2E test setup with Octokit fixtures
 - **`tests/e2e/*.e2e.test.ts`**: Individual E2E test suites
 
 ### Available Fixtures
+
 - `api.github.com/paginate-issues`: Real pagination data
 - `api.github.com/pulls-get`: Real PR data  
 - `api.github.com/check-runs-list`: Real CI data
@@ -46,18 +48,21 @@ npm run test:slow
 ## Development Workflow
 
 ### Quick Development
+
 ```bash
 # Run fast tests during development (seconds)
 npm run test:fast
 ```
 
 ### Pre-commit
+
 ```bash
 # Run comprehensive tests before committing
 npm run test:slow
 ```
 
 ### CI/CD
+
 ```bash
 # Run all tests with coverage
 npm run test:coverage
@@ -99,4 +104,3 @@ describe('your-tool E2E', () => {
   }, { tags: ['e2e', 'fast'] });
 });
 ```
-

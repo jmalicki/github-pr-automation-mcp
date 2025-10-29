@@ -20,19 +20,22 @@ interface RebaseScenario {
 ### 1. Base PR Was Squash-Merged ✅ Use `--onto`
 
 **Indicators**:
+
 - `squash_merge: true` in tool response
 - Base PR branch was deleted after merge
 - Main has one new commit, but dependent PR has many commits from base
 
-**Why `--onto`**: 
+**Why `--onto`**:
 Dependent PR contains individual commits that are now squashed into one. Regular rebase tries to replay each commit (conflicts!). `--onto` skips them entirely.
 
 **Command**:
+
 ```bash
 git rebase --onto origin/main <last-base-commit> dependent-branch
 ```
 
 **AI Prompt to User**:
+
 ```
 I see that PR #100 was squash-merged into main. Your PR #101 contains 
 those 10 individual commits. I'll use `git rebase --onto` to skip them 
@@ -46,6 +49,7 @@ Proceeding with: git rebase --onto origin/main abc123e pr-101
 ### 2. Base PR Was Merge-Committed → Use Regular Rebase
 
 **Indicators**:
+
 - `squash_merge: false`
 - Base PR branch still exists or was normally merged
 - Commit history is preserved in main
@@ -54,6 +58,7 @@ Proceeding with: git rebase --onto origin/main abc123e pr-101
 Commits are still in main with same SHAs. Git can track them and rebase works normally.
 
 **Command**:
+
 ```bash
 git rebase origin/main
 # or
@@ -61,6 +66,7 @@ git rebase <base-pr-branch>
 ```
 
 **AI Prompt to User**:
+
 ```
 PR #100 was merge-committed (not squashed), so its commits are preserved 
 in main's history. A regular rebase will work cleanly.
@@ -73,16 +79,19 @@ Proceeding with: git rebase origin/main
 ### 3. Unsure or Complex → Offer Both Options
 
 **Indicators**:
+
 - `ai_should_decide: true` in tool response
 - Both regular and `--onto` commands provided
 - Multiple considerations listed
 
 **AI Should**:
+
 1. Analyze the considerations
 2. Present both options to user
 3. Recommend based on user's preference for history preservation
 
 **AI Prompt to User**:
+
 ```
 I see two viable approaches:
 
@@ -107,6 +116,7 @@ Shall I proceed?
 **Use cases**:
 
 ### 1. Long-lived Feature Branch
+
 ```
 main: A---B---C---D---E (many changes)
       \
@@ -114,18 +124,23 @@ main: A---B---C---D---E (many changes)
 ```
 
 Instead of replaying F,G through all of B,C,D,E:
+
 ```bash
 git rebase --onto main <old-base> your-branch
 ```
 
 ### 2. Cherry-picking Commits
+
 You only want specific commits, not entire history:
+
 ```bash
 git rebase --onto main <before-first-wanted-commit> your-branch
 ```
 
 ### 3. Removing Commits from Middle
+
 You want to remove commits but keep later ones:
+
 ```bash
 git rebase --onto <keep-up-to-here> <skip-after-this> branch
 ```
@@ -185,6 +200,7 @@ function decideRebaseStrategy(context: RebaseContext): RebaseDecision {
 ## Common Patterns
 
 ### Pattern 1: Automatic Decision
+
 ```
 Tool returns: { recommended: "onto", ai_should_decide: false }
 AI: Proceeds with --onto without asking
@@ -192,6 +208,7 @@ User: Sees results, can rollback if needed
 ```
 
 ### Pattern 2: Guided Decision
+
 ```
 Tool returns: { recommended: "onto", ai_should_decide: true, considerations: [...] }
 AI: Presents options with analysis
@@ -200,6 +217,7 @@ AI: Executes chosen strategy
 ```
 
 ### Pattern 3: Adaptive Strategy
+
 ```
 AI: Tries regular rebase
 Result: Many conflicts
@@ -224,6 +242,7 @@ git reset --hard HEAD@{5}
 ```
 
 AI should mention this in prompts:
+
 ```
 Note: If anything goes wrong, run: git reset --hard ORIG_HEAD
 This will restore your branch to before the rebase.
@@ -234,6 +253,7 @@ This will restore your branch to before the rebase.
 ## Examples of AI Decision Making
 
 ### Example 1: Clear Squash-Merge
+
 ```typescript
 // Tool response
 {
@@ -250,6 +270,7 @@ This will restore your branch to before the rebase.
 ```
 
 ### Example 2: Ambiguous Case
+
 ```typescript
 // Tool response
 {
@@ -277,6 +298,7 @@ I recommend trying #1 first, then #2 if we hit issues."
 ```
 
 ### Example 3: Conflict Recovery
+
 ```typescript
 // AI tries regular rebase
 result: { success: false, conflicts: 15 }
@@ -297,6 +319,7 @@ Let me help resolve those."
 ## Summary for AI Agents
 
 **Default Rules**:
+
 1. Squash-merge detected? → Use `--onto`
 2. Regular merge with low conflicts? → Use regular rebase
 3. High conflicts or unsure? → Consider `--onto` or ask user
@@ -304,8 +327,8 @@ Let me help resolve those."
 5. Tool says `ai_should_decide: true`? → Analyze and present options
 
 **Communication**:
+
 - Always explain WHY you're using `--onto`
 - Mention rollback procedure
 - Show both commands when appropriate
 - Adapt if first approach fails
-

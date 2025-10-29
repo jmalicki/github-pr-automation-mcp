@@ -84,6 +84,6 @@ export default [
     }
   },
   {
-    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/*.js']
+    ignores: ['dist/', 'node_modules/', 'coverage/', '*.js', '!scripts/*.js', 'scripts/pre-push-version-check.js', 'commitlint.config.cjs']
   }
 ];

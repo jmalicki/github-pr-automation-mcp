@@ -7,9 +7,11 @@ The testing strategy is designed to ensure reliability, correctness, and maintai
 ## Test Categorization
 
 ### 1. Unit Tests
+
 **Purpose**: Test individual functions and classes in isolation
 
 **Scope**:
+
 - Utility functions (parsers, formatters, validators)
 - Log parsers for different test frameworks
 - Comment categorization logic
@@ -17,12 +19,14 @@ The testing strategy is designed to ensure reliability, correctness, and maintai
 - Data transformations
 
 **Requirements**:
+
 - No external dependencies
 - Fast execution (<1s for entire suite)
 - High coverage target: >90%
 - Linked to requirements with comments (per user preference)
 
 **Example**:
+
 ```typescript
 // tests/utils/parser.test.ts
 
@@ -64,9 +68,11 @@ describe('parsePRIdentifier', () => {
 ```
 
 ### 2. Integration Tests
+
 **Purpose**: Test interactions between components with real GitHub API behavior using @octokit/fixtures
 
 **Scope**:
+
 - Tool handlers with real GitHub API responses (recorded/playback)
 - Complete workflows from input to output
 - Multi-step workflows
@@ -75,6 +81,7 @@ describe('parsePRIdentifier', () => {
 - Real API behavior without network dependency
 
 **Requirements**:
+
 - Use @octokit/fixtures for recording/playback
 - Test error scenarios with real API responses
 - Validate data flow through layers
@@ -82,6 +89,7 @@ describe('parsePRIdentifier', () => {
 - Record fixtures once, play back many times
 
 **Example**:
+
 ```typescript
 // tests/integration/tools/get-failing-tests.integration.test.ts
 
@@ -147,9 +155,11 @@ describe('get_failing_tests integration', () => {
 ```
 
 ### 3. E2E Tests (Integrated with Integration Tests)
+
 **Purpose**: Complete end-to-end testing with real GitHub API behavior using @octokit/fixtures
 
 **Scope**:
+
 - Complete workflows from input to output
 - Real GitHub API interactions (recorded/playback)
 - Rate limiting behavior (simulated)
@@ -157,12 +167,14 @@ describe('get_failing_tests integration', () => {
 - All tool functionality with real API responses
 
 **Requirements**:
+
 - Use integration test infrastructure with @octokit/fixtures
 - Record fixtures once, play back many times
 - Fast execution in playback mode
 - Deterministic results
 
 **Modes**:
+
 ```typescript
 // Record Mode: First time setup
 export RECORD_INTEGRATION_FIXTURES=true
@@ -175,6 +187,7 @@ npm run test:integration:playback
 ```
 
 **Benefits**:
+
 - ✅ Real API behavior without network dependency
 - ✅ Fast execution (no API calls in playback mode)
 - ✅ Deterministic results (recorded responses)
@@ -182,15 +195,18 @@ npm run test:integration:playback
 - ✅ Offline capability
 
 ### 4. CLI Tests
+
 **Purpose**: Test CLI mode functionality
 
 **Scope**:
+
 - Command parsing and validation
 - Output formatting (JSON vs. human-readable)
 - Error messages and exit codes
 - Shell integration
 
 **Example**:
+
 ```typescript
 // tests/cli/commands.test.ts
 
@@ -239,15 +255,18 @@ describe('CLI get-failing-tests command', () => {
 ```
 
 ### 5. Snapshot Tests
+
 **Purpose**: Ensure consistent output formats for AI consumption
 
 **Scope**:
+
 - Tool output formats
 - Instruction generation
 - Command generation
 - Error messages
 
 **Example**:
+
 ```typescript
 // tests/snapshots/instructions.test.ts
 
@@ -305,6 +324,7 @@ tests/
 4. **Documented**: Include comments explaining the scenario
 
 **Example Fixture**:
+
 ```json
 // tests/fixtures/pull-requests/pr-with-failures.json
 {
@@ -483,12 +503,14 @@ export function expectValidPagination(
 ### Test Framework: Vitest
 
 **Why Vitest**:
+
 - Fast execution with ESM support
 - Built-in TypeScript support
 - Jest-compatible API
 - Excellent watch mode
 
 **Configuration**:
+
 ```typescript
 // vitest.config.ts
 import { defineConfig } from 'vitest/config';
@@ -746,4 +768,3 @@ beforeEach(() => {
 ```
 
 This comprehensive testing strategy ensures the MCP server is robust, reliable, and maintainable.
-

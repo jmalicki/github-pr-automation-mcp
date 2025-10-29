@@ -671,4 +671,3 @@ interface CommandResult {
 ```
 
 This data model specification provides a complete type system for the MCP server implementation.
-
