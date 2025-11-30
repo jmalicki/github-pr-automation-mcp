@@ -51,10 +51,9 @@ describe("handleCheckMergeReadiness", () => {
     expect(result.checks.no_conflicts).toBe(true);
     expect(result.blocking_issues).toHaveLength(0);
 
-    // Verify API calls - handler intentionally calls pulls.get twice:
-    // 1. Initial PR fetch to get basic details
-    // 2. Re-check after potential state changes to ensure accuracy
-    expect(mockOctokit.pulls.get).toHaveBeenCalledTimes(2);
+    // Verify API calls - handler calls pulls.get once, then uses the SHA for checks
+    expect(mockOctokit.pulls.get).toHaveBeenCalledTimes(1);
+    expect(mockOctokit.checks.listForRef).toHaveBeenCalledTimes(1);
   });
 
   it("should detect CI failures", async () => {

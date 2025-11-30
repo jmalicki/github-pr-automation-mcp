@@ -21,7 +21,7 @@ import { handleResolveReviewThread } from "./tools/resolve-review-thread/handler
 import { handleGitHubError } from "./github/errors.js";
 import { PRIdentifierStringSchema } from "./utils/validation.js";
 import { getVersionString } from "./utils/version.js";
-import { z } from "zod";
+import { z, ZodError } from "zod";
 
 const server = new Server(
   {
@@ -298,12 +298,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             thread_id: {
               type: "string",
               description:
-                "Review thread GraphQL node ID (required if comment_id not provided)",
+                "Review thread GraphQL node ID (at least one of thread_id or comment_id must be provided)",
             },
             comment_id: {
               type: "string",
               description:
-                "Comment ID (GraphQL node ID or numeric REST ID; will be mapped to thread, required if thread_id not provided)",
+                "Comment ID (GraphQL node ID or numeric REST ID; will be mapped to thread, at least one of thread_id or comment_id must be provided)",
             },
             prefer: {
               type: "string",
@@ -314,7 +314,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
           },
           required: ["pr"],
-          anyOf: [{ required: ["thread_id"] }, { required: ["comment_id"] }],
         },
         readOnlyHint: false,
         destructiveHint: false,
@@ -325,12 +324,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 });
 
 // Initialize GitHub client
-let githubClient: GitHubClient;
+let githubClient: GitHubClient | undefined;
+let githubClientError: string | null = null;
 try {
   githubClient = new GitHubClient();
 } catch (error) {
-  console.error("Failed to initialize GitHub client:", error);
-  process.exit(1);
+  const errorMessage =
+    error instanceof Error
+      ? error.message
+      : "Unknown error during GitHub client initialization";
+  githubClientError = errorMessage;
+  console.error("Failed to initialize GitHub client:", errorMessage);
 }
 
 /**
@@ -340,6 +344,47 @@ try {
  */
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
+
+  // Check if GitHub client initialization failed
+  if (githubClientError) {
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              error: `GitHub client initialization failed: ${githubClientError}. Please ensure the GITHUB_TOKEN environment variable is set with a valid GitHub personal access token.`,
+              category: "authentication",
+            },
+            null,
+            2,
+          ),
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  // Type guard to ensure githubClient is defined
+  if (!githubClient) {
+    return {
+      content: [
+        {
+          type: "text",
+          text: JSON.stringify(
+            {
+              error:
+                "GitHub client is not initialized. This is an internal error.",
+              category: "unknown",
+            },
+            null,
+            2,
+          ),
+        },
+      ],
+      isError: true,
+    };
+  }
 
   try {
     switch (name) {
@@ -453,6 +498,30 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         throw new Error(`Unknown tool: ${name}`);
     }
   } catch (error: unknown) {
+    // Handle Zod validation errors
+    if (error instanceof ZodError) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                error: "Invalid input parameters",
+                category: "validation",
+                details: error.issues.map((e) => ({
+                  path: e.path.join("."),
+                  message: e.message,
+                })),
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+        isError: true,
+      };
+    }
+
     // Handle GitHub API errors
     if (error && typeof error === "object" && "status" in error) {
       const toolError = handleGitHubError(error, name);
@@ -501,6 +570,23 @@ async function main() {
   // Log to stderr (stdout is used for MCP protocol)
   console.error("Resolve PR MCP server running on stdio");
   console.error("Version: 0.1.0");
+
+  // Graceful shutdown handler
+  const shutdown = () => {
+    console.error("Shutting down gracefully...");
+    server
+      .close()
+      .catch(() => {
+        // Ignore close errors
+      })
+      .finally(() => {
+        process.exit(0);
+      });
+  };
+
+  // Register signal handlers
+  process.on("SIGINT", shutdown);
+  process.on("SIGTERM", shutdown);
 }
 
 main().catch((error) => {

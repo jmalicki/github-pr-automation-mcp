@@ -46,15 +46,22 @@ import { Octokit } from "@octokit/rest";
  * @param pr.repo - Repository name
  * @param pr.number - Pull request number
  * @param commentIds - Array of REST comment IDs to fetch node IDs for
- * @returns Promise resolving to node ID map and resolved thread IDs
+ * @returns Promise resolving to an object containing:
+ *   - nodeIdMap: Maps REST comment IDs to GraphQL thread node IDs
+ *   - resolvedThreadIds: Set of resolved GraphQL thread IDs
+ *   - graphqlFailed: True if GraphQL fetch failed, false on success
  *
  * @example
  * ```typescript
- * const { nodeIdMap, resolvedThreadIds } = await fetchReviewCommentNodeIds(
+ * const { nodeIdMap, resolvedThreadIds, graphqlFailed } = await fetchReviewCommentNodeIds(
  *   octokit,
  *   { owner: 'owner', repo: 'repo', number: 123 },
  *   [12345, 12346]
  * );
+ *
+ * if (graphqlFailed) {
+ *   console.warn('Thread resolution status may be incomplete');
+ * }
  *
  * // Check if a comment's thread is resolved
  * const threadId = nodeIdMap.get(12345);
@@ -65,14 +72,18 @@ export async function fetchReviewCommentNodeIds(
   octokit: Octokit,
   pr: { owner: string; repo: string; number: number },
   commentIds: number[],
-): Promise<{ nodeIdMap: Map<number, string>; resolvedThreadIds: Set<string> }> {
+): Promise<{
+  nodeIdMap: Map<number, string>;
+  resolvedThreadIds: Set<string>;
+  graphqlFailed: boolean;
+}> {
   // Initialize result containers
   const nodeIdMap = new Map<number, string>(); // Maps REST ID → GraphQL thread ID
   const resolvedThreadIds = new Set<string>(); // Set of resolved thread IDs
 
   // Early return if no comment IDs to process
   if (commentIds.length === 0) {
-    return { nodeIdMap, resolvedThreadIds };
+    return { nodeIdMap, resolvedThreadIds, graphqlFailed: false };
   }
 
   // GraphQL query to fetch review threads with comments and resolution status
@@ -174,12 +185,17 @@ export async function fetchReviewCommentNodeIds(
       if (needed.size === 0) break;
     } while (after);
   } catch (error) {
-    // Graceful degradation: if GraphQL fails, return empty maps
+    // Graceful degradation: if GraphQL fails, return empty maps with failure flag
     // This allows the REST API fallback to continue working
     console.warn(
       `Failed to fetch GraphQL node IDs: ${error instanceof Error ? error.message : String(error)}`,
     );
+    return {
+      nodeIdMap: new Map(),
+      resolvedThreadIds: new Set(),
+      graphqlFailed: true,
+    };
   }
 
-  return { nodeIdMap, resolvedThreadIds };
+  return { nodeIdMap, resolvedThreadIds, graphqlFailed: false };
 }

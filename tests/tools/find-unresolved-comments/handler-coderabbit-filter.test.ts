@@ -12,6 +12,7 @@ vi.mock(
     fetchReviewCommentNodeIds: vi.fn(async () => ({
       nodeIdMap: new Map<number, string>(),
       resolvedThreadIds: new Set<string>(),
+      graphqlFailed: false,
     })),
   }),
 );
