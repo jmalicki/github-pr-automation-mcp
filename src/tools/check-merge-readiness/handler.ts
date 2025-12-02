@@ -38,25 +38,19 @@ export async function handleCheckMergeReadiness(
   const pr = parsePRIdentifier(input.pr);
   const octokit = client.getOctokit();
 
-  // Fetch PR and check runs
-  const [pullRequest, checkRuns] = await Promise.all([
-    octokit.pulls.get({
-      owner: pr.owner,
-      repo: pr.repo,
-      pull_number: pr.number,
-    }),
-    octokit.checks.listForRef({
-      owner: pr.owner,
-      repo: pr.repo,
-      ref: (
-        await octokit.pulls.get({
-          owner: pr.owner,
-          repo: pr.repo,
-          pull_number: pr.number,
-        })
-      ).data.head.sha,
-    }),
-  ]);
+  // Fetch PR first to get the head SHA
+  const pullRequest = await octokit.pulls.get({
+    owner: pr.owner,
+    repo: pr.repo,
+    pull_number: pr.number,
+  });
+
+  // Fetch check runs using the head SHA
+  const checkRuns = await octokit.checks.listForRef({
+    owner: pr.owner,
+    repo: pr.repo,
+    ref: pullRequest.data.head.sha,
+  });
 
   const data = pullRequest.data;
 
